@@ -1,0 +1,58 @@
+using Crm.Extract.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+
+namespace Crm.Cli.Configuration;
+
+/// <summary>Settings bound from the <c>Output</c> section.</summary>
+public sealed class OutputOptions
+{
+    public const string SectionName = "Output";
+
+    /// <summary>Where <c>runs/</c> and <c>cache/</c> are created. A relative path resolves against the executable's folder.</summary>
+    public string Root { get; set; } = "out";
+
+    public string ResolvedRoot()
+    {
+        return Path.IsPathRooted(Root) ? Root : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, Root));
+    }
+}
+
+/// <summary>Settings bound from the <c>Run</c> section.</summary>
+public sealed class RunOptions
+{
+    public const string SectionName = "Run";
+
+    /// <summary>Fail the run when a §2.4 privilege is held below organization depth. Only ever switched off deliberately.</summary>
+    public bool RequireOrganizationReadPrivileges { get; set; } = true;
+}
+
+/// <summary>The bound, validated configuration for one run.</summary>
+public sealed record ExtractorSettings(IOptions<CrmConnectionOptions> Crm, IOptions<OutputOptions> Output, IOptions<RunOptions> Run)
+{
+    /// <summary>
+    /// Layers, lowest precedence first: the constants in <c>Program</c>, <c>appsettings.json</c>,
+    /// <c>appsettings.Development.json</c>, then <c>CRMEXTRACT_</c>-prefixed environment variables. No command-line
+    /// provider: the target host's command prompt is locked down (§10).
+    /// </summary>
+    public static IConfigurationRoot BuildConfiguration(IReadOnlyDictionary<string, string?> fallback, string baseDirectory)
+    {
+        return new ConfigurationBuilder()
+            .AddInMemoryCollection(fallback)
+            .AddJsonFile(Path.Combine(baseDirectory, "appsettings.json"), optional: true, reloadOnChange: false)
+            .AddJsonFile(Path.Combine(baseDirectory, "appsettings.Development.json"), optional: true, reloadOnChange: false)
+            .AddEnvironmentVariables("CRMEXTRACT_")
+            .Build();
+    }
+
+    public static ExtractorSettings Bind(IConfiguration configuration)
+    {
+        CrmConnectionOptions crm = new();
+        configuration.GetSection(CrmConnectionOptions.SectionName).Bind(crm);
+        OutputOptions output = new();
+        configuration.GetSection(OutputOptions.SectionName).Bind(output);
+        RunOptions run = new();
+        configuration.GetSection(RunOptions.SectionName).Bind(run);
+        return new ExtractorSettings(Options.Create(crm), Options.Create(output), Options.Create(run));
+    }
+}

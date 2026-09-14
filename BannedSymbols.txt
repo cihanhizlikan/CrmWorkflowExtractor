@@ -37,3 +37,4 @@ P:System.Net.Http.HttpMethod.Put;Handout §2.3 — the application never writes 
 P:System.Net.Http.HttpMethod.Patch;Handout §2.3 — the application never writes to CRM.
 P:System.Net.Http.HttpMethod.Delete;Handout §2.3 — the application never writes to CRM.
 M:System.Net.Http.HttpMethod.#ctor(System.String);Handout §2.3 — no custom verbs; the application never writes to CRM.
+M:System.Net.Http.HttpMethod.Parse(System.ReadOnlySpan{System.Char});Handout §2.3 — no custom verbs; the application never writes to CRM.

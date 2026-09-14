@@ -8,8 +8,15 @@ Written 2026-09-14. Organized in the four sections of handout §9. Decisions the
 | Package | State |
 |---|---|
 | Seed (context, rules, wp-* skills, build profile) | committed on `main` (initial commit of an empty repo) |
-| M1 — inventory, privilege check, count reconciliation | see its branch |
-| M2–M6 | not started |
+| M1 — inventory, privilege check, count reconciliation | **committed on `feature/m1-inventory`, awaiting merge.** Verified against a synthetic fake server only; its gate needs the company network (see *Acceptance*) |
+| M2–M6, M5b | not started — M2 waits for the M1 acceptance run (handout §11: stop at M1) |
+
+## Handout disagreements found while building
+
+| Handout | Finding | Source | Status |
+|---|---|---|---|
+| §3.1 selects `parentworkflowid`, `activeworkflowid` | Lookups are selectable only as `_parentworkflowid_value` / `_activeworkflowid_value`; the bare name fails the whole query | Web API query documentation (lookup properties) | Applied in M1; confirm on live server |
+| §2.4 "reconcile `$count` against records" catches the privilege trap | It cannot: both pass through the same security filter. Replaced as the primary check by `RetrieveUserPrivileges` depth | Reasoning; confirm on live server with a user-level account if one is available | Applied in M1 |
 
 ## Pre-flight facts (checked on the development machine, 2026-09-14)
 
@@ -128,6 +135,21 @@ Written 2026-09-14. Organized in the four sections of handout §9. Decisions the
     the handout's six: similarity *scores*, consolidation *combines*, and either is testable without the other.
     Created at M5b, not before.
 12. **Milestones re-sequenced:** M5 similarity + clusters → **M5b consolidation** → M6 reports + end-to-end.
+13. **(M1) Insufficient privilege fails the run but the inventory still executes**, so the retrieved count exists to
+    compare with an administrator's. The run is sealed `failed`, so the output cannot pass as complete.
+14. **(M1) HTTP 500 is retried** (bounded, 5 attempts): CRM reports SQL timeouts and deadlocks as 500. A
+    deterministic 500 costs a few backed-off seconds.
+15. **(M1) Run folder names use UTC**, and a same-second clash gets `-2`, never an overwrite.
+16. **(M1) A relative `Output:Root` resolves against the executable's folder**, not the working directory, because a
+    double-clicked or scheduled run on the locked-down host has an unpredictable working directory.
+17. **(M1) Every final API response body is kept verbatim** under `raw/http/NNNN.body` with `raw/http/index.jsonl`,
+    in addition to `raw/workflows.jsonl` — the handout asks for verbatim payloads, and the preflight responses
+    (who the user was, which privileges) are evidence too.
+18. **(M1) Configuration environment-variable prefix is `CRMEXTRACT_`** (e.g. `CRMEXTRACT_Crm__WebApiBaseUrl`).
+19. **(M1) Read-only is also build-enforced**: `BannedSymbols.txt` bans `HttpClient` construction, every send/verb
+    helper and non-GET `HttpMethod` members; a probe using `HttpMethod.Post` failed the build with RS0030 (verified).
+20. **(M1) Option-set labels are cross-checked, not trusted**: each record's FormattedValue annotation is recorded
+    beside the handout's label in `reports/inventory.md`.
 
 ## 4. Out-of-scope findings — recorded, not acted on
 
@@ -142,4 +164,29 @@ Written 2026-09-14. Organized in the four sections of handout §9. Decisions the
 
 Items only a run on the corporate network can close. Each has a **Do**, a **Pass** and a **Capture**.
 
-(Added by the packages that need them.)
+### M1-A — the run itself (the M1 gate)
+- **Do:** on a machine on the corporate network, as the service account, put the Web API root in
+  `appsettings.json` → `Crm:WebApiBaseUrl` (e.g. `https://<host>/<org>/api/data/v8.2/`) and start
+  `CrmWorkflowExtractor.exe` with no arguments.
+- **Pass:** exit code 0; the summary shows all six privileges at `Global`; `$count N -> retrieved N`; distinct
+  owners > 1; an administrator's own count of the Process table (Settings → Processes, all views, or Advanced Find
+  on Process with no filter) equals N.
+- **Capture:** the console summary, the administrator's count, and `manifest.json` + `reports/inventory.md` +
+  `logs/warnings.txt` from the run folder. **Not** `raw/` unless security agrees — it holds production metadata.
+
+### M1-B — assumptions only the live server can settle
+- **Do:** read the same run's `reports/inventory.md` and `logs/warnings.txt`.
+- **Pass / record in the plan either way:**
+  - `workflows/$count` answered a number on 8.2. If it did not, the run failed naming the request, and M1 needs a
+    change to the `?$count=true` form — not implemented, because nothing says 8.2 lacks the path form.
+  - No "Column … does not exist" warnings, or the list of columns that do not exist on 8.2.
+  - No "no privilege of that name" warning — especially `prvReadProcessStage`, whose name is unverified.
+  - The option-set table: every server label means the same as the handout's label; no `Unknown(n)`.
+  - Whether privileges granted through **team** roles appear in `RetrieveUserPrivileges` — if the service account
+    gets its roles through a team and the check reports `Missing`, the check needs `RetrievePrincipalAccess` or a
+    team walk instead.
+- **Capture:** those two files.
+
+### M1-C — deployment type
+- **Pass:** the run does not stop with exit code 3. If it does, the deployment is IFD: stop, per §2.2.
+- **Capture:** the console output.
