@@ -1,0 +1,39 @@
+; Bans that apply to every project. Format is <documentation-id>;<message>. RS0030 is an ERROR in .editorconfig.
+;
+; Handout §2.3 — the application is read-only against PRODUCTION, enforced structurally. Only CrmHttpClient may
+; touch the network, and it does so through one GET-guarded call site that suppresses RS0030 with its reason.
+; Every other way of building a client or sending a request stops the build at the line.
+M:System.Net.Http.HttpClient.#ctor;Handout §2.3 — only CrmHttpClient may create an HttpClient.
+M:System.Net.Http.HttpClient.#ctor(System.Net.Http.HttpMessageHandler);Handout §2.3 — only CrmHttpClient may create an HttpClient.
+M:System.Net.Http.HttpClient.#ctor(System.Net.Http.HttpMessageHandler,System.Boolean);Handout §2.3 — only CrmHttpClient may create an HttpClient.
+T:System.Net.Http.IHttpClientFactory;Handout §2.3 — only CrmHttpClient may create an HttpClient.
+T:System.Net.WebClient;Handout §2.3 — only CrmHttpClient may touch the network.
+T:System.Net.WebRequest;Handout §2.3 — only CrmHttpClient may touch the network.
+T:System.Net.HttpWebRequest;Handout §2.3 — only CrmHttpClient may touch the network.
+M:System.Net.Http.HttpClient.SendAsync(System.Net.Http.HttpRequestMessage,System.Net.Http.HttpCompletionOption,System.Threading.CancellationToken);Handout §2.3 — only CrmHttpClient's GET guard may send.
+M:System.Net.Http.HttpClient.SendAsync(System.Net.Http.HttpRequestMessage,System.Threading.CancellationToken);Handout §2.3 — only CrmHttpClient's GET guard may send.
+M:System.Net.Http.HttpClient.SendAsync(System.Net.Http.HttpRequestMessage);Handout §2.3 — only CrmHttpClient's GET guard may send.
+M:System.Net.Http.HttpClient.SendAsync(System.Net.Http.HttpRequestMessage,System.Net.Http.HttpCompletionOption);Handout §2.3 — only CrmHttpClient's GET guard may send.
+M:System.Net.Http.HttpClient.Send(System.Net.Http.HttpRequestMessage);Handout §2.3 — only CrmHttpClient's GET guard may send.
+M:System.Net.Http.HttpClient.Send(System.Net.Http.HttpRequestMessage,System.Net.Http.HttpCompletionOption);Handout §2.3 — only CrmHttpClient's GET guard may send.
+M:System.Net.Http.HttpClient.Send(System.Net.Http.HttpRequestMessage,System.Threading.CancellationToken);Handout §2.3 — only CrmHttpClient's GET guard may send.
+M:System.Net.Http.HttpClient.Send(System.Net.Http.HttpRequestMessage,System.Net.Http.HttpCompletionOption,System.Threading.CancellationToken);Handout §2.3 — only CrmHttpClient's GET guard may send.
+M:System.Net.Http.HttpClient.GetAsync(System.String);Handout §2.3 — go through CrmHttpClient.
+M:System.Net.Http.HttpClient.GetAsync(System.Uri);Handout §2.3 — go through CrmHttpClient.
+M:System.Net.Http.HttpClient.GetStringAsync(System.String);Handout §2.3 — go through CrmHttpClient.
+M:System.Net.Http.HttpClient.GetStreamAsync(System.String);Handout §2.3 — go through CrmHttpClient.
+M:System.Net.Http.HttpClient.PostAsync(System.String,System.Net.Http.HttpContent);Handout §2.3 — the application never writes to CRM.
+M:System.Net.Http.HttpClient.PostAsync(System.Uri,System.Net.Http.HttpContent);Handout §2.3 — the application never writes to CRM.
+M:System.Net.Http.HttpClient.PostAsync(System.String,System.Net.Http.HttpContent,System.Threading.CancellationToken);Handout §2.3 — the application never writes to CRM.
+M:System.Net.Http.HttpClient.PostAsync(System.Uri,System.Net.Http.HttpContent,System.Threading.CancellationToken);Handout §2.3 — the application never writes to CRM.
+M:System.Net.Http.HttpClient.PutAsync(System.String,System.Net.Http.HttpContent);Handout §2.3 — the application never writes to CRM.
+M:System.Net.Http.HttpClient.PutAsync(System.Uri,System.Net.Http.HttpContent);Handout §2.3 — the application never writes to CRM.
+M:System.Net.Http.HttpClient.PatchAsync(System.String,System.Net.Http.HttpContent);Handout §2.3 — the application never writes to CRM.
+M:System.Net.Http.HttpClient.PatchAsync(System.Uri,System.Net.Http.HttpContent);Handout §2.3 — the application never writes to CRM.
+M:System.Net.Http.HttpClient.DeleteAsync(System.String);Handout §2.3 — the application never writes to CRM.
+M:System.Net.Http.HttpClient.DeleteAsync(System.Uri);Handout §2.3 — the application never writes to CRM.
+P:System.Net.Http.HttpMethod.Post;Handout §2.3 — the application never writes to CRM.
+P:System.Net.Http.HttpMethod.Put;Handout §2.3 — the application never writes to CRM.
+P:System.Net.Http.HttpMethod.Patch;Handout §2.3 — the application never writes to CRM.
+P:System.Net.Http.HttpMethod.Delete;Handout §2.3 — the application never writes to CRM.
+M:System.Net.Http.HttpMethod.#ctor(System.String);Handout §2.3 — no custom verbs; the application never writes to CRM.

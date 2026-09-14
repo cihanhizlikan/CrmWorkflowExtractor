@@ -1,0 +1,47 @@
+<Project>
+  <!-- Build profile adopted from Yalbuz (2026-09-14). Yalbuz's Directory.Build.props records why each setting was
+       chosen; only what differs for this tool is explained here. -->
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Pinned so a warning count means the same thing on a different SDK. -->
+    <AnalysisLevel>10.0</AnalysisLevel>
+    <AnalysisMode>Default</AnalysisMode>
+    <!-- Required for IDE0005 (unused usings) to surface in the build; see dotnet/roslyn#41640. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <NoWarn>$(NoWarn);VSTHRD200;VSTHRD103;VSTHRD003</NoWarn>
+    <!-- Release output is what runs on the locked-down host: warnings are errors there, so a Release build that
+         succeeds is a clean one by construction. Debug stays permissive for the edit loop. -->
+    <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
+    <!-- Only the neutral language ships. Nothing here is localized UI; Turkish is DATA read from CRM. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <DebugType>embedded</DebugType>
+    <PublishDocumentationFile>false</PublishDocumentationFile>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+  </PropertyGroup>
+
+  <!-- Stamps the commit into AssemblyInformationalVersion ("0.1.0+<sha>"). The run manifest records it as
+       toolVersion (handout §8), so an evidence folder always names the binary that produced it. -->
+  <Target Name="StampCommitIntoVersion" BeforeTargets="GetAssemblyVersion" Condition="'$(SourceRevisionId)' == ''">
+    <Exec Command="git rev-parse --short HEAD"
+          ConsoleToMSBuild="true" ContinueOnError="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_CrmHead" />
+      <Output TaskParameter="ExitCode" PropertyName="_CrmGitExit" />
+    </Exec>
+    <PropertyGroup Condition="'$(_CrmGitExit)' == '0' AND '$(_CrmHead)' != ''">
+      <SourceRevisionId>$(_CrmHead.Trim())</SourceRevisionId>
+    </PropertyGroup>
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.7.23" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
+    <PackageReference Include="Roslynator.Analyzers" Version="5.0.0" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+</Project>

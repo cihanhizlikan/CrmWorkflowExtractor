@@ -1,0 +1,85 @@
+root = true
+
+# House C# style, build-enforced (EnforceCodeStyleInBuild is on in Directory.Build.props). Adopted from Yalbuz on
+# 2026-09-14 with all 13 rules of .claude/rules/coding-style.md; the reasons each severity was chosen are Yalbuz's
+# and are not repeated here.
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+end_of_line = crlf
+
+[*.cs]
+indent_style = space
+indent_size = 4
+
+# --- Pattern matching (rules 5, 6)
+csharp_style_pattern_matching_over_is_with_cast_check = true:warning
+csharp_style_pattern_matching_over_as_with_null_check = true:warning
+csharp_style_prefer_pattern_matching = true:warning
+csharp_style_prefer_switch_expression = true:warning
+csharp_style_prefer_not_pattern = true:warning
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
+csharp_style_conditional_delegate_call = true:warning
+
+# --- Unused usings (requires GenerateDocumentationFile; see Directory.Build.props)
+dotnet_diagnostic.IDE0005.severity = warning
+
+# --- Rule 1: explicit types, never var; target-typed new
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = false:warning
+csharp_style_var_elsewhere = false:warning
+csharp_style_implicit_object_creation_when_type_is_apparent = true:warning
+# --- Rule 2: braces on every block
+csharp_prefer_braces = true:warning
+# --- Rule 8: range operators
+csharp_style_prefer_range_operator = true:warning
+# --- Rule 7: collection expressions
+dotnet_style_prefer_collection_expression = when_types_loosely_match:warning
+# --- Rule 11: primary constructors
+csharp_style_prefer_primary_constructors = true:warning
+dotnet_diagnostic.IDE0290.severity = warning
+# --- Rule 10: file-scoped namespaces, block-bodied members
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_expression_bodied_properties = false:warning
+csharp_style_expression_bodied_accessors = false:warning
+csharp_style_expression_bodied_indexers = false:warning
+csharp_style_expression_bodied_methods = false:warning
+
+# --- Code metrics, off at SDK defaults and forced on
+dotnet_diagnostic.CA1502.severity = warning
+dotnet_diagnostic.CA1505.severity = warning
+dotnet_diagnostic.CA1506.severity = warning
+
+# --- Security and disposal rules off at SDK defaults
+dotnet_diagnostic.CA2100.severity = warning
+dotnet_diagnostic.CA3003.severity = warning
+dotnet_diagnostic.CA1001.severity = warning
+
+# --- The culture-sensitive string family. This tool folds Turkish text for comparison keys (handout §5.2), where
+# the dotted/dotless I makes a culture comparison and an ordinal one disagree on real data.
+dotnet_diagnostic.CA1305.severity = warning
+dotnet_diagnostic.CA1307.severity = warning
+dotnet_diagnostic.CA1310.severity = warning
+
+# --- Roslynator, one rule only: RCS1211 is rule 13 (no else after a branch that exits).
+roslynator_analyzers.enabled_by_default = false
+dotnet_analyzer_diagnostic.category-roslynator.severity = none
+dotnet_diagnostic.RCS1211.severity = warning
+
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+
+# Banned APIs are architectural boundaries (the read-only guarantee among them), so RS0030 stops the build.
+dotnet_diagnostic.RS0030.severity = error
+
+# --- Test project scoping. These sections come LAST: later matching sections win, and [*.cs] above would
+# otherwise take the settings back silently.
+[Crm.Tests/**.cs]
+dotnet_diagnostic.CA1305.severity = none
+dotnet_diagnostic.CA1307.severity = none
+dotnet_diagnostic.CA1310.severity = none
+dotnet_diagnostic.CA1506.severity = none
+dotnet_diagnostic.CA2100.severity = none
+csharp_style_expression_bodied_methods = false:silent

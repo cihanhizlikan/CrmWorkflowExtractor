@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Crm.Ir\Crm.Ir.csproj" />
+    <InternalsVisibleTo Include="Crm.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,20 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+TestResults/
+
+# Local-only secrets. The committed appsettings.json keeps __CRM_PASSWORD__ for pipeline substitution.
+appsettings.Development.json
+**/appsettings.Development.json
+*.pfx
+*.p12
+.env
+
+# Run output. Production XAML may hold hardcoded credentials (handout §5.3), so extraction evidence never enters
+# history — where it is kept, and who can read it, is decided outside this repository.
+out/
+
+# Worktrees live inside the primary checkout; their content is on their own branches.
+.claude/worktrees/
