@@ -34,7 +34,7 @@ internal static class RunHarness
 
         ExitCode code = await run.RunAsync(CancellationToken.None);
 
-        string runRoot = Directory.GetDirectories(Path.Combine(output.Root, "runs")).Single();
+        string runRoot = Directory.GetDirectories(Path.Combine(output.Root, "runs")).OrderByDescending(path => path, StringComparer.Ordinal).First();
         return (code, runRoot, console.ToString());
     }
 }

@@ -26,6 +26,14 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
 
     public ReconciliationResult? Reconciliation { get; set; }
 
+    public IReadOnlyList<WorkflowInventoryRecord> Records { get; set; } = [];
+
+    /// <summary>Definitions routed to manual-review/ instead of the parser.</summary>
+    public IReadOnlyList<Guid> ManualReview { get; set; } = [];
+
+    /// <summary>Named counts for every stage, ordinal-sorted so the manifest diffs cleanly. The §8 count chain reads from here.</summary>
+    public SortedDictionary<string, int> Counts { get; } = new(StringComparer.Ordinal);
+
     public List<string> StagesRun { get; } = [];
 
     public List<string> Failures { get; } = [];

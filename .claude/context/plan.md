@@ -8,8 +8,13 @@ Written 2026-09-14. Organized in the four sections of handout §9. Decisions the
 | Package | State |
 |---|---|
 | Seed (context, rules, wp-* skills, build profile) | committed on `main` (initial commit of an empty repo) |
-| M1 — inventory, privilege check, count reconciliation | **committed on `feature/m1-inventory`, awaiting merge.** Verified against a synthetic fake server only; its gate needs the company network (see *Acceptance*) |
-| M2–M6, M5b | not started — M2 waits for the M1 acceptance run (handout §11: stop at M1) |
+| M1 — inventory, privilege check, count reconciliation | merged. Verified against a synthetic fake server only; its gate needs the company network (see *Acceptance*) |
+| M2 — XAML retrieval, cross-run reuse, manual-review, drift, option-set metadata, BPF stages | merged. Fake server only |
+| M3–M6, M5b | in progress — **DECIDED 2026-09-15:** build the bare-minimum plausible prototype of all steps now rather than stopping at M1; each package verified, merged and its branch deleted as it lands |
+
+**DECIDED 2026-09-15 — deferred for the prototype:** flag-field plugin inference (§4.3), `uidata` spike (§4.5),
+`cluster-lineage.csv`, resuming an unsealed run (a failed run is re-run from scratch; unchanged XAML is still reused
+from sealed runs). Low-cohesion clusters are NOT combined (plan §2.10, maintainer's choice).
 
 ## Handout disagreements found while building
 

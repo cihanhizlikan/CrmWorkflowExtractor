@@ -35,6 +35,7 @@ public sealed record RunManifest(
     IReadOnlyList<string> ColumnsMissingFromServer,
     IReadOnlyList<ManifestPrivilege> Privileges,
     InventoryCounts? Counts,
+    IReadOnlyDictionary<string, int> StageCounts,
     IReadOnlyList<string> Failures,
     IReadOnlyList<string> Warnings,
     IReadOnlyList<RunArtifact> Artifacts)

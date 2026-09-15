@@ -6,10 +6,12 @@ using System.Text.Json;
 using Crm.Cli.Configuration;
 using Crm.Cli.Logging;
 using Crm.Cli.Reports;
+using Crm.Cli.Stages;
 using Crm.Extract.Http;
 using Crm.Extract.Inventory;
 using Crm.Extract.Preflight;
 using Crm.Extract.Runs;
+using Crm.Extract.Xaml;
 using Microsoft.Extensions.Logging;
 
 namespace Crm.Cli;
@@ -37,7 +39,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
             logger.LogInformation("Run {RunId} started by tool {Version}", state.RunId, state.ToolVersion);
             try
             {
-                records = await ExecuteStagesAsync(state, logger, token);
+                records = await ExecuteStagesAsync(folder, state, logger, token);
             }
             catch (CrmInternetFacingDeploymentException error)
             {
@@ -76,11 +78,18 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
         return state.ExitCode;
     }
 
-    private async Task<IReadOnlyList<WorkflowInventoryRecord>> ExecuteStagesAsync(RunState state, ILogger logger, CancellationToken token)
+    private async Task<IReadOnlyList<WorkflowInventoryRecord>> ExecuteStagesAsync(RunFolder folder, RunState state, ILogger logger, CancellationToken token)
     {
         CrmConnectionOptions crm = settings.Crm.Value;
         using CrmHttpClient client = clientFactory(crm, password, logger);
-        client.ResponseObserver = state.Responses.Add;
+        // XAML bodies are kept as raw/xaml/ files instead; holding hundreds of them in memory is what §3.5 warns against.
+        client.ResponseObserver = response =>
+        {
+            if (!Uri.UnescapeDataString(response.RequestUri.Query).Contains(XamlRetriever.SelectMarker, StringComparison.Ordinal))
+            {
+                state.Responses.Add(response);
+            }
+        };
         state.OrganizationUrl = client.BaseUri.ToString();
 
         state.Identity = await CrmIdentity.ResolveAsync(client, token);
@@ -114,6 +123,16 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
         {
             state.Fail(ExitCode.RunFailed, failure);
         }
+        state.Records = pass.Records;
+
+        // A run that already failed (privileges, counts) keeps its inventory as evidence but does not go on to pull
+        // every workflow's XAML: whatever it would build on is known to be incomplete.
+        if (state.Failures.Count > 0)
+        {
+            logger.LogError("Stopping after the inventory: the run has failed and later stages would build on incomplete data.");
+            return pass.Records;
+        }
+        await RetrievalStages.RunAsync(folder, state, client, settings, logger, token);
         return pass.Records;
     }
 
@@ -196,6 +215,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
             ColumnsMissingFromServer: state.ColumnsMissing,
             Privileges: RunManifest.PrivilegesOf(state.Privileges),
             Counts: state.Reconciliation?.Counts,
+            StageCounts: state.Counts,
             Failures: [.. state.Failures],
             Warnings: [.. state.Warnings],
             Artifacts: artifacts);

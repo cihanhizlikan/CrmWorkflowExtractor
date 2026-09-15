@@ -26,6 +26,21 @@ internal sealed class FakeOrganization
     /// <summary>Raw <c>category</c> value for record 0, to stage an option-set value outside the §3.1 table.</summary>
     public int FirstCategory { get; set; }
 
+    /// <summary>Added to every versionnumber, to simulate workflows edited between two runs.</summary>
+    public int VersionOffset { get; set; }
+
+    /// <summary>Record indexes whose <c>iscrmuiworkflow</c> is false (hand-authored XAML).</summary>
+    public IReadOnlySet<int> NonDesigner { get; set; } = new HashSet<int>();
+
+    /// <summary>Definition indexes whose activation runs different logic from the definition.</summary>
+    public IReadOnlySet<int> Drifted { get; set; } = new HashSet<int>();
+
+    /// <summary>Record indexes whose XAML request fails with 404.</summary>
+    public IReadOnlySet<int> XamlMissing { get; set; } = new HashSet<int>();
+
+    /// <summary>The XAML served for a record index; the definition index and whether it is the activation copy are passed.</summary>
+    public Func<int, bool, string> XamlFor { get; set; } = DefaultXaml;
+
     public FakeCrmServer Build()
     {
         FakeCrmServer server = new();
@@ -36,7 +51,45 @@ internal sealed class FakeOrganization
         server.OnJson("EntityDefinitions(LogicalName='workflow')/Attributes", AttributesBody());
         server.On("workflows/$count", _ => FakeCrmServer.Text((ReportedCount ?? WorkflowCount).ToString(CultureInfo.InvariantCulture)));
         server.On("workflows?", Page);
+        server.On("workflows(", Xaml);
+        server.OnJson("EntityDefinitions(LogicalName='new_policy')/Attributes/Microsoft.Dynamics.CRM.PicklistAttributeMetadata",
+            "{\"value\":[{\"LogicalName\":\"new_status\",\"OptionSet\":{\"Options\":[{\"Value\":100000003,\"Label\":{\"UserLocalizedLabel\":{\"Label\":\"İptal Edildi\"}}},{\"Value\":100000007,\"Label\":{\"UserLocalizedLabel\":{\"Label\":\"Askıda\"}}}]}}]}");
+        server.OnJson("EntityDefinitions(LogicalName='new_policy')/Attributes/Microsoft.Dynamics.CRM.StatusAttributeMetadata", "{\"value\":[]}");
+        server.OnJson("EntityDefinitions(LogicalName='new_policy')/Attributes/Microsoft.Dynamics.CRM.StateAttributeMetadata", "{\"value\":[]}");
+        server.OnJson("processstages?", "{\"value\":[]}");
         return server;
+    }
+
+    /// <summary>
+    /// A minimal designer-shaped workflow. Its class name carries the record id, as real XAML does, so a definition
+    /// and its activation differ in bytes but not in structure unless the definition index is in <see cref="Drifted"/>.
+    /// </summary>
+    public static string DefaultXaml(int recordIndex, bool drifted)
+    {
+        string className = "XrmWorkflow" + WorkflowId(recordIndex).ToString("N");
+        string status = drifted ? "100000007" : "100000003";
+        return $"<Activity x:Class=\"{className}\" xmlns=\"http://schemas.microsoft.com/netfx/2009/xaml/activities\" "
+            + "xmlns:mxswa=\"clr-namespace:Microsoft.Xrm.Sdk.Workflow.Activities;assembly=Microsoft.Xrm.Sdk.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35\" "
+            + "xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"><mxswa:Workflow>"
+            + $"<Sequence DisplayName=\"UpdateStep1: Durum\"><mxswa:UpdateEntity DisplayName=\"UpdateStep1\" EntityName=\"new_policy\" Status=\"{status}\" /></Sequence>"
+            + "</mxswa:Workflow></Activity>";
+    }
+
+    private HttpResponseMessage Xaml(Uri uri)
+    {
+        string path = Uri.UnescapeDataString(uri.AbsolutePath);
+        int open = path.LastIndexOf('(');
+        Guid id = Guid.Parse(path[(open + 1)..path.LastIndexOf(')')]);
+        int index = int.Parse(id.ToString("D")[^12..], CultureInfo.InvariantCulture);
+        if (XamlMissing.Contains(index))
+        {
+            return FakeCrmServer.Json("{\"error\":{\"message\":\"Not found\"}}", System.Net.HttpStatusCode.NotFound);
+        }
+        bool activation = index % 2 == 1;
+        int definitionIndex = activation ? index - 1 : index;
+        string xaml = XamlFor(index, activation && Drifted.Contains(definitionIndex));
+        string escaped = System.Text.Json.JsonSerializer.Serialize(xaml);
+        return FakeCrmServer.Json($"{{\"workflowid\":\"{id:D}\",\"xaml\":{escaped}}}");
     }
 
     public static CrmConnectionOptions Options()
@@ -112,7 +165,7 @@ internal sealed class FakeOrganization
             $"{{\"workflowid\":\"{WorkflowId(index):D}\",\"name\":\"Poliçe İptal Süreci {index}\",\"primaryentity\":\"new_policy\","
             + $"\"category\":{category},\"category@OData.Community.Display.V1.FormattedValue\":\"İş Akışı\","
             + $"\"type\":{(definition ? 1 : 2)},\"mode\":0,\"scope\":4,\"statecode\":1,\"runas\":1,"
-            + $"\"iscrmuiworkflow\":true,\"versionnumber\":\"{1000 + index}\",\"_ownerid_value\":\"{owner:D}\","
+            + $"\"iscrmuiworkflow\":{(NonDesigner.Contains(index) ? "false" : "true")},\"versionnumber\":\"{1000 + index + VersionOffset}\",\"_ownerid_value\":\"{owner:D}\","
             + $"\"_parentworkflowid_value\":{parent},\"_activeworkflowid_value\":{active}}}");
     }
 

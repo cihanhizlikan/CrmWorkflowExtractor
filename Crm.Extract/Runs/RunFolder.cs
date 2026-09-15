@@ -106,12 +106,37 @@ public sealed class RunFolder
         await File.WriteAllTextAsync(path, json, Utf8NoBom, token);
     }
 
-    private async Task<RunArtifact> HashAsync(string relative, CancellationToken token)
+    /// <summary>Copies a file byte-for-byte into this run (a reused XAML, a cached metadata file).</summary>
+    public async Task CopyVerbatimAsync(string sourcePath, string relative, CancellationToken token)
+    {
+        string path = WritablePath(relative);
+        await using FileStream source = File.OpenRead(sourcePath);
+        await using FileStream target = File.Create(path);
+        await source.CopyToAsync(target, token);
+    }
+
+    public string ReadText(string relative)
+    {
+        return File.ReadAllText(PathOf(relative), Utf8NoBom);
+    }
+
+    public bool Exists(string relative)
+    {
+        return File.Exists(PathOf(relative));
+    }
+
+    public async Task<RunArtifact> HashAsync(string relative, CancellationToken token)
     {
         string path = PathOf(relative);
         await using FileStream stream = File.OpenRead(path);
         byte[] hash = await SHA256.HashDataAsync(stream, token);
         return new RunArtifact(relative, stream.Length, Convert.ToHexStringLower(hash));
+    }
+
+    public static string Sha256Of(string absolutePath)
+    {
+        using FileStream stream = File.OpenRead(absolutePath);
+        return Convert.ToHexStringLower(SHA256.HashData(stream));
     }
 
     private string WritablePath(string relative)
