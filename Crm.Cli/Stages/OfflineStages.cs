@@ -1,5 +1,7 @@
+using Crm.Cli.Configuration;
 using Crm.Extract.Runs;
 using Crm.Ir.Model;
+using Crm.Similarity;
 using Microsoft.Extensions.Logging;
 
 namespace Crm.Cli.Stages;
@@ -10,10 +12,12 @@ namespace Crm.Cli.Stages;
 /// </summary>
 public static class OfflineStages
 {
-    public static async Task RunAsync(RunFolder folder, RunState state, DateTimeOffset extractedAt, ILogger logger, CancellationToken token)
+    public static async Task RunAsync(RunFolder folder, RunState state, ExtractorSettings settings, DateTimeOffset extractedAt, ILogger logger, CancellationToken token)
     {
         IReadOnlyList<WorkflowIr> documents = await IrStage.RunAsync(folder, state, extractedAt, logger, token);
         state.Documents = documents;
         await BpmnStage.RunAsync(folder, state, documents, logger, token);
+        SimilarityOptions similarity = settings.Similarity?.Value ?? new SimilarityOptions();
+        await SimilarityStage.RunAsync(folder, state, documents, similarity, logger, token);
     }
 }

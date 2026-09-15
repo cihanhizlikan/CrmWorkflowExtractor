@@ -42,7 +42,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
                 records = await ExecuteStagesAsync(folder, state, logger, token);
                 if (state.Failures.Count == 0 && state.StagesRun.Contains("xaml"))
                 {
-                    await OfflineStages.RunAsync(folder, state, started, logger, token);
+                    await OfflineStages.RunAsync(folder, state, settings, started, logger, token);
                 }
             }
             catch (CrmInternetFacingDeploymentException error)

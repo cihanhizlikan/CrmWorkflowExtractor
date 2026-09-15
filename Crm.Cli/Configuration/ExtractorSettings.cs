@@ -1,4 +1,5 @@
 using Crm.Extract.Http;
+using Crm.Similarity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -28,7 +29,7 @@ public sealed class RunOptions
 }
 
 /// <summary>The bound, validated configuration for one run.</summary>
-public sealed record ExtractorSettings(IOptions<CrmConnectionOptions> Crm, IOptions<OutputOptions> Output, IOptions<RunOptions> Run)
+public sealed record ExtractorSettings(IOptions<CrmConnectionOptions> Crm, IOptions<OutputOptions> Output, IOptions<RunOptions> Run, IOptions<SimilarityOptions>? Similarity = null)
 {
     /// <summary>
     /// Layers, lowest precedence first: the constants in <c>Program</c>, <c>appsettings.json</c>,
@@ -53,6 +54,8 @@ public sealed record ExtractorSettings(IOptions<CrmConnectionOptions> Crm, IOpti
         configuration.GetSection(OutputOptions.SectionName).Bind(output);
         RunOptions run = new();
         configuration.GetSection(RunOptions.SectionName).Bind(run);
-        return new ExtractorSettings(Options.Create(crm), Options.Create(output), Options.Create(run));
+        SimilarityOptions similarity = new();
+        configuration.GetSection(SimilarityOptions.SectionName).Bind(similarity);
+        return new ExtractorSettings(Options.Create(crm), Options.Create(output), Options.Create(run), Options.Create(similarity));
     }
 }
