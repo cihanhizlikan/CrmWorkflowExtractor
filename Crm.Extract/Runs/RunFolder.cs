@@ -85,6 +85,11 @@ public sealed class RunFolder
         await File.WriteAllTextAsync(path, content, Utf8NoBom, token);
     }
 
+    public async Task WriteBytesAsync(string relative, byte[] content, CancellationToken token)
+    {
+        await File.WriteAllBytesAsync(WritablePath(relative), content, token);
+    }
+
     public async Task WriteJsonAsync<T>(string relative, T value, CancellationToken token)
     {
         string json = JsonSerializer.Serialize(value, JsonOptions) + "\n";

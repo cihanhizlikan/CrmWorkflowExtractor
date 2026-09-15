@@ -14,5 +14,6 @@ public static class OfflineStages
     {
         IReadOnlyList<WorkflowIr> documents = await IrStage.RunAsync(folder, state, extractedAt, logger, token);
         state.Documents = documents;
+        await BpmnStage.RunAsync(folder, state, documents, logger, token);
     }
 }

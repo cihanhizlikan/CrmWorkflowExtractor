@@ -3,4 +3,9 @@
     <ProjectReference Include="..\Crm.Ir\Crm.Ir.csproj" />
     <InternalsVisibleTo Include="Crm.Tests" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The OMG BPMN 2.0 schemas (omg.org/spec/BPMN/20100501/, downloaded 2026-09-15, unmodified), embedded so
+         validation needs neither the network nor loose files on the locked-down host. -->
+    <EmbeddedResource Include="Schemas\*.xsd" LogicalName="Crm.Bpmn.Schemas.%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>
