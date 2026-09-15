@@ -24,7 +24,12 @@ public enum StepKind
 public sealed record StepSource(Guid WorkflowId, string Path);
 
 /// <summary>A literal as written in the XAML (proves fidelity) and, where metadata allows, its label (what a human reads).</summary>
-public sealed record LiteralValue(string Raw, string? Resolved);
+public sealed record LiteralValue(string Raw, string? Resolved)
+{
+    /// <summary>In a combined workflow: which member workflows set this value. Absent for a single workflow.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<Guid>? Workflows { get; init; }
+}
 
 /// <summary>A resolved condition. <see cref="Text"/> is for people; the parts are for comparison.</summary>
 public sealed record Predicate(string Text, string? Entity, string? Attribute, string? Operator, IReadOnlyList<LiteralValue> Values);

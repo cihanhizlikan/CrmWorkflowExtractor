@@ -18,6 +18,7 @@ public static class OfflineStages
         state.Documents = documents;
         await BpmnStage.RunAsync(folder, state, documents, logger, token);
         SimilarityOptions similarity = settings.Similarity?.Value ?? new SimilarityOptions();
-        await SimilarityStage.RunAsync(folder, state, documents, similarity, logger, token);
+        SimilarityResult families = await SimilarityStage.RunAsync(folder, state, documents, similarity, logger, token);
+        await ConsolidationStage.RunAsync(folder, state, documents, families, logger, token);
     }
 }

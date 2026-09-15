@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Crm.Ir\Crm.Ir.csproj" />
+    <ProjectReference Include="..\Crm.Similarity\Crm.Similarity.csproj" />
+    <InternalsVisibleTo Include="Crm.Tests" />
+  </ItemGroup>
+</Project>

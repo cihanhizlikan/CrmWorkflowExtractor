@@ -112,7 +112,7 @@ public static class StepSignature
     }
 
     /// <summary>A plain Sequence node is grouping only; its children stand in its place.</summary>
-    private static List<StepNode> Flatten(IReadOnlyList<StepNode> steps)
+    public static List<StepNode> Flatten(IReadOnlyList<StepNode> steps)
     {
         List<StepNode> flat = [];
         foreach (StepNode step in steps)

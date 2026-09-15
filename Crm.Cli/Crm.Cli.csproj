@@ -16,6 +16,7 @@
     <ProjectReference Include="..\Crm.Ir\Crm.Ir.csproj" />
     <ProjectReference Include="..\Crm.Bpmn\Crm.Bpmn.csproj" />
     <ProjectReference Include="..\Crm.Similarity\Crm.Similarity.csproj" />
+    <ProjectReference Include="..\Crm.Consolidation\Crm.Consolidation.csproj" />
     <InternalsVisibleTo Include="Crm.Tests" />
   </ItemGroup>
   <ItemGroup>

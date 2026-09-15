@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="Crm.Bpmn/Crm.Bpmn.csproj" />
   <Project Path="Crm.Cli/Crm.Cli.csproj" />
+  <Project Path="Crm.Consolidation/Crm.Consolidation.csproj" />
   <Project Path="Crm.Extract/Crm.Extract.csproj" />
   <Project Path="Crm.Ir/Crm.Ir.csproj" />
   <Project Path="Crm.Similarity/Crm.Similarity.csproj" />

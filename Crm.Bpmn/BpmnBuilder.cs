@@ -17,11 +17,13 @@ public sealed class BpmnBuilder
     private readonly FlowGraph _graph = new();
     private readonly string _idBase;
     private readonly string _workflowName;
+    private readonly IReadOnlyDictionary<Guid, string> _memberNames;
 
-    private BpmnBuilder(string idBase, string workflowName)
+    private BpmnBuilder(string idBase, string workflowName, IReadOnlyDictionary<Guid, string>? memberNames)
     {
         _idBase = idBase;
         _workflowName = workflowName;
+        _memberNames = memberNames ?? new Dictionary<Guid, string>();
     }
 
     public static string ProcessIdFor(Guid workflowId)
@@ -34,10 +36,13 @@ public sealed class BpmnBuilder
         return Build(ProcessIdFor(ir.Identity.WorkflowId), ir.Identity.Name, ir, [new StepSource(ir.Identity.WorkflowId, "")]);
     }
 
-    /// <summary>Builds from any IR; <paramref name="processId"/> also seeds every element id.</summary>
-    public static BpmnProcess Build(string processId, string name, WorkflowIr ir, IReadOnlyList<StepSource> sources)
+    /// <summary>
+    /// Builds from any IR; <paramref name="processId"/> also seeds every element id. For a combined workflow,
+    /// <paramref name="memberNames"/> names each source workflow in the documentation.
+    /// </summary>
+    public static BpmnProcess Build(string processId, string name, WorkflowIr ir, IReadOnlyList<StepSource> sources, IReadOnlyDictionary<Guid, string>? memberNames = null)
     {
-        BpmnBuilder builder = new(processId[(processId.IndexOf('_', StringComparison.Ordinal) + 1)..], name);
+        BpmnBuilder builder = new(processId[(processId.IndexOf('_', StringComparison.Ordinal) + 1)..], name, memberNames);
         FlowNode start = builder._graph.Add(new FlowNode(builder.Id("start"), FlowNodeType.StartEvent, StartName(ir.Trigger))
         {
             Documentation = TriggerDocumentation(ir),
@@ -198,7 +203,7 @@ public sealed class BpmnBuilder
         {
             text.Append(" Argument ").Append(argument.Name).Append(" = ").Append(argument.Value).Append('.');
         }
-        text.Append(" Source: ").Append(string.Join("; ", step.Sources.Select(source => $"{_workflowName} ({source.WorkflowId:D}) step {source.Path}"))).Append('.');
+        text.Append(" Source: ").Append(string.Join("; ", step.Sources.Select(source => $"{_memberNames.GetValueOrDefault(source.WorkflowId, _workflowName)} ({source.WorkflowId:D}) step {source.Path}"))).Append('.');
         return text.ToString();
     }
 
