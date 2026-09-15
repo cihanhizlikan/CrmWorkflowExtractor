@@ -39,7 +39,10 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
             logger.LogInformation("Run {RunId} started by tool {Version}", state.RunId, state.ToolVersion);
             try
             {
-                records = await ExecuteStagesAsync(folder, state, logger, token);
+                string reprocess = settings.Run.Value.ReprocessRunId.Trim();
+                records = reprocess.Length > 0
+                    ? await Reprocessing.LoadAsync(folder, state, settings.Output.Value.ResolvedRoot(), reprocess, logger, token)
+                    : await ExecuteStagesAsync(folder, state, logger, token);
                 if (state.Failures.Count == 0 && state.StagesRun.Contains("xaml"))
                 {
                     await OfflineStages.RunAsync(folder, state, settings, started, logger, token);
@@ -57,9 +60,16 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
             {
                 state.Fail(ExitCode.ServerUnreachable, $"The server could not be reached: {error.Message}");
             }
-            catch (Exception error) when (error is CrmRequestException or CrmBoundaryViolationException or InvalidDataException or InvalidOperationException or JsonException or KeyNotFoundException)
+            catch (Exception error) when (error is CrmRequestException or CrmBoundaryViolationException or InvalidDataException or InvalidOperationException
+                or JsonException or KeyNotFoundException or IOException or UnauthorizedAccessException)
             {
                 state.Fail(ExitCode.RunFailed, $"{error.GetType().Name}: {error.Message}");
+            }
+
+            state.CountChain = CountChain.Evaluate(state);
+            foreach (CountLink gap in state.CountChain.Where(link => !link.Holds))
+            {
+                state.Fail(ExitCode.RunFailed, "Unexplained gap in the count chain — " + gap);
             }
 
             foreach (string warning in state.Warnings)
@@ -187,6 +197,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
         {
             await folder.WriteTextAsync("reports/inventory.md", InventoryReport.Markdown(state, records), token);
         }
+        await folder.WriteTextAsync("reports/report.md", RunReport.Markdown(state), token);
     }
 
     /// <summary>Written as soon as the inventory exists: every later stage reads the records from this file, not from memory.</summary>
@@ -226,6 +237,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
             Privileges: RunManifest.PrivilegesOf(state.Privileges),
             Counts: state.Reconciliation?.Counts,
             StageCounts: state.Counts,
+            CountChain: [.. state.CountChain.Select(link => link.ToString())],
             Failures: [.. state.Failures],
             Warnings: [.. state.Warnings],
             Artifacts: artifacts);

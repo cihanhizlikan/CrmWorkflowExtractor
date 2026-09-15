@@ -46,6 +46,10 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>Every final API response in order, written verbatim to raw/http/ at the end of the run.</summary>
     public List<CrmResponse> Responses { get; } = [];
 
+    public Crm.Similarity.SimilarityResult? Similarity { get; set; }
+
+    public IReadOnlyList<Crm.Cli.Reports.CountLink> CountChain { get; set; } = [];
+
     public ExitCode ExitCode { get; set; } = ExitCode.Success;
 
     public string Status

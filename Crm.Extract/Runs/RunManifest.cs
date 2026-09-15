@@ -36,6 +36,7 @@ public sealed record RunManifest(
     IReadOnlyList<ManifestPrivilege> Privileges,
     InventoryCounts? Counts,
     IReadOnlyDictionary<string, int> StageCounts,
+    IReadOnlyList<string> CountChain,
     IReadOnlyList<string> Failures,
     IReadOnlyList<string> Warnings,
     IReadOnlyList<RunArtifact> Artifacts)

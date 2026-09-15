@@ -26,6 +26,13 @@ public sealed class RunOptions
 
     /// <summary>Fail the run when a §2.4 privilege is held below organization depth. Only ever switched off deliberately.</summary>
     public bool RequireOrganizationReadPrivileges { get; set; } = true;
+
+    /// <summary>
+    /// When set to a sealed run id (e.g. <c>20260915-101500</c>), nothing is fetched: that run's raw/ evidence is copied into
+    /// a new run and every offline stage is run again over it. This is how the parser is improved against real XAML
+    /// away from the company network.
+    /// </summary>
+    public string ReprocessRunId { get; set; } = "";
 }
 
 /// <summary>The bound, validated configuration for one run.</summary>

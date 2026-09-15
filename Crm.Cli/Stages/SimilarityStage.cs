@@ -45,6 +45,8 @@ public static class SimilarityStage
         await folder.WriteBytesAsync("clusters/pairs.csv", pairs.ToBytes(), token);
 
         state.Counts["clusters.total"] = result.Clusters.Count;
+        state.Counts["clusters.members"] = result.Clusters.Sum(cluster => cluster.Members.Count);
+        state.Similarity = result;
         state.Counts["clusters.families"] = result.Clusters.Count(cluster => cluster.Members.Count > 1);
         state.Counts["clusters.lowCohesion"] = result.Clusters.Count(cluster => cluster.LowCohesion);
         state.Counts["pairs.reported"] = result.Pairs.Count;

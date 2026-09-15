@@ -29,6 +29,7 @@ public static class IrStage
         List<WorkflowCoverage> coverage = [];
         List<SensitiveFinding> sensitive = [];
         int failures = 0;
+        int orphaned = 0;
         foreach (XamlEntry entry in XamlEntry.ReadIndex(folder.Root)
             .Where(entry => entry.Kind == XamlEntry.KindDefinition)
             .OrderBy(entry => entry.WorkflowId))
@@ -36,6 +37,7 @@ public static class IrStage
             if (!inventory.TryGetValue(entry.WorkflowId, out JsonElement record))
             {
                 state.Warnings.Add($"XAML {entry.File} has no inventory record; skipped.");
+                orphaned++;
                 continue;
             }
             WorkflowIdentity identity = Identity(record);
@@ -66,6 +68,8 @@ public static class IrStage
 
         await WriteReportsAsync(folder, coverage, sensitive, failures, token);
         state.Counts["ir.documents"] = documents.Count;
+        state.Counts["ir.noInventoryRecord"] = orphaned;
+        state.Counts["xaml.definitions"] = XamlEntry.ReadIndex(folder.Root).Count(entry => entry.Kind == XamlEntry.KindDefinition);
         state.Counts["ir.parseFailed"] = failures;
         state.Counts["ir.workflowsWithUnmapped"] = coverage.Count(workflow => workflow.Observations.Any(observation => observation.Status == CoverageStatus.Unmapped));
         state.Counts["sensitive.findings"] = sensitive.Count;

@@ -111,7 +111,7 @@ public sealed class ExtractionRunTests
         RunFolder folder = RunFolder.Create(output.Root, DateTimeOffset.UtcNow);
         await folder.WriteTextAsync("reports/a.md", "a", CancellationToken.None);
         await folder.SealAsync(artifacts => new RunManifest(1, folder.RunId, RunStatus.Completed, "test", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow,
-            null, null, "Default", null, "", [], [], [], [], null, new Dictionary<string, int>(), [], [], artifacts), CancellationToken.None);
+            null, null, "Default", null, "", [], [], [], [], null, new Dictionary<string, int>(), [], [], [], artifacts), CancellationToken.None);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => folder.WriteTextAsync("reports/b.md", "b", CancellationToken.None));
     }

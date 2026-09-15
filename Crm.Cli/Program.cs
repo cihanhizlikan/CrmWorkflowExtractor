@@ -22,6 +22,7 @@ public static class Program
     private const string RequestTimeoutSeconds = "300";
     private const string OutputRoot = "out";
     private const string RequireOrganizationReadPrivileges = "true";
+    private const string ReprocessRunId = "";               // e.g. "20260915-101500": rebuild from that run's raw/, no network
     // -----------------------------------------------------------------------------------------------------------
 
     public static async Task<int> Main()
@@ -30,6 +31,11 @@ public static class Program
 
         IConfigurationRoot configuration = ExtractorSettings.BuildConfiguration(Fallback(), AppContext.BaseDirectory);
         ExtractorSettings settings = ExtractorSettings.Bind(configuration);
+        if (settings.Run.Value.ReprocessRunId.Trim().Length > 0)
+        {
+            // Reprocessing reads an earlier run's evidence and never contacts the server, so no connection settings are needed.
+            return await RunAsync(settings, null);
+        }
 
         ValidateOptionsResult validation = new CrmConnectionOptionsValidator().Validate(Options.DefaultName, settings.Crm.Value);
         if (validation.Failed)
@@ -55,6 +61,11 @@ public static class Program
             }
         }
 
+        return await RunAsync(settings, password);
+    }
+
+    private static async Task<int> RunAsync(ExtractorSettings settings, string? password)
+    {
         using CancellationTokenSource cancellation = new();
         Console.CancelKeyPress += (_, eventArgs) =>
         {
@@ -80,7 +91,8 @@ public static class Program
             ["Crm:MaxAttempts"] = MaxAttempts,
             ["Crm:RequestTimeoutSeconds"] = RequestTimeoutSeconds,
             ["Output:Root"] = OutputRoot,
-            ["Run:RequireOrganizationReadPrivileges"] = RequireOrganizationReadPrivileges
+            ["Run:RequireOrganizationReadPrivileges"] = RequireOrganizationReadPrivileges,
+            ["Run:ReprocessRunId"] = ReprocessRunId
         };
     }
 }

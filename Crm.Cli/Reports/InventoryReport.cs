@@ -33,8 +33,24 @@ public static class InventoryReport
             Line(text, "Count chain", string.Create(CultureInfo.InvariantCulture,
                 $"$count {counts.ApiCount} -> retrieved {counts.Retrieved} (definitions {counts.Definitions} · activations {counts.Activations} · templates {counts.Templates} · other {counts.OtherType})"));
             Line(text, "Not designer-authored", string.Create(CultureInfo.InvariantCulture,
-                $"{counts.DefinitionsNotDesignerAuthored} definition(s) → manual-review/ at M2"));
+                $"{counts.DefinitionsNotDesignerAuthored} definition(s) → manual-review/, not parsed"));
             Line(text, "Distinct owners", counts.DistinctOwners.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (state.CountChain.Count > 0)
+        {
+            text.AppendLine("Count chain (§8):");
+            foreach (CountLink link in state.CountChain)
+            {
+                text.Append("    ").AppendLine(link.ToString());
+            }
+        }
+        if (state.Counts.ContainsKey("bpmn.written"))
+        {
+            Line(text, "Output", string.Create(CultureInfo.InvariantCulture,
+                $"{Get(state, "ir.documents")} IR · {Get(state, "bpmn.written")} BPMN · {Get(state, "clusters.families")} families of 2+ · "
+                + $"{Get(state, "consolidation.combined")} combined · {Get(state, "ir.workflowsWithUnmapped")} with unmapped constructs"));
+            Line(text, "Read first", Path.Combine(state.RunRoot, "reports", "report.md"));
         }
 
         Block(text, "WARNINGS", state.Warnings);
@@ -88,10 +104,20 @@ public static class InventoryReport
         {
             return;
         }
+        const int shown = 25;
         text.Append(CultureInfo.InvariantCulture, $"{title} ({lines.Count}):").AppendLine();
-        foreach (string line in lines)
+        foreach (string line in lines.Take(shown))
         {
             text.Append("  ! ").AppendLine(line);
         }
+        if (lines.Count > shown)
+        {
+            text.Append(CultureInfo.InvariantCulture, $"  … {lines.Count - shown} more in logs/warnings.txt and reports/report.md").AppendLine();
+        }
+    }
+
+    private static int Get(RunState state, string key)
+    {
+        return state.Counts.TryGetValue(key, out int value) ? value : 0;
     }
 }

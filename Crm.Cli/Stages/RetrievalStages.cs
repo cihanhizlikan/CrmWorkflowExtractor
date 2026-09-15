@@ -28,14 +28,7 @@ public static class RetrievalStages
         state.Counts["xaml.failed"] = xaml.Failed;
         state.Counts["xaml.written"] = xaml.Entries.Count;
 
-        await RouteManualReviewAsync(folder, state, xaml.Entries, token);
-
-        DriftReport drift = DriftAnalyzer.Analyze(state.Records, xaml.Entries, folder.ReadText);
-        await folder.WriteTextAsync("reports/drift.md", DriftAnalyzer.Markdown(drift), token);
-        state.StagesRun.Add("drift");
-        state.Counts["drift.pairsCompared"] = drift.PairsCompared;
-        state.Counts["drift.structureDiffers"] = drift.Drifted.Count(finding => finding.StructureDiffers);
-        state.Counts["drift.draftDefinitions"] = drift.DraftDefinitions.Count;
+        await RouteAndDriftAsync(folder, state, xaml.Entries, token);
 
         await RetrieveOptionSetsAsync(folder, state, client, outputRoot, token);
 
@@ -50,6 +43,19 @@ public static class RetrievalStages
         {
             state.Warnings.Add("Business Process Flow stages could not be retrieved; BPF stages will be unnamed: " + error.Message);
         }
+    }
+
+    /// <summary>Manual-review routing and drift: both work from the inventory and raw/xaml alone, so a reprocessed run repeats them.</summary>
+    public static async Task RouteAndDriftAsync(RunFolder folder, RunState state, IReadOnlyList<XamlEntry> entries, CancellationToken token)
+    {
+        await RouteManualReviewAsync(folder, state, entries, token);
+
+        DriftReport drift = DriftAnalyzer.Analyze(state.Records, entries, folder.ReadText);
+        await folder.WriteTextAsync("reports/drift.md", DriftAnalyzer.Markdown(drift), token);
+        state.StagesRun.Add("drift");
+        state.Counts["drift.pairsCompared"] = drift.PairsCompared;
+        state.Counts["drift.structureDiffers"] = drift.Drifted.Count(finding => finding.StructureDiffers);
+        state.Counts["drift.draftDefinitions"] = drift.DraftDefinitions.Count;
     }
 
     /// <summary>§3.3: hand-authored XAML is not parsed. It is copied to manual-review/ and listed, never guessed at.</summary>
