@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Crm.Extract.Runs;
 
@@ -26,7 +27,8 @@ public sealed class RunFolder
         WriteIndented = true,
         NewLine = "\n",
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);

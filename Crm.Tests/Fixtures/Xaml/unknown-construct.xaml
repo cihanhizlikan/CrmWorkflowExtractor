@@ -1,0 +1,9 @@
+<Activity x:Class="XrmWorkflow00000000000000000000000000000004" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mxswa="clr-namespace:Microsoft.Xrm.Sdk.Workflow.Activities;assembly=Microsoft.Xrm.Sdk.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <mxswa:Workflow>
+    <mxswa:ActivityReference AssemblyQualifiedName="Microsoft.Crm.Workflow.Activities.SomethingNewer, Microsoft.Crm.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" DisplayName="SomethingStep1" />
+    <Sequence DisplayName="CreateStep2: Görev oluştur">
+      <mxswa:CreateEntity DisplayName="CreateStep2" Entity="[CreatedEntities(&quot;task#Temp&quot;)]" EntityName="task" />
+      <Mystery />
+    </Sequence>
+  </mxswa:Workflow>
+</Activity>

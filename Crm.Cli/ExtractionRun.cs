@@ -40,6 +40,10 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
             try
             {
                 records = await ExecuteStagesAsync(folder, state, logger, token);
+                if (state.Failures.Count == 0 && state.StagesRun.Contains("xaml"))
+                {
+                    await OfflineStages.RunAsync(folder, state, started, logger, token);
+                }
             }
             catch (CrmInternetFacingDeploymentException error)
             {
@@ -114,6 +118,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
         WorkflowInventoryRetriever retriever = new(client, crm.PageSize, logger);
         InventoryPass pass = await retriever.RetrieveAsync(available, token);
         state.StagesRun.Add("inventory");
+        await WriteInventoryAsync(folder, state, token);
 
         ReconciliationResult reconciliation = InventoryReconciliation.Evaluate(pass.ApiCount, pass.Records);
         state.Reconciliation = reconciliation;
@@ -180,18 +185,23 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
 
         if (state.StagesRun.Contains("inventory"))
         {
-            StringBuilder lines = new();
-            foreach (CrmResponse page in state.Responses.Where(response => response.RequestUri.AbsolutePath.EndsWith("/workflows", StringComparison.OrdinalIgnoreCase)))
-            {
-                using JsonDocument document = JsonDocument.Parse(page.Body);
-                foreach (JsonElement record in document.RootElement.GetProperty("value").EnumerateArray())
-                {
-                    lines.Append(record.GetRawText().ReplaceLineEndings("")).Append('\n');
-                }
-            }
-            await folder.WriteTextAsync("raw/workflows.jsonl", lines.ToString(), token);
             await folder.WriteTextAsync("reports/inventory.md", InventoryReport.Markdown(state, records), token);
         }
+    }
+
+    /// <summary>Written as soon as the inventory exists: every later stage reads the records from this file, not from memory.</summary>
+    private static async Task WriteInventoryAsync(RunFolder folder, RunState state, CancellationToken token)
+    {
+        StringBuilder lines = new();
+        foreach (CrmResponse page in state.Responses.Where(response => response.RequestUri.AbsolutePath.EndsWith("/workflows", StringComparison.OrdinalIgnoreCase)))
+        {
+            using JsonDocument document = JsonDocument.Parse(page.Body);
+            foreach (JsonElement record in document.RootElement.GetProperty("value").EnumerateArray())
+            {
+                lines.Append(record.GetRawText().ReplaceLineEndings("")).Append('\n');
+            }
+        }
+        await folder.WriteTextAsync("raw/workflows.jsonl", lines.ToString(), token);
     }
 
     private RunManifest Manifest(RunState state, DateTimeOffset started, DateTimeOffset ended, IReadOnlyList<RunArtifact> artifacts)

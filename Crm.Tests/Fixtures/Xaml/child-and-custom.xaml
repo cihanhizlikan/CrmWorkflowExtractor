@@ -1,0 +1,28 @@
+<Activity x:Class="XrmWorkflow00000000000000000000000000000002" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mva="clr-namespace:Microsoft.VisualBasic.Activities;assembly=System.Activities, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:mxs="clr-namespace:Microsoft.Xrm.Sdk;assembly=Microsoft.Xrm.Sdk, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:mxswa="clr-namespace:Microsoft.Xrm.Sdk.Workflow.Activities;assembly=Microsoft.Xrm.Sdk.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:pca="clr-namespace:Partner.Crm.Activities;assembly=Partner.Crm.Activities, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" xmlns:s="clr-namespace:System;assembly=mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <mxswa:Workflow>
+    <Sequence DisplayName="ChildWorkflowStep1: Tahsilat akışını başlat">
+      <mxswa:StartChildWorkflow DisplayName="ChildWorkflowStep1" EntityId="[InputEntities(&quot;primaryEntity&quot;).Id]" EntityName="new_policy" WorkflowId="7a0e1f52-9d4b-4c55-8e1c-3b6f2a9d0c11" />
+    </Sequence>
+    <Sequence DisplayName="CustomActivityStep2: Poliçe servisini çağır">
+      <Sequence.Variables>
+        <Variable x:TypeArguments="x:Object" Name="CustomActivityStep2_1" />
+        <Variable x:TypeArguments="x:Object" Name="CustomActivityStep2_2" />
+      </Sequence.Variables>
+      <mxswa:ActivityReference AssemblyQualifiedName="Microsoft.Crm.Workflow.Activities.EvaluateExpression, Microsoft.Crm.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" DisplayName="EvaluateExpression">
+        <mxswa:ActivityReference.Arguments>
+          <InArgument x:TypeArguments="x:String" x:Key="ExpressionOperator">CreateCrmType</InArgument>
+          <InArgument x:TypeArguments="s:Object[]" x:Key="Parameters">[New Object() { Microsoft.Xrm.Sdk.Workflow.WorkflowPropertyType.String, "https://servis.ornek.local/policy/notify", "String" }]</InArgument>
+          <OutArgument x:TypeArguments="x:Object" x:Key="Result">[CustomActivityStep2_1]</OutArgument>
+        </mxswa:ActivityReference.Arguments>
+      </mxswa:ActivityReference>
+      <mxswa:ActivityReference AssemblyQualifiedName="Microsoft.Crm.Workflow.Activities.EvaluateExpression, Microsoft.Crm.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" DisplayName="EvaluateExpression">
+        <mxswa:ActivityReference.Arguments>
+          <InArgument x:TypeArguments="x:String" x:Key="ExpressionOperator">CreateCrmType</InArgument>
+          <InArgument x:TypeArguments="s:Object[]" x:Key="Parameters">[New Object() { Microsoft.Xrm.Sdk.Workflow.WorkflowPropertyType.String, "user=svc;password=NotARealSecret1", "String" }]</InArgument>
+          <OutArgument x:TypeArguments="x:Object" x:Key="Result">[CustomActivityStep2_2]</OutArgument>
+        </mxswa:ActivityReference.Arguments>
+      </mxswa:ActivityReference>
+      <pca:NotifyPolicyService DisplayName="CustomActivityStep2" ServiceUrl="[CustomActivityStep2_1]" Credentials="[CustomActivityStep2_2]" />
+    </Sequence>
+  </mxswa:Workflow>
+</Activity>
