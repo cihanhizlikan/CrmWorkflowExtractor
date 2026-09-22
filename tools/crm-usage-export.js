@@ -9,7 +9,8 @@
  *   - Dialogs: the newest dialog session (processsession) of the definition or its activation.
  *   - Real-time workflows leave a System Job only when they fail and error logging is on; business rules run in the
  *     browser and leave nothing. For those, "no record" says nothing at all.
- *   - The oldest System Job and dialog session still present, so the report can say how far back the logs reach.
+ *   - How far back the logs reach is worked out afterwards from the oldest run found, because asking the server for
+ *     the oldest record means sorting the whole System Job table, which a production server cannot answer.
  *
  * ABSENCE OF A RECORD IS NOT PROOF OF NON-USE: System Jobs are deleted by "delete job when completed" and by bulk
  * deletion jobs. A record found IS proof that the workflow ran.
@@ -25,6 +26,8 @@
   const PAGE_SIZE = 500;
   const PARALLEL = 4;
 
+  const TIMEOUT_MS = 90000;
+
   const log = (...args) => console.log("%c[crm-usage]", "color:#06a", ...args);
 
   async function get(path, prefer) {
@@ -32,7 +35,10 @@
     if (prefer) {
       headers["Prefer"] = prefer;
     }
-    const response = await fetch(path.startsWith("http") ? path : WEB_API + path, { credentials: "include", headers });
+    // A lookup the server cannot answer quickly is given up on and recorded as a failed lookup, so one slow query
+    // cannot stall the whole export.
+    const stop = AbortSignal.timeout ? AbortSignal.timeout(TIMEOUT_MS) : undefined;
+    const response = await fetch(path.startsWith("http") ? path : WEB_API + path, { credentials: "include", headers, signal: stop });
     const text = await response.text();
     if (!response.ok) {
       throw new Error(`GET ${path} -> ${response.status}: ${text.slice(0, 300)}`);
@@ -81,15 +87,14 @@
 
   const JOB_COLUMNS = "$select=createdon,statecode,statuscode&$orderby=createdon desc&$top=1";
   const SESSION_COLUMNS = "$select=createdon,statecode,statuscode&$orderby=createdon desc&$top=1";
-  const horizon = {
-    oldestWorkflowJob: await first("asyncoperations?$select=createdon&$filter=operationtype eq 10&$orderby=createdon asc&$top=1"),
-    oldestDialogSession: await first("processsessions?$select=createdon&$orderby=createdon asc&$top=1")
-  };
 
   const usage = {};
   let done = 0;
+  let queries = 0;
+  const startedAt = Date.now();
   async function evidenceFor(definition) {
     const activations = activationsOf.get(definition.workflowid) || [];
+    queries += activations.length + (definition.category === 1 ? 1 + activations.length : 0);
     const jobs = [];
     for (const activation of activations) {
       jobs.push({ activationId: activation, ...await first(`asyncoperations?${JOB_COLUMNS}&$filter=_workflowactivationid_value eq ${activation}`) });
@@ -102,8 +107,9 @@
     }
     usage[definition.workflowid] = { activations, jobs, sessions };
     done++;
-    if (done % 50 === 0 || done === definitions.length) {
-      log(`Usage ${done}/${definitions.length}`);
+    if (done <= 3 || done % 10 === 0 || done === definitions.length) {
+      const seconds = Math.round((Date.now() - startedAt) / 1000);
+      log(`Usage ${done}/${definitions.length} — ${queries} lookups, ${seconds}s elapsed`);
     }
   }
   for (let index = 0; index < definitions.length; index += PARALLEL) {
@@ -115,7 +121,6 @@
     exportedAtUtc: new Date().toISOString(),
     startedAtUtc: started.toISOString(),
     webApiRoot: WEB_API,
-    horizon,
     usage
   };
   const stamp = started.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
@@ -125,6 +130,7 @@
   document.body.appendChild(link);
   link.click();
   link.remove();
-  const errors = Object.values(usage).flatMap(entry => [...entry.jobs, ...entry.sessions]).filter(entry => entry.error).length;
+  const lookups = Object.values(usage).flatMap(entry => [...entry.jobs, ...entry.sessions]);
+  const errors = lookups.filter(entry => entry.error).length;
   log(`Done: ${definitions.length} definitions, ${errors} failed lookups. Saved ${link.download}`);
 })().catch(error => console.error("[crm-usage] FAILED:", error));

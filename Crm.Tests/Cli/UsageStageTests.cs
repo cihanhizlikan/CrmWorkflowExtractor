@@ -35,7 +35,7 @@ public sealed class UsageStageTests
         string ran = Assert.Single(usage.Split("\r\n"), line => line.Contains(DefinitionThatRan.ToString("D"), StringComparison.Ordinal));
         Assert.Contains("2026-09-20", ran, StringComparison.Ordinal);
         Assert.Contains("Used: last logged run 2026-09-20 (system job)", ran, StringComparison.Ordinal);
-        Assert.Contains("No logged run since 2026-06-01: NOT proof of non-use", usage, StringComparison.Ordinal);
+        Assert.Contains("No logged run; the oldest run seen anywhere is 2026-09-20: NOT proof of non-use", usage, StringComparison.Ordinal);
         Assert.Contains("Draft: cannot start new runs", usage, StringComparison.Ordinal);
 
         // 44 drafts in the fixture, one without XAML (the simulated failure), so 43 IR documents: listed on their own, absent from clusters.csv, and the count chain still balances.
@@ -60,6 +60,16 @@ public sealed class UsageStageTests
 
         Assert.True(code == ExitCode.Success, console);
         Assert.Contains("Used: last logged run 2026-09-20", File.ReadAllText(Path.Combine(second, "reports", "usage.csv")), StringComparison.Ordinal);
+    }
+
+    /// <summary>Asking the server for the oldest record of all sorts the whole System Job table; production leaves it pending.</summary>
+    [Fact]
+    public void The_Export_Script_Never_Sorts_A_Whole_Table()
+    {
+        string script = File.ReadAllText(Path.Combine(RepositoryTree.Root().FullName, "tools", "crm-usage-export.js"));
+
+        Assert.DoesNotContain("createdon asc", script, StringComparison.Ordinal);
+        Assert.Contains("AbortSignal.timeout", script, StringComparison.Ordinal);
     }
 
     [Fact]

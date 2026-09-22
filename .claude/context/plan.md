@@ -306,3 +306,15 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   reprocess run's parse-coverage.md is the check. If constructs are left over there, the next step is a
   structure-only XAML sample (values stripped), which the maintainer reviews before it leaves the company.
 - **Not done:** Business Process Flows (23), which were not requested.
+
+### The usage export stalled on production (2026-09-23)
+- **Observed:** after listing 1437 definitions and 1795 activations, the script stopped with one `asyncoperations`
+  request pending forever. It was the "oldest System Job" query: a filter on `operationtype` with
+  `$orderby=createdon asc` sorts the whole System Job table, which production cannot answer.
+- **Fixed:** the two whole-table queries are gone. How far back the logs reach is now the oldest run actually found
+  (a floor, not the retention setting, and the report says so). Every lookup has a 90-second timeout and is recorded
+  as a failed lookup instead of hanging, and progress prints every 10 definitions with a lookup count and elapsed
+  time. A test asserts the script never sorts a whole table.
+- **Still unverified:** how fast `_workflowactivationid_value eq <id>` answers on production's System Job table. The
+  progress line after the first three definitions shows it; if those are slow, the next step is to drop per-workflow
+  lookups for anything but background workflows, or to give up on run evidence altogether.

@@ -10,4 +10,4 @@ that fails with 500 (record `…000000000007`), and a workflow entity without th
 `mock-usage-export.json` was produced on 2026-09-23 by running the real `tools/crm-usage-export.js` in a browser
 against the same mock, extended with System Job routes. Synthetic: activation `…0001` (definition `…0000`) has a
 completed job dated 2026-09-20; the lookup for activation `…0003` fails with 500; no other workflow has a job; the
-oldest workflow job is dated 2026-06-01 and there are no dialog sessions.
+only run found is that one, so it is also the floor the report uses for how far the logs reach.

@@ -69,8 +69,9 @@ public static partial class UsageStage
         {
             throw new InvalidDataException($"The usage file is not a {Format} file (tools/crm-usage-export.js).");
         }
-        JsonElement horizon = root.GetProperty("horizon");
         Dictionary<Guid, WorkflowUsage> workflows = [];
+        List<DateTimeOffset> jobRuns = [];
+        List<DateTimeOffset> sessionRuns = [];
         foreach (JsonProperty entry in root.GetProperty("usage").EnumerateObject())
         {
             List<(DateTimeOffset At, string Source)> runs = [];
@@ -86,14 +87,20 @@ public static partial class UsageStage
                     else if (CreatedOn(lookup) is DateTimeOffset at)
                     {
                         runs.Add((at, source));
+                        (source == "system job" ? jobRuns : sessionRuns).Add(at);
                     }
                 }
             }
             (DateTimeOffset At, string Source)? newest = runs.Count == 0 ? null : runs.MaxBy(run => run.At);
             workflows[Guid.Parse(entry.Name)] = new WorkflowUsage(newest?.At, newest?.Source, failed);
         }
-        return new UsageEvidence(CreatedOn(horizon.GetProperty("oldestWorkflowJob")), CreatedOn(horizon.GetProperty("oldestDialogSession")),
-            root.GetProperty("exportedAtUtc").GetString() ?? "", workflows);
+        // How far back the logs reach, as far as this evidence can show: the oldest run found. Asking the server for
+        // the oldest record of all would mean sorting the whole System Job table, which production cannot answer.
+        return new UsageEvidence(
+            jobRuns.Count == 0 ? null : jobRuns.Min(),
+            sessionRuns.Count == 0 ? null : sessionRuns.Min(),
+            root.GetProperty("exportedAtUtc").GetString() ?? "",
+            workflows);
     }
 
     private static DateTimeOffset? CreatedOn(JsonElement lookup)
@@ -135,7 +142,7 @@ public static partial class UsageStage
         }
         DateTimeOffset? horizon = identity.Category == "Dialog" ? usage.OldestDialogSession : usage.OldestWorkflowJob;
         return horizon is DateTimeOffset since
-            ? $"No logged run since {Day(since)}: NOT proof of non-use (jobs are deleted routinely)"
+            ? $"No logged run; the oldest run seen anywhere is {Day(since)}: NOT proof of non-use (jobs are deleted routinely)"
             : "No logged run, and no log at all to compare with: NOT proof of non-use";
     }
 
@@ -162,7 +169,7 @@ public static partial class UsageStage
         }
         else
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"Evidence exported {usage.ExportedAtUtc}. Oldest workflow System Job still present: **{(usage.OldestWorkflowJob is DateTimeOffset job ? Day(job) : "none")}**; oldest dialog session: **{(usage.OldestDialogSession is DateTimeOffset session ? Day(session) : "none")}**. Nothing older than these dates can be seen.").AppendLine();
+            text.AppendLine(CultureInfo.InvariantCulture, $"Evidence exported {usage.ExportedAtUtc}. Oldest System Job seen: **{(usage.OldestWorkflowJob is DateTimeOffset job ? Day(job) : "none")}**; oldest dialog session seen: **{(usage.OldestDialogSession is DateTimeOffset session ? Day(session) : "none")}**. These are the oldest runs found, so they are a floor on how far the logs reach, not the retention setting.").AppendLine();
         }
         text.AppendLine("| Verdict | Definitions |").AppendLine("|---|---:|");
         foreach (IGrouping<string, string> group in documents.Select(document => VerdictKind(Verdict(document.Identity, usage))).GroupBy(kind => kind).OrderBy(group => group.Key, StringComparer.Ordinal))
