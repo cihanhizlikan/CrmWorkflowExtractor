@@ -35,6 +35,14 @@ public static class BpmnSerializer
         {
             processElement.Add(Flow(edge));
         }
+        // Artifacts follow every flow element, as the schema's sequence requires.
+        if (process.Note is not null && process.Graph.Nodes.Count > 0)
+        {
+            processElement.Add(new XElement(Model + "textAnnotation", new XAttribute("id", NoteId(process)),
+                new XElement(Model + "text", process.Note)));
+            processElement.Add(new XElement(Model + "association", new XAttribute("id", NoteId(process) + "_link"),
+                new XAttribute("sourceRef", NoteId(process)), new XAttribute("targetRef", process.Graph.Nodes[0].Id)));
+        }
 
         XElement plane = new(Di + "BPMNPlane", new XAttribute("id", "plane_" + process.ProcessId), new XAttribute("bpmnElement", process.ProcessId));
         foreach (FlowNode node in process.Graph.Nodes)
@@ -64,6 +72,18 @@ public static class BpmnSerializer
                 shape.Add(edgeLabel);
             }
             plane.Add(shape);
+        }
+
+        if (process.Note is not null && process.Graph.Nodes.Count > 0)
+        {
+            (double x, double y, double width, double height) = process.NoteBounds;
+            plane.Add(new XElement(Di + "BPMNShape", new XAttribute("id", "shape_" + NoteId(process)), new XAttribute("bpmnElement", NoteId(process)),
+                new XElement(Dc + "Bounds", Number("x", x), Number("y", y), Number("width", width), Number("height", height))));
+            FlowNode first = process.Graph.Nodes[0];
+            plane.Add(new XElement(Di + "BPMNEdge", new XAttribute("id", "edge_" + NoteId(process) + "_link"),
+                new XAttribute("bpmnElement", NoteId(process) + "_link"),
+                new XElement(DdDi + "waypoint", Number("x", x + 40), Number("y", y + height)),
+                new XElement(DdDi + "waypoint", Number("x", first.X + (first.Width / 2)), Number("y", first.Y))));
         }
 
         XElement definitions = new(Model + "definitions",
@@ -101,6 +121,11 @@ public static class BpmnSerializer
         }
         stream.WriteByte((byte)'\n');
         return stream.ToArray();
+    }
+
+    private static string NoteId(BpmnProcess process)
+    {
+        return "note_" + process.ProcessId;
     }
 
     private static XElement Node(FlowNode node)

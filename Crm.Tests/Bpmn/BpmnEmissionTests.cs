@@ -138,9 +138,11 @@ public sealed class BpmnEmissionTests
         }
         HashSet<string> shapes = [.. xml.Descendants(BpmnSerializer.Di + "BPMNShape").Select(shape => shape.Attribute("bpmnElement")!.Value)];
         HashSet<string> edges = [.. xml.Descendants(BpmnSerializer.Di + "BPMNEdge").Select(shape => shape.Attribute("bpmnElement")!.Value)];
-        Assert.All(process.Elements().Where(element => element.Name.LocalName != "sequenceFlow" && element.Attribute("id") is not null),
+        // Everything with an id is drawn: nodes and the header note as shapes, flows and the note's link as edges.
+        Assert.All(process.Elements().Where(element => element.Name.LocalName is not ("sequenceFlow" or "association") && element.Attribute("id") is not null),
             node => Assert.Contains(node.Attribute("id")!.Value, shapes));
-        Assert.All(process.Elements(BpmnSerializer.Model + "sequenceFlow"), flow => Assert.Contains(flow.Attribute("id")!.Value, edges));
+        Assert.All(process.Elements().Where(element => element.Name.LocalName is "sequenceFlow" or "association"),
+            flow => Assert.Contains(flow.Attribute("id")!.Value, edges));
     }
 
     [Fact]

@@ -51,6 +51,7 @@ public static class ConsolidationStage
             }
         }
 
+        state.CombinedFiles = fileNames;
         await folder.WriteTextAsync("reports/consolidation.md", Markdown(outcomes, byId, fileNames, state.BpmnFiles), token);
         state.Counts["consolidation.combined"] = outcomes.Count(outcome => outcome.Combined is not null);
         state.Counts["consolidation.skipped"] = outcomes.Count(outcome => outcome.Combined is null);

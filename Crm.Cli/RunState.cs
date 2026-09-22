@@ -34,7 +34,16 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>IR documents produced by the offline stages.</summary>
     public IReadOnlyList<Crm.Ir.Model.WorkflowIr> Documents { get; set; } = [];
 
-    /// <summary>The BPMN file name (without folder or extension) written for each workflow.</summary>
+    /// <summary>Workflows whose XAML holds at least one sensitive literal (the values stay in the restricted report).</summary>
+    public IReadOnlySet<Guid> SensitiveWorkflows { get; set; } = new HashSet<Guid>();
+
+    /// <summary>How many steps of each workflow the parser did not understand.</summary>
+    public IReadOnlyDictionary<Guid, int> UnmappedSteps { get; set; } = new Dictionary<Guid, int>();
+
+    /// <summary>The combined BPMN file written for each family, by cluster id.</summary>
+    public IReadOnlyDictionary<string, string> CombinedFiles { get; set; } = new Dictionary<string, string>();
+
+    /// <summary>The BPMN file path (relative to the run folder, without extension) written for each workflow.</summary>
     public IReadOnlyDictionary<Guid, string> BpmnFiles { get; set; } = new Dictionary<Guid, string>();
 
     /// <summary>Named counts for every stage, ordinal-sorted so the manifest diffs cleanly. The §8 count chain reads from here.</summary>

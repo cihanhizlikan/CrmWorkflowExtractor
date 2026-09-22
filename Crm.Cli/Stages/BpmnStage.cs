@@ -18,14 +18,18 @@ public static class BpmnStage
     {
         int invalid = 0;
         IReadOnlyDictionary<Guid, string> names = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity.Name);
-        IReadOnlyDictionary<Guid, string> fileNames = BpmnFileNames.Assign(documents.Select(document => (document.Identity.WorkflowId, document.Identity.Name)));
+        IReadOnlyDictionary<Guid, string> stems = BpmnFileNames.Assign(documents.Select(document => (document.Identity.WorkflowId, document.Identity.Name)));
+        // 1437 files in one folder is a wall. Category, then entity, is how an analyst divides the work.
+        Dictionary<Guid, string> fileNames = documents.ToDictionary(
+            document => document.Identity.WorkflowId,
+            document => $"{BpmnFileNames.Slug(document.Identity.Category)}/{BpmnFileNames.Slug(document.Identity.PrimaryEntity ?? "no entity")}/{stems[document.Identity.WorkflowId]}");
         ExcelCsv index = new("bpmn_file", "workflow_name", "workflow_id", "category", "mode", "state", "primary_entity");
         foreach (WorkflowIr document in documents)
         {
             XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(document, names), state.ToolVersion);
             string file = $"bpmn/{fileNames[document.Identity.WorkflowId]}.bpmn";
             WorkflowIdentity identity = document.Identity;
-            index.Row(Path.GetFileName(file), identity.Name, identity.WorkflowId, identity.Category, identity.Mode, identity.State, identity.PrimaryEntity);
+            index.Row(fileNames[identity.WorkflowId] + ".bpmn", identity.Name, identity.WorkflowId, identity.Category, identity.Mode, identity.State, identity.PrimaryEntity);
             await folder.WriteBytesAsync(file, BpmnSerializer.ToBytes(xml), token);
 
             IReadOnlyList<string> errors = BpmnSchemaValidator.Validate(xml);

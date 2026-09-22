@@ -335,3 +335,20 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   description. Those steps are now labelled by what they do (`Update: new_policy · new_status, new_reason`), a
   diamond by the field its branches test (`new_policy.new_status?`), and a child call by the name of the workflow
   it calls. The internal id stays in the element documentation as evidence.
+
+### Structure for the analysts (2026-09-23) — DECIDED
+- **Maintainer:** 1437 BPMN files are a lot; the more structure and information the analysts get, the better.
+- **Built:**
+  - **Folders:** `bpmn/<category>/<primary entity>/<workflow name>.bpmn`, so a person working on claims opens one
+    folder. `bpmn/index.csv` maps every file to its workflow.
+  - **`reports/migration.csv`** — one row per workflow: priority band (live process · dialog/rule/flow · test-like
+    name · Draft), diagram path, trigger, step count, unmapped steps, custom activities, calls / called by / role,
+    family and combined file, last logged run and usage verdict, sensitive-literal flag, entities and fields
+    written. `migration.md` explains the columns. Sorted live processes first.
+  - **`reports/call-graph.md` / `.csv`** — entry points, building blocks ordered by how many callers they have,
+    one process tree per entry point (a tree is one migration unit), and calls pointing at workflows not in the run.
+  - **A header note on every diagram** — name, category/mode/state/entity, what starts it, step count with how many
+    are unmapped, the CRM id, and that the model is descriptive and not executable. A Draft says so on the canvas.
+    Verified in bpmn-js; a test asserts no shape overlaps the note.
+- **Not done:** grouping by data footprint (which workflows write the same field), which would show migration
+  ordering conflicts in the new product. Worth doing if the analysts ask.

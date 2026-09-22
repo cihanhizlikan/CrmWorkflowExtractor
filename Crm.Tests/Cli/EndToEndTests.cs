@@ -28,7 +28,7 @@ public sealed class EndToEndTests
         {
             Assert.True(File.Exists(Path.Combine(runRoot, file)), file + " is missing");
         }
-        Assert.Equal(5, Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn").Length);
+        Assert.Equal(5, Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Length);
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
         List<string> chain = [.. manifest.RootElement.GetProperty("countChain").EnumerateArray().Select(link => link.GetString()!)];
@@ -68,7 +68,7 @@ public sealed class EndToEndTests
         Assert.True(code == ExitCode.Success, console);
         Assert.Empty(silent.Requests);
         Assert.NotEqual(firstRoot, secondRoot);
-        Assert.Equal(Directory.GetFiles(Path.Combine(firstRoot, "bpmn"), "*.bpmn").Select(Path.GetFileName), Directory.GetFiles(Path.Combine(secondRoot, "bpmn"), "*.bpmn").Select(Path.GetFileName));
+        Assert.Equal(Directory.GetFiles(Path.Combine(firstRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Select(Path.GetFileName), Directory.GetFiles(Path.Combine(secondRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Select(Path.GetFileName));
         Assert.Equal(File.ReadAllBytes(Path.Combine(firstRoot, "raw", "workflows.jsonl")), File.ReadAllBytes(Path.Combine(secondRoot, "raw", "workflows.jsonl")));
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(secondRoot, RunFolder.ManifestFileName)));
         Assert.Contains("reprocess:" + Path.GetFileName(firstRoot), manifest.RootElement.GetProperty("stagesRun").EnumerateArray().Select(stage => stage.GetString()));

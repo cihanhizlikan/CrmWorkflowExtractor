@@ -1,4 +1,5 @@
 using Crm.Cli.Configuration;
+using Crm.Cli.Reports;
 using Crm.Extract.Runs;
 using Crm.Ir.Model;
 using Crm.Similarity;
@@ -27,5 +28,15 @@ public static class OfflineStages
         SimilarityOptions similarity = settings.Similarity?.Value ?? new SimilarityOptions();
         SimilarityResult families = await SimilarityStage.RunAsync(folder, state, runnable, drafts, usage, similarity, logger, token);
         await ConsolidationStage.RunAsync(folder, state, runnable, families, logger, token);
+
+        // Last, because it gathers what every stage before it learned into the one sheet the analysts work from.
+        CallGraph calls = CallGraph.Build(documents);
+        await folder.WriteTextAsync("reports/call-graph.md", calls.Markdown(), token);
+        await folder.WriteBytesAsync("reports/call-graph.csv", calls.Csv(), token);
+        await folder.WriteBytesAsync("reports/migration.csv", MigrationPlan.Csv(state, documents, families, usage), token);
+        await folder.WriteTextAsync("reports/migration.md", MigrationPlan.Markdown(state, documents, families), token);
+        state.Counts["callGraph.entryPoints"] = documents.Count(document => calls.RoleOf(document.Identity.WorkflowId) == CallGraph.EntryPoint);
+        state.Counts["callGraph.buildingBlocks"] = calls.CalledBy.Count;
+        state.StagesRun.Add("migration");
     }
 }

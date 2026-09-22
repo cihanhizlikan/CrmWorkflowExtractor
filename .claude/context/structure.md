@@ -19,7 +19,9 @@ The stages after retrieval read only the run folder, never the network.
 
 ```
 out/runs/<yyyyMMdd-HHmmss>/   manifest.json (written LAST — its presence seals the run)
-  raw/  ir/  bpmn/  clusters/  consolidated/  manual-review/  reports/  logs/
+  raw/  ir/  clusters/  consolidated/  manual-review/  reports/  logs/
+  bpmn/<category>/<primary entity>/<workflow name>.bpmn   + bpmn/index.csv
+  reports/  migration.csv (the analysts’ worksheet) · call-graph.md · usage.md · report.md · …
 out/cache/metadata/           shared across runs, copied into each run's raw/metadata/
 ```
 

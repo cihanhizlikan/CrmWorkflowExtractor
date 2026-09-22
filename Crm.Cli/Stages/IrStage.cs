@@ -73,6 +73,9 @@ public static class IrStage
         state.Counts["ir.parseFailed"] = failures;
         state.Counts["ir.workflowsWithUnmapped"] = coverage.Count(workflow => workflow.Observations.Any(observation => observation.Status == CoverageStatus.Unmapped));
         state.Counts["sensitive.findings"] = sensitive.Count;
+        state.SensitiveWorkflows = sensitive.Select(finding => finding.WorkflowId).ToHashSet();
+        state.UnmappedSteps = coverage.ToDictionary(workflow => workflow.WorkflowId,
+            workflow => workflow.Observations.Count(observation => observation.Status == CoverageStatus.Unmapped));
         state.StagesRun.Add("ir");
         logger.LogInformation("IR: {Documents} documents, {Failures} parse failures, {Sensitive} sensitive literal findings", documents.Count, failures, sensitive.Count);
         return documents;

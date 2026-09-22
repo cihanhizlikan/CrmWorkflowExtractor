@@ -7,7 +7,14 @@ using Crm.Ir.Model;
 namespace Crm.Bpmn;
 
 /// <summary>A laid-out process ready to serialize.</summary>
-public sealed record BpmnProcess(string ProcessId, string Name, string Documentation, FlowGraph Graph, IReadOnlyList<StepSource> Sources);
+public sealed record BpmnProcess(string ProcessId, string Name, string Documentation, FlowGraph Graph, IReadOnlyList<StepSource> Sources)
+{
+    /// <summary>The header note drawn above the diagram: what this process is, what starts it, and how complete the model is.</summary>
+    public string? Note { get; init; }
+
+    /// <summary>Where that note sits, and how big it is.</summary>
+    public (double X, double Y, double Width, double Height) NoteBounds { get; init; }
+}
 
 /// <summary>
 /// IR → BPMN flow graph, per the §6.1 mapping. Element ids derive from the id base (the workflow id, or a cluster
@@ -60,11 +67,20 @@ public sealed partial class BpmnBuilder
         }
         SequenceBlock process = new(builder._graph, parts);
         process.Connect();
-        process.Place(40, 40);
+
+        // The note is a shape like any other, so the diagram starts below it and nothing is drawn over it.
+        string note = HeaderNote(ir, name);
+        double noteHeight = (note.Split('\n').Length * 15) + 16;
+        // Clear of the note, with room for a branch caption above the first row of shapes.
+        process.Place(40, 40 + noteHeight + 120);
 
         string documentation = $"Source workflow: {ir.Identity.Name} ({ir.Identity.WorkflowId:D}). Category {ir.Identity.Category}, "
             + $"entity {ir.Identity.PrimaryEntity ?? "none"}, {ir.Identity.Mode}, state {ir.Identity.State}. Descriptive model generated from CRM XAML; not executable.";
-        return new BpmnProcess(processId, name, documentation, builder._graph, sources);
+        return new BpmnProcess(processId, name, documentation, builder._graph, sources)
+        {
+            Note = note,
+            NoteBounds = (40, 40, 560, noteHeight)
+        };
     }
 
     private SequenceBlock Sequence(IReadOnlyList<StepNode> steps)
@@ -338,6 +354,43 @@ public sealed partial class BpmnBuilder
             parts.Add("record deleted" + (trigger.DeleteStage is null ? "" : $" ({trigger.DeleteStage})"));
         }
         return string.Join("; ", parts);
+    }
+
+    /// <summary>
+    /// What a reader needs before reading the diagram: which CRM workflow this is, whether it can run at all, what
+    /// starts it, how big it is, and how much of it the parser could not read. Kept short enough to take in at once.
+    /// </summary>
+    private static string HeaderNote(WorkflowIr ir, string name)
+    {
+        WorkflowIdentity identity = ir.Identity;
+        int steps = CountSteps(ir.Steps);
+        int unmapped = CountUnmapped(ir.Steps);
+        List<string> lines =
+        [
+            name,
+            $"{identity.Category} · {identity.Mode} · {identity.State} · entity: {identity.PrimaryEntity ?? "none"}",
+            "Starts when: " + (ir.Trigger.OnCreate || ir.Trigger.OnDelete || ir.Trigger.OnUpdateFields.Count > 0
+                ? TriggerText(ir.Trigger)
+                : ir.Trigger.OnDemand ? "a user starts it (on demand)" : "another workflow calls it"),
+            $"{steps} step(s)" + (unmapped > 0 ? $", {unmapped} the parser could not read — marked UNMAPPED below" : ""),
+            $"CRM workflow {identity.WorkflowId:D}",
+            "Descriptive model generated from CRM XAML. Not executable; check against CRM before relying on it."
+        ];
+        if (identity.State == "Draft")
+        {
+            lines.Insert(2, "DRAFT in CRM: this cannot start new runs.");
+        }
+        return string.Join("\n", lines);
+    }
+
+    private static int CountSteps(IReadOnlyList<StepNode> steps)
+    {
+        return steps.Sum(step => 1 + step.Branches.Sum(branch => CountSteps(branch.Steps)));
+    }
+
+    private static int CountUnmapped(IReadOnlyList<StepNode> steps)
+    {
+        return steps.Sum(step => (step.Kind == StepKind.Unmapped ? 1 : 0) + step.Branches.Sum(branch => CountUnmapped(branch.Steps)));
     }
 
     private static string TriggerDocumentation(WorkflowIr ir)

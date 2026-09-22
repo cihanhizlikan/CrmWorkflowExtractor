@@ -20,7 +20,7 @@ public sealed class ConsolidationStageTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.True(code == ExitCode.Success, console);
-        Assert.Equal(4, Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn").Length);
+        Assert.Equal(4, Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Length);
         string combined = Assert.Single(Directory.GetFiles(Path.Combine(runRoot, "consolidated"), "*.bpmn"));
         // Named for a reader: the family medoid, how many workflows it covers, and the tail of the cluster id.
         Assert.Contains("-combined-4-", Path.GetFileName(combined), StringComparison.Ordinal);
