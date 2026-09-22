@@ -18,3 +18,4 @@ out/
 
 # Worktrees live inside the primary checkout; their content is on their own branches.
 .claude/worktrees/
+/input
