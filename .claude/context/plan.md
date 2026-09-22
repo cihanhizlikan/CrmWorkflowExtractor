@@ -318,3 +318,20 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Still unverified:** how fast `_workflowactivationid_value eq <id>` answers on production's System Job table. The
   progress line after the first three definitions shows it; if those are slow, the next step is to drop per-workflow
   lookups for anything but background workflows, or to give up on run evidence altogether.
+
+### Making the BPMN files usable by an analyst (2026-09-23)
+- **Maintainer, after reading the first files:** GUID file names, condition text painted across the diamonds, and
+  step names like `Assign: AssignStep3`.
+- **File names:** `bpmn/<workflow name folded to ASCII>.bpmn` (`police-iptal-sureci-admin.bpmn`). A name shared by
+  several workflows carries the first 8 characters of its id. `bpmn/index.csv` maps file to workflow, and
+  `usage.csv` and `consolidation.md` name the file too. A combined family is
+  `<medoid>-combined-<members>-<cluster tail>.bpmn`. Ids stay inside the files, where tooling reads them.
+- **Labels:** the files carried no `BPMNLabel` bounds at all, so viewers painted every gateway and event name over
+  its own shape. Each gateway and event now carries label bounds below the shape, and a branch condition is a
+  caption above the first shape of the branch it leads to. Sizes follow how bpmn.io actually wraps an external
+  label (90 pixels wide, growing downward), and rows are 120 pixels apart to leave room. A test asserts no label
+  overlaps any shape, over every fixture; verified by eye in bpmn-js as well.
+- **Step names:** `AssignStep3` is CRM's internal step id, not a name — it only shows when the author wrote no step
+  description. Those steps are now labelled by what they do (`Update: new_policy · new_status, new_reason`), a
+  diamond by the field its branches test (`new_policy.new_status?`), and a child call by the name of the workflow
+  it calls. The internal id stays in the element documentation as evidence.

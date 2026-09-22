@@ -148,12 +148,13 @@ public static partial class UsageStage
 
     public static async Task WriteReportAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage, CancellationToken token)
     {
-        ExcelCsv csv = new("workflow_name", "workflow_id", "category", "mode", "state", "name_suggests_test", "last_logged_run", "evidence", "verdict");
+        ExcelCsv csv = new("workflow_name", "bpmn_file", "workflow_id", "category", "mode", "state", "name_suggests_test", "last_logged_run", "evidence", "verdict");
         foreach (WorkflowIr document in documents.OrderBy(document => document.Identity.Name, StringComparer.Ordinal))
         {
             WorkflowIdentity identity = document.Identity;
             WorkflowUsage? found = usage?.Workflows.GetValueOrDefault(identity.WorkflowId);
-            csv.Row(identity.Name, identity.WorkflowId, identity.Category, identity.Mode, identity.State, NameSuggestsTest(identity.Name),
+            string bpmn = state.BpmnFiles.TryGetValue(identity.WorkflowId, out string? stem) ? stem + ".bpmn" : "";
+            csv.Row(identity.Name, bpmn, identity.WorkflowId, identity.Category, identity.Mode, identity.State, NameSuggestsTest(identity.Name),
                 found?.LastLoggedRun is DateTimeOffset last ? Day(last) : "", found?.Source ?? "", Verdict(identity, usage));
         }
         await folder.WriteBytesAsync("reports/usage.csv", csv.ToBytes(), token);

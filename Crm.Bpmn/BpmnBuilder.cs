@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using Crm.Bpmn.Graph;
 using Crm.Ir.Model;
 
@@ -12,18 +13,20 @@ public sealed record BpmnProcess(string ProcessId, string Name, string Documenta
 /// IR → BPMN flow graph, per the §6.1 mapping. Element ids derive from the id base (the workflow id, or a cluster
 /// id for a combined workflow) plus the IR step path — never a counter — so unchanged input gives identical files.
 /// </summary>
-public sealed class BpmnBuilder
+public sealed partial class BpmnBuilder
 {
     private readonly FlowGraph _graph = new();
     private readonly string _idBase;
     private readonly string _workflowName;
     private readonly IReadOnlyDictionary<Guid, string> _memberNames;
+    private readonly IReadOnlyDictionary<Guid, string> _workflowNames;
 
-    private BpmnBuilder(string idBase, string workflowName, IReadOnlyDictionary<Guid, string>? memberNames)
+    private BpmnBuilder(string idBase, string workflowName, IReadOnlyDictionary<Guid, string>? memberNames, IReadOnlyDictionary<Guid, string>? workflowNames)
     {
         _idBase = idBase;
         _workflowName = workflowName;
         _memberNames = memberNames ?? new Dictionary<Guid, string>();
+        _workflowNames = workflowNames ?? new Dictionary<Guid, string>();
     }
 
     public static string ProcessIdFor(Guid workflowId)
@@ -31,18 +34,19 @@ public sealed class BpmnBuilder
         return "wf_" + workflowId.ToString("N");
     }
 
-    public static BpmnProcess Build(WorkflowIr ir)
+    public static BpmnProcess Build(WorkflowIr ir, IReadOnlyDictionary<Guid, string>? workflowNames = null)
     {
-        return Build(ProcessIdFor(ir.Identity.WorkflowId), ir.Identity.Name, ir, [new StepSource(ir.Identity.WorkflowId, "")]);
+        return Build(ProcessIdFor(ir.Identity.WorkflowId), ir.Identity.Name, ir, [new StepSource(ir.Identity.WorkflowId, "")], null, workflowNames);
     }
 
     /// <summary>
     /// Builds from any IR; <paramref name="processId"/> also seeds every element id. For a combined workflow,
     /// <paramref name="memberNames"/> names each source workflow in the documentation.
     /// </summary>
-    public static BpmnProcess Build(string processId, string name, WorkflowIr ir, IReadOnlyList<StepSource> sources, IReadOnlyDictionary<Guid, string>? memberNames = null)
+    public static BpmnProcess Build(string processId, string name, WorkflowIr ir, IReadOnlyList<StepSource> sources,
+        IReadOnlyDictionary<Guid, string>? memberNames = null, IReadOnlyDictionary<Guid, string>? workflowNames = null)
     {
-        BpmnBuilder builder = new(processId[(processId.IndexOf('_', StringComparison.Ordinal) + 1)..], name, memberNames);
+        BpmnBuilder builder = new(processId[(processId.IndexOf('_', StringComparison.Ordinal) + 1)..], name, memberNames, workflowNames);
         FlowNode start = builder._graph.Add(new FlowNode(builder.Id("start"), FlowNodeType.StartEvent, StartName(ir.Trigger))
         {
             Documentation = TriggerDocumentation(ir),
@@ -108,7 +112,7 @@ public sealed class BpmnBuilder
 
     private SplitBlock Split(StepNode step, FlowNodeType gatewayType, string? defaultLabel)
     {
-        FlowNode split = _graph.Add(new FlowNode(Id(step.Path, "split"), gatewayType, Truncate(step.DisplayName.Length > 0 ? step.DisplayName : step.Kind.ToString(), 60))
+        FlowNode split = _graph.Add(new FlowNode(Id(step.Path, "split"), gatewayType, Truncate(GatewayName(step), 40))
         {
             Documentation = StepDocumentation(step),
             Sources = step.Sources
@@ -127,6 +131,25 @@ public sealed class BpmnBuilder
             paths.Add(new SplitPath("(no condition met)", null, true, new SequenceBlock(_graph, [])));
         }
         return new SplitBlock(_graph, split, join, paths);
+    }
+
+    /// <summary>
+    /// What a diamond is asking. The author's own name for the step when there is one; otherwise the field the
+    /// branches test, because CRM's internal id (<c>ConditionStep4</c>) tells a reader nothing. The full condition
+    /// of each branch is on that branch's own flow, not here.
+    /// </summary>
+    private static string GatewayName(StepNode step)
+    {
+        if (step.DisplayName.Length > 0 && !InternalStepId().IsMatch(step.DisplayName))
+        {
+            return step.DisplayName;
+        }
+        Predicate? first = step.Branches.Select(branch => branch.Predicate).FirstOrDefault(predicate => predicate is not null);
+        if (first is { Entity: string entity, Attribute: string attribute })
+        {
+            return $"{entity}.{attribute}?";
+        }
+        return step.Kind == StepKind.Variant ? "Members differ" : "Condition";
     }
 
     /// <summary>A single wait is one conditional catch event; a wait with several outcomes (e.g. a timeout) is an event-based gateway.</summary>
@@ -210,7 +233,7 @@ public sealed class BpmnBuilder
         return text.ToString();
     }
 
-    private static string TaskName(StepNode step)
+    private string TaskName(StepNode step)
     {
         string verb = step.Kind switch
         {
@@ -229,8 +252,47 @@ public sealed class BpmnBuilder
             StepKind.Unmapped => "UNMAPPED " + step.Construct,
             _ => step.Kind.ToString()
         };
-        string subject = step.DisplayName.Length > 0 ? step.DisplayName : step.Entity ?? "";
+        string subject = Subject(step);
         return Truncate(subject.Length == 0 ? verb : $"{verb}: {subject}", 80);
+    }
+
+    /// <summary>
+    /// What the step is about, for the label. The designer's own step name is used when the author wrote one; when
+    /// they did not, CRM leaves only its internal id (<c>AssignStep3</c>), which tells a reader nothing, so the step
+    /// is described by what it does instead. The internal id stays in the documentation either way.
+    /// </summary>
+    private string Subject(StepNode step)
+    {
+        if (step.DisplayName.Length > 0 && !InternalStepId().IsMatch(step.DisplayName))
+        {
+            return step.DisplayName;
+        }
+        List<string> parts = [];
+        if (step.Entity is not null)
+        {
+            parts.Add(step.Entity);
+        }
+        if (step.Fields.Count > 0)
+        {
+            parts.Add(string.Join(", ", step.Fields.Take(3).Select(field => field.Field)) + (step.Fields.Count > 3 ? ", …" : ""));
+        }
+        if (parts.Count == 0 && step.Kind is StepKind.UserInteraction)
+        {
+            parts.AddRange(step.Arguments.Where(argument => argument.Name.EndsWith("PromptText", StringComparison.Ordinal)).Take(1).Select(argument => argument.Value));
+        }
+        if (parts.Count == 0 && step.Kind is StepKind.FormAction)
+        {
+            parts.AddRange(step.Arguments.Where(argument => argument.Name is "ControlId" or "Attribute" or "FieldName").Take(1).Select(argument => argument.Value));
+        }
+        if (step.Kind == StepKind.StartChildWorkflow && Guid.TryParse(step.Detail, out Guid child))
+        {
+            parts.Insert(0, _workflowNames.GetValueOrDefault(child, step.Detail));
+        }
+        if (parts.Count == 0 && step.Detail is not null && step.Kind is not (StepKind.FormAction or StepKind.StartChildWorkflow))
+        {
+            parts.Add(step.Detail);
+        }
+        return string.Join(" · ", parts);
     }
 
     private static string StartName(WorkflowTrigger trigger)
@@ -287,6 +349,10 @@ public sealed class BpmnBuilder
         string onDemand = ir.Trigger.OnDemand ? " Can be started by a user (on demand)." : "";
         return $"{automatic}{onDemand} Runs as {ir.Trigger.RunAs}.";
     }
+
+    /// <summary>CRM's own step id when the author gave the step no name: <c>UpdateStep3</c>, <c>ConditionBranchStep12</c>.</summary>
+    [GeneratedRegex(@"^[A-Za-z]+Step\d+$")]
+    private static partial Regex InternalStepId();
 
     private static string Truncate(string text, int length)
     {

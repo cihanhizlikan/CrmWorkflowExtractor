@@ -34,6 +34,9 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>IR documents produced by the offline stages.</summary>
     public IReadOnlyList<Crm.Ir.Model.WorkflowIr> Documents { get; set; } = [];
 
+    /// <summary>The BPMN file name (without folder or extension) written for each workflow.</summary>
+    public IReadOnlyDictionary<Guid, string> BpmnFiles { get; set; } = new Dictionary<Guid, string>();
+
     /// <summary>Named counts for every stage, ordinal-sorted so the manifest diffs cleanly. The §8 count chain reads from here.</summary>
     public SortedDictionary<string, int> Counts { get; } = new(StringComparer.Ordinal);
 

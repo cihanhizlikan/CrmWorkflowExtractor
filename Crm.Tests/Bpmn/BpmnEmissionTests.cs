@@ -147,7 +147,9 @@ public sealed class BpmnEmissionTests
     public void No_Two_Shapes_Overlap()
     {
         XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(IrFor("condition-update-stop.xaml")), "test");
-        List<(double X, double Y, double W, double H)> boxes = [.. xml.Descendants(BpmnSerializer.Dc + "Bounds").Select(bounds =>
+        // Shape bounds only: a label has its own bounds inside a BPMNLabel and is checked against the shapes below.
+        List<(double X, double Y, double W, double H)> boxes = [.. xml.Descendants(BpmnSerializer.Di + "BPMNShape")
+            .Select(shape => shape.Element(BpmnSerializer.Dc + "Bounds")!).Select(bounds =>
             (double.Parse(bounds.Attribute("x")!.Value, System.Globalization.CultureInfo.InvariantCulture),
              double.Parse(bounds.Attribute("y")!.Value, System.Globalization.CultureInfo.InvariantCulture),
              double.Parse(bounds.Attribute("width")!.Value, System.Globalization.CultureInfo.InvariantCulture),

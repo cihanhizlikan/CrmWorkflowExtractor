@@ -7,8 +7,8 @@ namespace Crm.Bpmn.Graph;
 /// </summary>
 internal abstract class Block
 {
-    public const double HorizontalGap = 50;
-    public const double VerticalGap = 40;
+    public const double HorizontalGap = 60;
+    public const double VerticalGap = 120;  // room for a five-line caption above each branch’s first shape
 
     public abstract double Width { get; }
 

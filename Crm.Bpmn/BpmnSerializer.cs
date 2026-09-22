@@ -45,14 +45,23 @@ public static class BpmnSerializer
                 shape.Add(new XAttribute("isMarkerVisible", "true"));
             }
             shape.Add(new XElement(Dc + "Bounds", Number("x", node.X), Number("y", node.Y), Number("width", node.Width), Number("height", node.Height)));
+            if (ShapeLabel(node) is XElement shapeLabel)
+            {
+                shape.Add(shapeLabel);
+            }
             plane.Add(shape);
         }
         foreach (FlowEdge edge in process.Graph.Edges)
         {
             XElement shape = new(Di + "BPMNEdge", new XAttribute("id", "edge_" + edge.Id), new XAttribute("bpmnElement", edge.Id));
-            foreach ((double x, double y) in Waypoints(process.Graph.Node(edge.SourceId), process.Graph.Node(edge.TargetId)))
+            FlowNode target = process.Graph.Node(edge.TargetId);
+            foreach ((double x, double y) in Waypoints(process.Graph.Node(edge.SourceId), target))
             {
                 shape.Add(new XElement(DdDi + "waypoint", Number("x", x), Number("y", y)));
+            }
+            if (EdgeLabel(edge, target) is XElement edgeLabel)
+            {
+                shape.Add(edgeLabel);
             }
             plane.Add(shape);
         }
@@ -201,6 +210,55 @@ public static class BpmnSerializer
     }
 
     /// <summary>Right-centre of the source to left-centre of the target, with an orthogonal elbow when they are not level.</summary>
+    /// <summary>
+    /// Where a shape's text goes. A task is a box and holds its own text, but a gateway is a 50-pixel diamond and an
+    /// event a 36-pixel circle: without these bounds a viewer paints the text across the shape, which is unreadable.
+    /// The label sits centred just below the shape, in the room the layout leaves between rows.
+    /// </summary>
+    private static XElement? ShapeLabel(FlowNode node)
+    {
+        if (node.Name.Length == 0 || node.Type is not (FlowNodeType.ExclusiveGateway or FlowNodeType.EventBasedGateway
+            or FlowNodeType.StartEvent or FlowNodeType.EndEvent or FlowNodeType.TerminateEndEvent
+            or FlowNodeType.ConditionalCatchEvent or FlowNodeType.TimerCatchEvent))
+        {
+            return null;
+        }
+        (double width, double height) = LabelSize(node.Name);
+        double x = node.X + (node.Width / 2) - (width / 2);
+        return Label(x, node.Y + node.Height + 6, width, height);
+    }
+
+    /// <summary>
+    /// A branch condition, placed as a caption directly above the first shape of the branch it leads to — never over
+    /// the gateway, and never over the flow line.
+    /// </summary>
+    private static XElement? EdgeLabel(FlowEdge edge, FlowNode target)
+    {
+        if (edge.Name is not string name || name.Length == 0)
+        {
+            return null;
+        }
+        (double width, double height) = LabelSize(name);
+        return Label(target.X + (target.Width / 2) - (width / 2), target.Y - 8 - height, width, height);
+    }
+
+    private static XElement Label(double x, double y, double width, double height)
+    {
+        return new XElement(Di + "BPMNLabel", new XElement(Dc + "Bounds", Number("x", x), Number("y", y), Number("width", width), Number("height", height)));
+    }
+
+    /// <summary>
+    /// Room for the text as a viewer actually draws it. Viewers wrap an external label at their own fixed width
+    /// (90 pixels in bpmn.io) and centre it on these bounds, growing up and down, so the height is what matters:
+    /// too little and the text spills over the shape below. About 6.2 pixels a character at the 11-pixel font.
+    /// </summary>
+    private static (double Width, double Height) LabelSize(string text)
+    {
+        const double wrapWidth = 90;
+        double lines = Math.Min(5, Math.Ceiling(((text.Length * 6.2) + 4) / wrapWidth));
+        return (wrapWidth, Math.Round((lines * 13) + 6));
+    }
+
     private static IReadOnlyList<(double X, double Y)> Waypoints(FlowNode source, FlowNode target)
     {
         double sx = source.X + source.Width;

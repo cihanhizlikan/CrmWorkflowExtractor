@@ -22,7 +22,9 @@ public sealed class ConsolidationStageTests
         Assert.True(code == ExitCode.Success, console);
         Assert.Equal(4, Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn").Length);
         string combined = Assert.Single(Directory.GetFiles(Path.Combine(runRoot, "consolidated"), "*.bpmn"));
-        Assert.StartsWith("cl_", Path.GetFileName(combined), StringComparison.Ordinal);
+        // Named for a reader: the family medoid, how many workflows it covers, and the tail of the cluster id.
+        Assert.Contains("-combined-4-", Path.GetFileName(combined), StringComparison.Ordinal);
+        Assert.DoesNotContain("cl_", Path.GetFileName(combined), StringComparison.Ordinal);
         string report = File.ReadAllText(Path.Combine(runRoot, "reports", "consolidation.md"));
         Assert.Contains("4 members, 0 variant split(s), every member step accounted for exactly once.", report, StringComparison.Ordinal);
 

@@ -20,6 +20,8 @@ public static class ConsolidationStage
     public static async Task RunAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, SimilarityResult similarity, ILogger logger, CancellationToken token)
     {
         Dictionary<Guid, WorkflowIr> byId = documents.ToDictionary(document => document.Identity.WorkflowId);
+        Dictionary<Guid, string> allNames = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity.Name);
+        Dictionary<string, string> fileNames = new(StringComparer.Ordinal);
         List<CombineOutcome> outcomes = [];
         foreach (WorkflowCluster cluster in similarity.Clusters.Where(cluster => cluster.Members.Count > 1))
         {
@@ -34,19 +36,22 @@ public static class ConsolidationStage
                 state.Fail(ExitCode.RunFailed, $"{cluster.ClusterId}: {error}");
             }
 
-            await folder.WriteJsonAsync($"consolidated/{cluster.ClusterId}.json", combined, token);
             Dictionary<Guid, string> names = outcome.Members.ToDictionary(id => id, id => byId[id].Identity.Name);
             List<StepSource> sources = [.. outcome.Members.Select(id => new StepSource(id, ""))];
-            XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(cluster.ClusterId, combined.Identity.Name, combined, sources, names), state.ToolVersion);
-            await folder.WriteBytesAsync($"consolidated/{cluster.ClusterId}.bpmn", BpmnSerializer.ToBytes(xml), token);
+            string stem = BpmnFileNames.ForFamily(byId[cluster.Medoid].Identity.Name, cluster.ClusterId, outcome.Members.Count);
+            fileNames[cluster.ClusterId] = stem;
+            await folder.WriteJsonAsync($"consolidated/{stem}.json", combined, token);
+            XDocument xml = BpmnSerializer.ToXml(
+                BpmnBuilder.Build(cluster.ClusterId, combined.Identity.Name, combined, sources, names, allNames), state.ToolVersion);
+            await folder.WriteBytesAsync($"consolidated/{stem}.bpmn", BpmnSerializer.ToBytes(xml), token);
             IReadOnlyList<string> errors = BpmnSchemaValidator.Validate(xml);
             if (errors.Count > 0)
             {
-                state.Fail(ExitCode.RunFailed, $"consolidated/{cluster.ClusterId}.bpmn fails BPMN 2.0 schema validation: {string.Join(" | ", errors.Take(3))}");
+                state.Fail(ExitCode.RunFailed, $"consolidated/{stem}.bpmn fails BPMN 2.0 schema validation: {string.Join(" | ", errors.Take(3))}");
             }
         }
 
-        await folder.WriteTextAsync("reports/consolidation.md", Markdown(outcomes, byId), token);
+        await folder.WriteTextAsync("reports/consolidation.md", Markdown(outcomes, byId, fileNames, state.BpmnFiles), token);
         state.Counts["consolidation.combined"] = outcomes.Count(outcome => outcome.Combined is not null);
         state.Counts["consolidation.skipped"] = outcomes.Count(outcome => outcome.Combined is null);
         state.Counts["consolidation.workflowsCombined"] = outcomes.Where(outcome => outcome.Combined is not null).Sum(outcome => outcome.Members.Count);
@@ -54,7 +59,8 @@ public static class ConsolidationStage
         logger.LogInformation("Consolidation: {Combined} families combined, {Skipped} skipped", state.Counts["consolidation.combined"], state.Counts["consolidation.skipped"]);
     }
 
-    private static string Markdown(IReadOnlyList<CombineOutcome> outcomes, IReadOnlyDictionary<Guid, WorkflowIr> documents)
+    private static string Markdown(IReadOnlyList<CombineOutcome> outcomes, IReadOnlyDictionary<Guid, WorkflowIr> documents,
+        IReadOnlyDictionary<string, string> fileNames, IReadOnlyDictionary<Guid, string> bpmnFiles)
     {
         StringBuilder text = new();
         text.AppendLine("# Consolidation").AppendLine();
@@ -72,7 +78,7 @@ public static class ConsolidationStage
             string reconciliation = outcome.ReconciliationErrors.Count == 0
                 ? "every member step accounted for exactly once."
                 : string.Create(CultureInfo.InvariantCulture, $"**{outcome.ReconciliationErrors.Count} reconciliation error(s)**.");
-            text.AppendLine(CultureInfo.InvariantCulture, $"`consolidated/{outcome.ClusterId}.bpmn` — {outcome.Members.Count} members, {variants} variant split(s), {reconciliation}");
+            text.AppendLine(CultureInfo.InvariantCulture, $"`consolidated/{fileNames.GetValueOrDefault(outcome.ClusterId, outcome.ClusterId)}.bpmn` — {outcome.Members.Count} members, {variants} variant split(s), {reconciliation}");
             text.AppendLine().AppendLine("| Member | Workflow id | Original BPMN | Trigger |").AppendLine("|---|---|---|---|");
             foreach (Guid member in outcome.Members)
             {
@@ -85,7 +91,7 @@ public static class ConsolidationStage
                     trigger.OnDelete ? "delete" : null,
                     trigger.OnDemand ? "on demand" : null
                 }.OfType<string>());
-                text.AppendLine(CultureInfo.InvariantCulture, $"| {document.Identity.Name} | `{member:D}` | `bpmn/{member:D}.bpmn` | {triggerText} |");
+                text.AppendLine(CultureInfo.InvariantCulture, $"| {document.Identity.Name} | `{member:D}` | `bpmn/{bpmnFiles.GetValueOrDefault(member, member.ToString("D"))}.bpmn` | {triggerText} |");
             }
             text.AppendLine();
         }
