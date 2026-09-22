@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using Crm.Ir.Model;
 
 namespace Crm.Ir.Parsing;
 
@@ -18,7 +19,27 @@ internal static partial class XamlNames
         // Seen on the production 8.2 server (2026-09-22): conversion between Xrm and CRM types, and typed literals.
         "ConvertCrmXrmTypes", "OptionSetValue", "XrmTimeSpan",
         // Loads a related record so later steps can read its fields; recorded as a read in DataTouched.
-        "RetrieveEntity"
+        "RetrieveEntity",
+        // Localised label text of a business-rule message or a BPF step; read as an argument of what holds it.
+        "StepLabel"
+    };
+
+    /// <summary>
+    /// Dialog and business-rule constructs (named by the production run, 2026-09-22) → IR kind, and for a form action
+    /// the words a reader sees. Their arguments are captured verbatim: their markup has not been seen yet.
+    /// </summary>
+    public static readonly Dictionary<string, (StepKind Kind, string? Action)> ClientSteps = new(StringComparer.Ordinal)
+    {
+        ["InteractionPage"] = (StepKind.UserInteraction, null),
+        ["Interaction"] = (StepKind.UserInteraction, null),
+        ["QueryData"] = (StepKind.DataQuery, null),
+        ["StartChildInteractiveWorkflow"] = (StepKind.StartChildWorkflow, null),
+        ["SetVisibility"] = (StepKind.FormAction, "Show/hide field"),
+        ["SetFieldRequiredLevel"] = (StepKind.FormAction, "Set required level"),
+        ["SetDisplayMode"] = (StepKind.FormAction, "Lock/unlock field"),
+        ["SetAttributeValue"] = (StepKind.FormAction, "Set field value"),
+        ["SetDefaultValue"] = (StepKind.FormAction, "Set default value"),
+        ["SetMessage"] = (StepKind.FormAction, "Show error message")
     };
 
     /// <summary>Elements that are themselves the evidence of an out-of-the-box step.</summary>

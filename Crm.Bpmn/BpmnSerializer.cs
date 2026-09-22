@@ -102,6 +102,8 @@ public static class BpmnSerializer
             FlowNodeType.EndEvent or FlowNodeType.TerminateEndEvent => "endEvent",
             FlowNodeType.ServiceTask => "serviceTask",
             FlowNodeType.SendTask => "sendTask",
+            FlowNodeType.UserTask => "userTask",
+            FlowNodeType.BusinessRuleTask => "businessRuleTask",
             FlowNodeType.CallActivity => "callActivity",
             FlowNodeType.ExclusiveGateway => "exclusiveGateway",
             FlowNodeType.EventBasedGateway => "eventBasedGateway",

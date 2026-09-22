@@ -16,6 +16,12 @@ public enum StepKind
     CustomActivity,
     StopWorkflow,
     Stage,
+    /// <summary>A dialog page: a prompt shown to the user and the response collected.</summary>
+    UserInteraction,
+    /// <summary>A dialog query: records retrieved to offer as response choices.</summary>
+    DataQuery,
+    /// <summary>A business-rule action on the form (<see cref="StepNode.Detail"/> says which: show/hide, require, lock, set value, message).</summary>
+    FormAction,
     Variant,
     Unmapped
 }

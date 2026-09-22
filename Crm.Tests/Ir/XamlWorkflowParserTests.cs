@@ -143,7 +143,44 @@ public sealed class XamlWorkflowParserTests
         Assert.Contains(result.Coverage, observation => observation.Construct == "If" && observation.Status == CoverageStatus.Unmapped);
     }
 
+    [Fact]
+    public void Business_Rule_Actions_Become_Form_Actions_With_Their_Arguments()
+    {
+        ParseResult result = new XamlWorkflowParser(OptionLabels.Empty).Parse(Id, Fixture("business-rule.xaml"));
+
+        Assert.DoesNotContain(result.Coverage, observation => observation.Status == CoverageStatus.Unmapped);
+        StepNode condition = Assert.Single(result.Steps);
+        Assert.Equal(StepKind.Condition, condition.Kind);
+        Assert.Equal(["Show/hide field", "Set required level"], condition.Branches[0].Steps.Select(step => step.Detail));
+        Assert.All(condition.Branches[0].Steps, step => Assert.Equal(StepKind.FormAction, step.Kind));
+        Assert.Contains(condition.Branches[0].Steps[0].Arguments, argument => argument is { Name: "ControlId", Value: "new_reason" });
+        StepNode otherwise = Assert.Single(condition.Branches[1].Steps);
+        StepNode message = otherwise.Branches[0].Steps[0];
+        Assert.Equal("Show error message", message.Detail);
+        Assert.Contains(message.Arguments, argument => argument.Name == "StepLabels" && argument.Value.Contains("Askıya alma nedeni girilmelidir.", StringComparison.Ordinal));
+        Assert.Equal("Lock/unlock field", otherwise.Branches[0].Steps[1].Detail);
+    }
+
+    [Fact]
+    public void A_Dialog_Becomes_A_Query_A_Page_Of_Prompts_And_A_Child_Dialog_Call()
+    {
+        ParseResult result = new XamlWorkflowParser(OptionLabels.Empty).Parse(Id, Fixture("dialog.xaml"));
+
+        Assert.DoesNotContain(result.Coverage, observation => observation.Status == CoverageStatus.Unmapped);
+        Assert.Equal([StepKind.Sequence, StepKind.UserInteraction, StepKind.StartChildWorkflow], result.Steps.Select(step => step.Kind));
+        Assert.Equal(StepKind.DataQuery, Assert.Single(result.Steps[0].Branches[0].Steps).Kind);
+        Assert.Contains("new_policy", result.DataTouched.EntitiesRead);
+        StepNode page = result.Steps[1];
+        Assert.Equal("Müşteri onayı", page.DisplayName);
+        Assert.Contains(page.Arguments, argument => argument is { Name: "Prompt1.PromptText", Value: "Müşteri iptali onaylıyor mu?" });
+        Assert.Contains(page.Arguments, argument => argument is { Name: "Prompt2.ResponseType", Value: "Text" });
+        Assert.Equal("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", result.Steps[2].Detail);
+        Assert.Contains(Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), result.Dependencies.ChildWorkflowCalls);
+    }
+
     [Theory]
+    [InlineData("business-rule.xaml")]
+    [InlineData("dialog.xaml")]
     [InlineData("production-helpers.xaml")]
     [InlineData("condition-update-stop.xaml")]
     [InlineData("child-and-custom.xaml")]

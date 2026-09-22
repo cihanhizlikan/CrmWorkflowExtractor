@@ -294,3 +294,15 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   `usage.csv` and the `last_logged_run` column of `clusters.csv`.
 - **Unverified on production:** that the `asyncoperations` / `processsessions` filters answer in reasonable time on
   a large System Job table.
+
+### Dialogs and business rules to BPMN (2026-09-23) — DECIDED
+- **Maintainer:** convert Dialogs and Business Rules too; the analysis needs as much information as possible.
+- **Built:** a dialog page → `userTask` (its prompts as `Prompt1.*`, `Prompt2.*` arguments); a dialog query →
+  `serviceTask` (the entity recorded as read); a child dialog → `callActivity`. A business-rule action (show/hide,
+  required level, lock/unlock, set value, default value, error message) → `businessRuleTask` naming the action.
+  Every argument is captured verbatim, with no guessed meanings.
+- **Uncertain:** the construct *names* come from the production coverage report; their *markup* (which attributes,
+  element or ActivityReference form, where prompts sit) is guessed, so the fixtures are marked that way. The
+  reprocess run's parse-coverage.md is the check. If constructs are left over there, the next step is a
+  structure-only XAML sample (values stripped), which the maintainer reviews before it leaves the company.
+- **Not done:** Business Process Flows (23), which were not requested.

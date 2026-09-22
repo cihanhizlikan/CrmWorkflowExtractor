@@ -89,6 +89,9 @@ public sealed class BpmnBuilder
         {
             StepKind.CreateRecord or StepKind.UpdateRecord or StepKind.AssignRecord or StepKind.ChangeStatus or StepKind.CustomActivity => (FlowNodeType.ServiceTask, null as string),
             StepKind.SendEmail => (FlowNodeType.SendTask, null),
+            StepKind.DataQuery => (FlowNodeType.ServiceTask, null),
+            StepKind.UserInteraction => (FlowNodeType.UserTask, null),
+            StepKind.FormAction => (FlowNodeType.BusinessRuleTask, null),
             StepKind.StartChildWorkflow => (FlowNodeType.CallActivity, Guid.TryParse(step.Detail, out Guid child) ? ProcessIdFor(child) : null),
             StepKind.StopWorkflow => (step.Detail == "Canceled" ? FlowNodeType.TerminateEndEvent : FlowNodeType.EndEvent, null),
             StepKind.Timeout => (FlowNodeType.TimerCatchEvent, step.Detail),
@@ -220,6 +223,9 @@ public sealed class BpmnBuilder
             StepKind.CustomActivity => "Custom activity",
             StepKind.StopWorkflow => "Stop",
             StepKind.Timeout => "Timeout",
+            StepKind.UserInteraction => "Dialog page",
+            StepKind.DataQuery => "Query data",
+            StepKind.FormAction => step.Detail ?? "Form action",
             StepKind.Unmapped => "UNMAPPED " + step.Construct,
             _ => step.Kind.ToString()
         };

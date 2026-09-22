@@ -18,3 +18,5 @@ literals replaced) and keep this note accurate about which files are which.
 
 Not covered yet, because their XAML shape could not be written credibly without a sample: Business Process Flow,
 Dialog, business rule.
+| `business-rule.xaml` | a business rule: condition, then show/hide + required level, otherwise error message + lock. **Construct names from the production coverage report; markup guessed** |
+| `dialog.xaml` | a dialog: data query, a page of two prompts, a child dialog call. **Construct names from the production coverage report; markup guessed** |

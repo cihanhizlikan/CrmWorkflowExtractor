@@ -116,6 +116,10 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
         {
             return ParseStepSequence(element, path, context);
         }
+        if (XamlNames.ClientSteps.ContainsKey(element.Name.LocalName))
+        {
+            return ParseClientStep(element, element.Name.LocalName, path, context);
+        }
         if (element.Name.LocalName == "Postpone")
         {
             // The element form, as the production server writes it; the fixtures' ActivityReference form is above.
@@ -147,6 +151,7 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
                 with
             { Branches = [new Branch("", null, ParseSequence(Activities(element), path, context), [])] },
             "EvaluateCondition" or "EvaluateLogicalCondition" or "EvaluateExpression" or "ConvertCrmXrmTypes" => null,
+            _ when XamlNames.ClientSteps.ContainsKey(type) => ParseClientStep(element, type, path, context),
             _ => context.Unmapped(element, path, type)
         };
     }
@@ -162,7 +167,8 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
             return FromEvidence(sequence, evidence, path, context);
         }
 
-        bool groupsSteps = sequence.Elements().Any(child => child.Name.LocalName == "Sequence" || XamlNames.AssemblyQualifiedName(child) is not null);
+        bool groupsSteps = sequence.Elements().Any(child => child.Name.LocalName == "Sequence" || XamlNames.AssemblyQualifiedName(child) is not null
+            || XamlNames.ClientSteps.ContainsKey(child.Name.LocalName));
         if (groupsSteps)
         {
             StepNode group = context.Node(sequence, path, StepKind.Sequence, XamlNames.DisplayName(sequence), null, [], [], null, [], "Sequence");
@@ -293,6 +299,81 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
         return [.. fields.OrderBy(field => field.Field, StringComparer.Ordinal)];
     }
 
+    /// <summary>A dialog page, dialog query, child dialog or business-rule action: its arguments captured verbatim.</summary>
+    private static StepNode ParseClientStep(XElement element, string construct, string path, Context context)
+    {
+        (StepKind kind, string? action) = XamlNames.ClientSteps[construct];
+        string? entity = element.Attribute("EntityName")?.Value;
+        List<NamedArgument> arguments = [.. CapturedArguments(element, context)];
+        if (construct == "InteractionPage")
+        {
+            // A page holds the prompts shown together; each becomes Prompt1.*, Prompt2.* on the page.
+            int index = 0;
+            foreach (XElement interaction in element.Descendants().Where(descendant => XamlNames.ConstructName(descendant) == "Interaction"))
+            {
+                index++;
+                context.Anchors[interaction] = kind;
+                string prefix = string.Create(CultureInfo.InvariantCulture, $"Prompt{index}.");
+                arguments.AddRange(CapturedArguments(interaction, context).Select(argument => argument with { Name = prefix + argument.Name }));
+            }
+        }
+        string? detail = kind switch
+        {
+            StepKind.StartChildWorkflow => ChildWorkflow(element, context),
+            StepKind.FormAction => action,
+            _ => null
+        };
+        if (entity is not null && kind == StepKind.DataQuery)
+        {
+            context.EntitiesRead.Add(entity);
+        }
+        return context.Node(element, path, kind, StepDisplayName(element), entity, FieldWrites(element, entity, context), [], detail, arguments, construct);
+    }
+
+    /// <summary>
+    /// Every argument of an activity, verbatim: its attributes, its keyed <c>.Arguments</c>/<c>.Properties</c> entries
+    /// (the ActivityReference form) and its property elements (the element form). Child activity collections are skipped.
+    /// </summary>
+    private static List<NamedArgument> CapturedArguments(XElement evidence, Context context)
+    {
+        List<NamedArgument> arguments = [];
+        foreach (XAttribute attribute in evidence.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration
+            && attribute.Name.Namespace == XNamespace.None && attribute.Name.LocalName is not ("DisplayName" or "AssemblyQualifiedName")))
+        {
+            arguments.Add(new NamedArgument(attribute.Name.LocalName, ArgumentValue(attribute.Value, context)));
+        }
+        foreach (XElement property in evidence.Elements().Where(XamlNames.IsPropertyElement))
+        {
+            string localName = property.Name.LocalName;
+            if (localName.EndsWith(".Arguments", StringComparison.Ordinal) || localName.EndsWith(".Properties", StringComparison.Ordinal))
+            {
+                // ActivityReference form: <X.Arguments><InArgument x:Key="Url">…</InArgument></X.Arguments>
+                foreach (XElement argument in property.Elements().Where(argument => XamlNames.Key(argument) is not ("Activities" or "Variables")))
+                {
+                    arguments.Add(new NamedArgument(XamlNames.Key(argument) ?? argument.Name.LocalName, ArgumentValue(Flatten(argument), context)));
+                }
+                continue;
+            }
+            // Element form: <partner:CallService.Url><InArgument>…</InArgument></partner:CallService.Url>
+            string name = localName[(localName.IndexOf('.', StringComparison.Ordinal) + 1)..];
+            arguments.Add(new NamedArgument(name, ArgumentValue(Flatten(property), context)));
+        }
+        return [.. arguments.OrderBy(argument => argument.Name, StringComparer.Ordinal)];
+    }
+
+    /// <summary>An argument's text; when it has none (a literal written as attributes), its descendants' attributes.</summary>
+    private static string Flatten(XElement argument)
+    {
+        string text = argument.Value.Trim();
+        if (text.Length > 0)
+        {
+            return text;
+        }
+        return string.Join(" ", argument.Descendants().SelectMany(element => element.Attributes())
+            .Where(attribute => !attribute.IsNamespaceDeclaration && attribute.Name.Namespace == XNamespace.None)
+            .Select(attribute => $"{attribute.Name.LocalName}={attribute.Value}"));
+    }
+
     private static (string TypeName, IReadOnlyList<NamedArgument> Arguments) CustomActivity(XElement evidence, Context context)
     {
         string? aqn = XamlNames.AssemblyQualifiedName(evidence);
@@ -307,29 +388,7 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
             typeName = $"{clrNamespace}.{evidence.Name.LocalName}, {assembly}";
         }
 
-        List<NamedArgument> arguments = [];
-        foreach (XAttribute attribute in evidence.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration
-            && attribute.Name.Namespace == XNamespace.None && attribute.Name.LocalName is not ("DisplayName" or "AssemblyQualifiedName")))
-        {
-            arguments.Add(new NamedArgument(attribute.Name.LocalName, ArgumentValue(attribute.Value, context)));
-        }
-        foreach (XElement property in evidence.Elements().Where(XamlNames.IsPropertyElement))
-        {
-            string localName = property.Name.LocalName;
-            if (localName.EndsWith(".Arguments", StringComparison.Ordinal))
-            {
-                // ActivityReference form: <X.Arguments><InArgument x:Key="Url">…</InArgument></X.Arguments>
-                foreach (XElement argument in property.Elements())
-                {
-                    arguments.Add(new NamedArgument(XamlNames.Key(argument) ?? argument.Name.LocalName, ArgumentValue(argument.Value, context)));
-                }
-                continue;
-            }
-            // Element form: <partner:CallService.Url><InArgument>…</InArgument></partner:CallService.Url>
-            string name = localName[(localName.IndexOf('.', StringComparison.Ordinal) + 1)..];
-            arguments.Add(new NamedArgument(name, ArgumentValue(property.Value, context)));
-        }
-        return (typeName, [.. arguments.OrderBy(argument => argument.Name, StringComparer.Ordinal)]);
+        return (typeName, CapturedArguments(evidence, context));
     }
 
     /// <summary>A custom activity argument, verbatim — with a designer variable replaced by the literal it holds, when known.</summary>

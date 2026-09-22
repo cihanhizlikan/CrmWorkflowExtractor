@@ -28,6 +28,9 @@ public sealed class BpmnEmissionTests
     [InlineData("child-and-custom.xaml")]
     [InlineData("wait-timeout.xaml")]
     [InlineData("unknown-construct.xaml")]
+    [InlineData("production-helpers.xaml")]
+    [InlineData("business-rule.xaml")]
+    [InlineData("dialog.xaml")]
     public void Every_Fixture_Produces_Bpmn_That_Validates_Against_The_Omg_Schemas(string fixture)
     {
         XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(IrFor(fixture)), "test");
@@ -35,6 +38,18 @@ public sealed class BpmnEmissionTests
         IReadOnlyList<string> errors = BpmnSchemaValidator.Validate(xml);
 
         Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Dialog_Pages_Are_User_Tasks_And_Business_Rule_Actions_Are_Business_Rule_Tasks()
+    {
+        XDocument dialog = BpmnSerializer.ToXml(BpmnBuilder.Build(IrFor("dialog.xaml")), "test");
+        XDocument rule = BpmnSerializer.ToXml(BpmnBuilder.Build(IrFor("business-rule.xaml")), "test");
+
+        Assert.Contains(dialog.Descendants(BpmnSerializer.Model + "userTask"), task => task.Attribute("name")!.Value == "Dialog page: Müşteri onayı");
+        Assert.Single(dialog.Descendants(BpmnSerializer.Model + "callActivity"));
+        Assert.Equal(4, rule.Descendants(BpmnSerializer.Model + "businessRuleTask").Count());
+        Assert.Contains(rule.Descendants(BpmnSerializer.Model + "businessRuleTask"), task => task.Attribute("name")!.Value.StartsWith("Show/hide field", StringComparison.Ordinal));
     }
 
     /// <summary>The validator must be able to say no, or the previous test proves nothing.</summary>

@@ -1,0 +1,20 @@
+<Activity x:Class="XrmWorkflow00000000000000000000000000000007" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mcwa="clr-namespace:Microsoft.Crm.Workflow.Activities;assembly=Microsoft.Crm.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:mxswa="clr-namespace:Microsoft.Xrm.Sdk.Workflow.Activities;assembly=Microsoft.Xrm.Sdk.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:s="clr-namespace:System;assembly=mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" xmlns:sco="clr-namespace:System.Collections.ObjectModel;assembly=mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <mxswa:Workflow>
+    <Sequence DisplayName="QueryStep1: Açık poliçeler">
+      <mcwa:QueryData DisplayName="QueryStep1" EntityName="new_policy" FetchXml="&lt;fetch&gt;&lt;entity name=&quot;new_policy&quot; /&gt;&lt;/fetch&gt;" />
+    </Sequence>
+    <mxswa:ActivityReference AssemblyQualifiedName="Microsoft.Crm.Workflow.Activities.InteractionPage, Microsoft.Crm.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" DisplayName="PageStep2: Müşteri onayı">
+      <mxswa:ActivityReference.Properties>
+        <sco:Collection x:TypeArguments="Activity" x:Key="Activities">
+          <mcwa:Interaction DisplayName="PromptStep3" PromptText="Müşteri iptali onaylıyor mu?" ResponseType="OptionSet" />
+          <mcwa:Interaction DisplayName="PromptStep4" PromptText="İptal nedeni" ResponseType="Text" />
+        </sco:Collection>
+      </mxswa:ActivityReference.Properties>
+    </mxswa:ActivityReference>
+    <mxswa:ActivityReference AssemblyQualifiedName="Microsoft.Crm.Workflow.Activities.StartChildInteractiveWorkflow, Microsoft.Crm.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" DisplayName="LinkStep5: İptal alt diyaloğu">
+      <mxswa:ActivityReference.Arguments>
+        <InArgument x:TypeArguments="s:Guid" x:Key="ChildWorkflowId">aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</InArgument>
+      </mxswa:ActivityReference.Arguments>
+    </mxswa:ActivityReference>
+  </mxswa:Workflow>
+</Activity>

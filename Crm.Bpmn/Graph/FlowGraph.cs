@@ -10,6 +10,8 @@ public enum FlowNodeType
     TerminateEndEvent,
     ServiceTask,
     SendTask,
+    UserTask,
+    BusinessRuleTask,
     CallActivity,
     Task,
     ExclusiveGateway,

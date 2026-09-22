@@ -19,6 +19,7 @@ public static class StepSignature
                 => $"{step.Kind}({entity}:{string.Join(",", step.Fields.Select(field => Fold(field.Field)).Order(StringComparer.Ordinal))})",
             StepKind.CustomActivity => $"CustomActivity({TypeWithoutAssemblyVersion(step.Detail)})",
             StepKind.StopWorkflow => $"Stop({step.Detail})",
+            StepKind.FormAction => $"FormAction({step.Detail}:{entity})",
             StepKind.Condition or StepKind.WaitCondition or StepKind.Variant => $"{step.Kind}[{step.Branches.Count}]",
             StepKind.Unmapped => $"Unmapped({step.Construct})",
             _ => step.Kind.ToString()
