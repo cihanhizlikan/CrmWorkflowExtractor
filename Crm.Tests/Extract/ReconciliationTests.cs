@@ -28,6 +28,15 @@ public sealed class ReconciliationTests
     }
 
     [Fact]
+    public void A_Count_Of_Minus_One_Is_Unavailable_And_Warned_Not_Failed()
+    {
+        ReconciliationResult result = InventoryReconciliation.Evaluate(-1, [Definition(0, owner: 1), Definition(2, owner: 2)]);
+
+        Assert.True(result.Passed);
+        Assert.Contains(result.Warnings, warning => warning.StartsWith("The server gave no independent count (it answered -1)", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Duplicate_Records_Across_Pages_Fail_Even_When_The_Count_Matches()
     {
         ReconciliationResult result = InventoryReconciliation.Evaluate(2, [Definition(0, owner: 1), Definition(0, owner: 2)]);

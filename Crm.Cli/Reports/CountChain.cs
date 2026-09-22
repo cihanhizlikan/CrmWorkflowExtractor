@@ -31,7 +31,11 @@ public static class CountChain
         IReadOnlyDictionary<string, int> counts = state.Counts;
         if (state.Reconciliation?.Counts is InventoryCounts inventory)
         {
-            links.Add(new CountLink("records", inventory.ApiCount, "$count", inventory.Retrieved, "retrieved"));
+            if (inventory.ApiCount >= 0)
+            {
+                // With no server count (-1) there is nothing to balance; the reconciliation already warned, loudly.
+                links.Add(new CountLink("records", inventory.ApiCount, "$count", inventory.Retrieved, "retrieved"));
+            }
             links.Add(new CountLink("classified", inventory.Retrieved, "retrieved",
                 inventory.Definitions + inventory.Activations + inventory.Templates + inventory.OtherType, "definitions + activations + templates + other"));
             if (counts.ContainsKey("xaml.written"))

@@ -80,6 +80,46 @@ public sealed class ExtractionRunTests
     }
 
     [Fact]
+    public async Task A_Count_Of_Minus_One_Falls_Back_To_The_FetchXml_Aggregate()
+    {
+        FakeCrmServer server = new FakeOrganization { WorkflowCount = 45, ReportedCount = -1, AggregateCount = 45 }.Build();
+        using TemporaryOutput output = new();
+
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+
+        Assert.True(code == ExitCode.Success, console);
+        Assert.Contains(server.Requests, request => Uri.UnescapeDataString(request.Uri.PathAndQuery).Contains("workflows?fetchXml=<fetch aggregate=\"true\">", StringComparison.Ordinal));
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
+        Assert.Equal(45, manifest.RootElement.GetProperty("counts").GetProperty("apiCount").GetInt32());
+        // The aggregate's {"n":45} row must not be mistaken for a workflow record.
+        Assert.Equal(45, File.ReadAllLines(Path.Combine(runRoot, "raw", "workflows.jsonl")).Length);
+    }
+
+    [Fact]
+    public async Task A_Count_Of_Minus_One_Without_An_Aggregate_Warns_Instead_Of_Failing()
+    {
+        FakeCrmServer server = new FakeOrganization { WorkflowCount = 45, ReportedCount = -1 }.Build();
+        using TemporaryOutput output = new();
+
+        (ExitCode code, _, string console) = await RunHarness.RunAsync(server, output);
+
+        Assert.True(code == ExitCode.Success, console);
+        Assert.Contains("The server gave no independent count (it answered -1)", console, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_Aggregate_Count_That_Differs_Still_Fails_The_Run()
+    {
+        FakeCrmServer server = new FakeOrganization { WorkflowCount = 45, ReportedCount = -1, AggregateCount = 50 }.Build();
+        using TemporaryOutput output = new();
+
+        (ExitCode code, _, string console) = await RunHarness.RunAsync(server, output);
+
+        Assert.Equal(ExitCode.RunFailed, code);
+        Assert.Contains("$count reported 50 workflows but 45 were retrieved", console, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_Single_Owner_Is_Printed_Prominently()
     {
         FakeCrmServer server = new FakeOrganization { DistinctOwners = 1 }.Build();

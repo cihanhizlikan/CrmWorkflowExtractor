@@ -47,11 +47,17 @@ public static class InventoryReconciliation
 
         InventoryCounts counts = new(apiCount, records.Count, distinctIds, definitions.Count, activations.Count, templates, other, notDesigner, distinctOwners);
 
-        if (apiCount >= CountCap)
+        if (apiCount < 0)
+        {
+            // Observed on the production 8.2 server, 2026-09-22: workflows/$count answers -1, Dynamics' "no count
+            // available". That is not a number to compare, and failing on it would fail every run on that server.
+            warnings.Add(Invariant($"The server gave no independent count (it answered {apiCount}), so the {records.Count} records retrieved could not be checked against one. Compare with an administrator's count before trusting completeness."));
+        }
+        else if (apiCount >= CountCap)
         {
             failures.Add(Invariant($"$count returned {apiCount}, at or above the Web API cap of {CountCap}: it is not a trustworthy count."));
         }
-        if (apiCount != records.Count)
+        else if (apiCount != records.Count)
         {
             failures.Add(Invariant($"$count reported {apiCount} workflows but {records.Count} were retrieved."));
         }

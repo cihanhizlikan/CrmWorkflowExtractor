@@ -83,9 +83,23 @@
     log("Columns not on this server (left out):", missing.join(", "));
   }
 
-  const count = await get("workflows/$count");
+  // The production 8.2 server answers workflows/$count with -1 ("no count available"); fall back to a FetchXML
+  // aggregate, which is also a GET. "count" stays -1 only if neither gives a number.
+  const rawCount = await get("workflows/$count");
+  let count = rawCount;
+  let countSource = "$count";
+  if (rawCount < 0) {
+    const fetchXml = '<fetch aggregate="true"><entity name="workflow"><attribute name="workflowid" alias="n" aggregate="count" /></entity></fetch>';
+    try {
+      const aggregate = await get("workflows?fetchXml=" + encodeURIComponent(fetchXml));
+      count = aggregate.value.length === 1 && typeof aggregate.value[0].n === "number" ? aggregate.value[0].n : -1;
+      countSource = "fetchXml aggregate";
+    } catch (error) {
+      log("Aggregate count failed:", error.message);
+    }
+  }
   const workflows = await getAll(`workflows?$select=${columns.join(",")}&$orderby=workflowid`);
-  log(`Inventory: $count ${count}, retrieved ${workflows.length}`);
+  log(`Inventory: count ${count} (${countSource}), retrieved ${workflows.length}`);
 
   const wanted = workflows.filter(row => row.type === 1 || row.type === 2);
   const xaml = {};
@@ -134,7 +148,7 @@
     startedAtUtc: started.toISOString(),
     webApiRoot: WEB_API,
     whoAmI, user, privileges, userPrivileges, workflowAttributes,
-    count, columns, workflows, xaml, xamlErrors, optionSets, processStages
+    count, rawCount, countSource, columns, workflows, xaml, xamlErrors, optionSets, processStages
   };
   const stamp = started.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
   const link = document.createElement("a");

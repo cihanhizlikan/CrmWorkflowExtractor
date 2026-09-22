@@ -31,7 +31,7 @@ public static class InventoryReport
         {
             InventoryCounts counts = result.Counts;
             Line(text, "Count chain", string.Create(CultureInfo.InvariantCulture,
-                $"$count {counts.ApiCount} -> retrieved {counts.Retrieved} (definitions {counts.Definitions} · activations {counts.Activations} · templates {counts.Templates} · other {counts.OtherType})"));
+                $"$count {(counts.ApiCount < 0 ? "unavailable" : counts.ApiCount.ToString(CultureInfo.InvariantCulture))} -> retrieved {counts.Retrieved} (definitions {counts.Definitions} · activations {counts.Activations} · templates {counts.Templates} · other {counts.OtherType})"));
             Line(text, "Not designer-authored", string.Create(CultureInfo.InvariantCulture,
                 $"{counts.DefinitionsNotDesignerAuthored} definition(s) → manual-review/, not parsed"));
             Line(text, "Distinct owners", counts.DistinctOwners.ToString(CultureInfo.InvariantCulture));

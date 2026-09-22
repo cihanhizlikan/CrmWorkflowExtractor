@@ -61,6 +61,28 @@ public sealed partial class BrowserExportImportTests
     }
 
     [Fact]
+    public async Task An_Export_Whose_Server_Gave_No_Count_Succeeds_With_A_Warning_And_No_Records_Link()
+    {
+        // The production server answered workflows/$count with -1; an export made before the aggregate fallback
+        // carries that -1 and must still import.
+        JsonNode export = JsonNode.Parse(File.ReadAllText(Fixture()))!;
+        export["count"] = -1;
+        using TemporaryOutput output = new();
+        Directory.CreateDirectory(output.Root);
+        string uncounted = Path.Combine(output.Root, "uncounted.json");
+        File.WriteAllText(uncounted, export.ToJsonString());
+
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: uncounted);
+
+        Assert.True(code == ExitCode.Success, console);
+        Assert.Contains("The server gave no independent count (it answered -1)", console, StringComparison.Ordinal);
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
+        JsonElement chain = manifest.RootElement.GetProperty("countChain");
+        Assert.All(chain.EnumerateArray(), link => Assert.EndsWith("— ok", link.GetString(), StringComparison.Ordinal));
+        Assert.DoesNotContain(chain.EnumerateArray(), link => link.GetString()!.Contains("$count", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task A_File_That_Is_Not_A_Browser_Export_Is_Refused()
     {
         using TemporaryOutput output = new();

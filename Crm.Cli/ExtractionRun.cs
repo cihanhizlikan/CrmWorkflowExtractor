@@ -217,7 +217,10 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
     private static async Task WriteInventoryAsync(RunFolder folder, RunState state, CancellationToken token)
     {
         StringBuilder lines = new();
-        foreach (CrmResponse page in state.Responses.Where(response => response.RequestUri.AbsolutePath.EndsWith("/workflows", StringComparison.OrdinalIgnoreCase)))
+        // The FetchXML aggregate count shares the /workflows path; its row is a count, not a workflow.
+        foreach (CrmResponse page in state.Responses.Where(response => response.IsSuccess
+            && response.RequestUri.AbsolutePath.EndsWith("/workflows", StringComparison.OrdinalIgnoreCase)
+            && !response.RequestUri.Query.Contains("fetchXml=", StringComparison.OrdinalIgnoreCase)))
         {
             using JsonDocument document = JsonDocument.Parse(page.Body);
             foreach (JsonElement record in document.RootElement.GetProperty("value").EnumerateArray())

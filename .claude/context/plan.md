@@ -241,3 +241,21 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   names must be keyed by workflow id, never by name (the export does this).
 - **Many `DRAFT_*`, `test*`, `Admin*` workflows**: noise for consolidation. Wanted-but-uncertain: whether the
   architects want those excluded from similarity (by state = Draft, or by a name pattern they choose).
+
+### First real export and import (2026-09-22)
+- **Observed:** the export held 3237 workflow records (1437 definitions, 1795 activations, 5 templates) from 6 owners.
+  Every privilege was Global except `prvReadProcessStage`, which **does not exist under that name on 8.2**, so it
+  cannot be checked (a warning, not a failure). There was 1 orphan activation, and 4 definitions point at an
+  activation that was not retrieved.
+- **Observed:** `workflows/$count` answers **-1** on this server, Dynamics' "no count available". The import failed
+  it as a mismatch (-1 ≠ 3237).
+- **Built:** a negative count now means *unavailable*. The run prints a loud warning instead of failing, and the
+  `$count → records` link drops out of the count chain. Both the tool and the browser script then try an
+  independent count through a FetchXML aggregate (`workflows?fetchXml=<fetch aggregate="true">…`, also a GET). The
+  export records `rawCount` and `countSource` next to `count`. An export made before this change (count -1) still
+  imports.
+- **Fixed on the way:** `raw/workflows.jsonl` took every `/workflows` response. An aggregate row would have
+  become a bogus workflow record, and a refused aggregate crashed the run. It now takes only successful,
+  non-aggregate pages.
+- **Unverified:** whether the production server allows the aggregate (the 50 000-record aggregate limit is far
+  above 3237). The maintainer can check by opening the URL in the signed-in browser.

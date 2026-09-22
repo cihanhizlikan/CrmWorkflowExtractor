@@ -17,6 +17,9 @@ internal sealed class FakeOrganization
     /// <summary>What <c>workflows/$count</c> answers; defaults to the true count.</summary>
     public int? ReportedCount { get; set; }
 
+    /// <summary>What the FetchXML aggregate count answers; null makes the server refuse it with 400.</summary>
+    public int? AggregateCount { get; set; }
+
     public int DistinctOwners { get; set; } = 3;
 
     public string PrivilegeDepth { get; set; } = "Global";
@@ -51,6 +54,9 @@ internal sealed class FakeOrganization
         server.OnJson("EntityDefinitions(LogicalName='workflow')/Attributes", AttributesBody());
         server.On("workflows/$count", _ => FakeCrmServer.Text((ReportedCount ?? WorkflowCount).ToString(CultureInfo.InvariantCulture)));
         server.On("workflows?", Page);
+        server.On("workflows?fetchXml=", _ => AggregateCount is int aggregate
+            ? FakeCrmServer.Json("{\"value\":[{\"n\":" + aggregate.ToString(CultureInfo.InvariantCulture) + "}]}")
+            : FakeCrmServer.Json("{\"error\":{\"message\":\"Aggregate query refused\"}}", System.Net.HttpStatusCode.BadRequest));
         server.On("workflows(", Xaml);
         server.OnJson("EntityDefinitions(LogicalName='new_policy')/Attributes/Microsoft.Dynamics.CRM.PicklistAttributeMetadata",
             "{\"value\":[{\"LogicalName\":\"new_status\",\"OptionSet\":{\"Options\":[{\"Value\":100000003,\"Label\":{\"UserLocalizedLabel\":{\"Label\":\"İptal Edildi\"}}},{\"Value\":100000007,\"Label\":{\"UserLocalizedLabel\":{\"Label\":\"Askıda\"}}}]}}]}");
