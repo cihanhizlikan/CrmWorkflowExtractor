@@ -17,10 +17,10 @@ public sealed class BpmnEmissionTests
         Guid workflowId = id ?? Id;
         ParseResult result = new XamlWorkflowParser(OptionLabels.Empty).Parse(workflowId, XamlWorkflowParserTests.Fixture(fixture));
         return new WorkflowIr(
-            new WorkflowIdentity(workflowId, "Poliçe İptal", null, "Workflow", "Definition", "new_policy", "Background", "Organization", "Activated", false, false, null, null, null, 1, true),
+            new WorkflowIdentity(workflowId, "Poliçe İptal", null, "İş Akışı", "Tanım", "new_policy", "Arka plan", "Kuruluş", "Etkin", false, false, null, null, null, 1, true),
             trigger ?? new WorkflowTrigger(true, false, ["new_status"], "Post-operation", "Post-operation", null, "Owner", false),
             result.Steps, result.Dependencies, result.DataTouched, result.Warnings,
-            new IrProvenance("raw/xaml/x.xaml", "abc", "2026-09-15T00:00:00Z", "test"));
+            new IrProvenance("ham/xaml/x.xaml", "abc", "2026-09-15T00:00:00Z", "test"));
     }
 
     [Theory]
@@ -46,7 +46,7 @@ public sealed class BpmnEmissionTests
         XDocument dialog = BpmnSerializer.ToXml(BpmnBuilder.Build(IrFor("dialog.xaml")), "test");
         XDocument rule = BpmnSerializer.ToXml(BpmnBuilder.Build(IrFor("business-rule.xaml")), "test");
 
-        Assert.Contains(dialog.Descendants(BpmnSerializer.Model + "userTask"), task => task.Attribute("name")!.Value == "Dialog page: Müşteri onayı");
+        Assert.Contains(dialog.Descendants(BpmnSerializer.Model + "userTask"), task => task.Attribute("name")!.Value == "Diyalog sayfası: Müşteri onayı");
         Assert.Single(dialog.Descendants(BpmnSerializer.Model + "callActivity"));
         Assert.Equal(4, rule.Descendants(BpmnSerializer.Model + "businessRuleTask").Count());
         Assert.Contains(rule.Descendants(BpmnSerializer.Model + "businessRuleTask"), task => task.Attribute("name")!.Value.StartsWith("Show/hide field", StringComparison.Ordinal));
@@ -116,8 +116,8 @@ public sealed class BpmnEmissionTests
         XElement process = Process("unknown-construct.xaml");
 
         XElement task = Assert.Single(process.Elements(BpmnSerializer.Model + "task"));
-        Assert.StartsWith("UNMAPPED SomethingNewer", task.Attribute("name")?.Value, StringComparison.Ordinal);
-        Assert.StartsWith("UNMAPPED:", task.Element(BpmnSerializer.Model + "documentation")?.Value, StringComparison.Ordinal);
+        Assert.StartsWith("OKUNAMADI SomethingNewer", task.Attribute("name")?.Value, StringComparison.Ordinal);
+        Assert.StartsWith("OKUNAMADI:", task.Element(BpmnSerializer.Model + "documentation")?.Value, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -18,16 +18,16 @@ public sealed class IrStageTests
         (ExitCode code, string runRoot, _) = await RunHarness.RunAsync(server, output);
 
         Assert.Equal(ExitCode.Success, code);
-        List<string> documents = [.. Directory.GetFiles(Path.Combine(runRoot, "ir"), "*.json").Select(path => Path.GetFileNameWithoutExtension(path)).Order(StringComparer.Ordinal)];
+        List<string> documents = [.. Directory.GetFiles(Path.Combine(runRoot, "ara-model"), "*.json").Select(path => Path.GetFileNameWithoutExtension(path)).Order(StringComparer.Ordinal)];
         Assert.Equal([FakeOrganization.WorkflowId(0).ToString("D"), FakeOrganization.WorkflowId(2).ToString("D")], documents);
 
-        using JsonDocument ir = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "ir", FakeOrganization.WorkflowId(0).ToString("D") + ".json")));
+        using JsonDocument ir = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "ara-model", FakeOrganization.WorkflowId(0).ToString("D") + ".json")));
         JsonElement condition = ir.RootElement.GetProperty("steps")[0];
         Assert.Equal("Condition", condition.GetProperty("kind").GetString());
         Assert.Equal("İptal Edildi", condition.GetProperty("branches")[0].GetProperty("predicate").GetProperty("values")[0].GetProperty("resolved").GetString());
         Assert.Equal("Poliçe İptal Süreci 0", ir.RootElement.GetProperty("identity").GetProperty("name").GetString());
-        Assert.True(File.Exists(Path.Combine(runRoot, "reports", "parse-coverage.md")));
-        Assert.True(File.Exists(Path.Combine(runRoot, "reports", "sensitive-literals.md")));
+        Assert.True(File.Exists(Path.Combine(runRoot, "raporlar", "ayristirma-kapsami.md")));
+        Assert.True(File.Exists(Path.Combine(runRoot, "raporlar", "hassas-degerler.md")));
     }
 
     [Fact]
@@ -40,8 +40,8 @@ public sealed class IrStageTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.Equal(ExitCode.Success, code);
-        Assert.Single(Directory.GetFiles(Path.Combine(runRoot, "ir")));
-        Assert.Contains("could not be parsed", console, StringComparison.Ordinal);
+        Assert.Single(Directory.GetFiles(Path.Combine(runRoot, "ara-model")));
+        Assert.Contains("ayrıştırılamadı", console, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class IrStageTests
         (_, string second, _) = await RunHarness.RunAsync(new FakeOrganization { WorkflowCount = 2, XamlFor = (_, _) => xaml }.Build(), output);
 
         string file = FakeOrganization.WorkflowId(0).ToString("D") + ".json";
-        Assert.Equal(WithoutExtractedAt(Path.Combine(first, "ir", file)), WithoutExtractedAt(Path.Combine(second, "ir", file)));
+        Assert.Equal(WithoutExtractedAt(Path.Combine(first, "ara-model", file)), WithoutExtractedAt(Path.Combine(second, "ara-model", file)));
     }
 
     private static string WithoutExtractedAt(string path)

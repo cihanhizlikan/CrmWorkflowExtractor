@@ -19,11 +19,20 @@ The stages after retrieval read only the run folder, never the network.
 
 ```
 out/runs/<yyyyMMdd-HHmmss>/   manifest.json (written LAST — its presence seals the run)
-  raw/  ir/  clusters/  consolidated/  manual-review/  reports/  logs/
-  bpmn/<category>/<primary entity>/<workflow name>.bpmn   + bpmn/index.csv
-  reports/  migration.csv (the analysts’ worksheet) · call-graph.md · usage.md · report.md · …
-out/cache/metadata/           shared across runs, copied into each run's raw/metadata/
+  ham/  ara-model/  aileler/  birlesik/  elle-inceleme/  raporlar/  gunlukler/
+  bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn
+  raporlar/  tasima-plani.xlsx (çalışma kitabı) · aileler.xlsx · veri-analizi.xlsx · rapor.md · …
+out/cache/metadata/           shared across runs, copied into each run's ham/ust-veri/
 ```
+
+**Tables are .xlsx, not CSV** (`ExcelWorkbook`, written by hand — a workbook is a zip of XML, so no dependency).
+Three workbooks, one per question: `tasima-plani.xlsx` (what is the work), `aileler.xlsx` (which of these are the
+same), `veri-analizi.xlsx` (what touches what). Header frozen, filter on every column, numbers kept as numbers.
+
+**The output is Turkish** — folder names, file names and every word the tool writes. Three tables carry it:
+`RunPaths` (paths), `RunStages` (stage names) and `ProcessLabels` (category, mode and state labels, which code also
+branches on). Names that come from CRM are never translated. A run made before this still reprocesses: its `raw/`
+is read and copied forward as `ham/`.
 
 A sealed run folder is never modified. Unchanged XAML is reused from the newest sealed run; an unsealed (crashed)
 run is not resumed in the prototype — the next run starts fresh.

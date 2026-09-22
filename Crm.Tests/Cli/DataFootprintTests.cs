@@ -1,4 +1,4 @@
-using System.Text;
+using Crm.Cli;
 using Crm.Cli.Reports;
 using Crm.Ir.Model;
 using Crm.Tests.Fakes;
@@ -52,7 +52,7 @@ public sealed class DataFootprintTests
 
         Cascade self = Assert.Single(cascades);
         Assert.Equal(self.Source, self.Target);
-        Assert.Contains("(itself)", DataFootprint.Markdown([loop]), StringComparison.Ordinal);
+        Assert.Contains("(kendisi)", DataFootprint.Markdown([loop]), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -68,9 +68,37 @@ public sealed class DataFootprintTests
         Assert.Equal(1, starts[Closer]);
         Assert.Equal(1, starts[Creator]);
 
-        string csv = Encoding.UTF8.GetString(DataFootprint.CascadeCsv(documents));
-        Assert.Contains("Closer;field update;Watcher;incident.statuscode;Background;Real-time;no", csv, StringComparison.Ordinal);
-        Assert.Contains("incident;statuscode;2;", Encoding.UTF8.GetString(DataFootprint.Csv(documents)), StringComparison.Ordinal);
+        Sheet cascades = DataFootprint.BuildCascades(documents);
+        Assert.Contains(cascades.Rows, row => row.Take(6).Select(cell => Sheet.Cell(cell)?.ToString()).SequenceEqual(
+            ["Closer", "alan güncellendi", "Watcher", "incident.statuscode", "Arka plan", "Gerçek zamanlı"]));
+        Sheet fields = DataFootprint.Build(documents);
+        Assert.Contains(fields.Rows, row => Sheet.Cell(row[0])?.ToString() == "incident" && Sheet.Cell(row[1])?.ToString() == "statuscode"
+            && Sheet.Cell(row[2]) is 2);
+    }
+
+    /// <summary>7009 cascades on the real data (2026-09-22): the list is unreadable, so the page rolls them up.</summary>
+    [Fact]
+    public void The_Report_Rolls_Cascades_Up_By_Field_And_By_Workflow_Pair()
+    {
+        string markdown = DataFootprint.Markdown(Organization());
+
+        Assert.Contains("### En çok işi tetikleyen alanlar", markdown, StringComparison.Ordinal);
+        Assert.Contains("### İş akışı çiftleri (3 çift; 0 tanesi kendini başlatan akış)", markdown, StringComparison.Ordinal);
+        Assert.Contains("| incident.statuscode | 2 | 1 | 2 |", markdown, StringComparison.Ordinal);
+        Assert.Contains("3 iş akışı çifti arasında", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_Reprocessed_Run_Says_Who_Read_The_Data_Instead_Of_Claiming_WhoAmI_Failed()
+    {
+        using TemporaryOutput output = new();
+        (_, string first, _) = await RunHarness.RunAsync(new FakeOrganization().Build(), output);
+
+        (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, reprocessRunId: Path.GetFileName(first));
+
+        Assert.True(code == ExitCode.Success, console);
+        Assert.Contains("svc-crm-read", console, StringComparison.Ordinal);
+        Assert.DoesNotContain("WhoAmI did not complete", console, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -81,10 +109,11 @@ public sealed class DataFootprintTests
         (_, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output,
             importFile: Path.Combine(AppContext.BaseDirectory, "Fixtures", "BrowserExport", "mock-crm-export.json"));
 
-        Assert.True(File.Exists(Path.Combine(runRoot, "reports", "data-footprint.md")), console);
-        Assert.True(File.Exists(Path.Combine(runRoot, "reports", "data-footprint.csv")));
-        Assert.True(File.Exists(Path.Combine(runRoot, "reports", "data-cascades.csv")));
-        Assert.Contains("shared_fields_written", Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "reports", "migration.csv"))), StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(runRoot, "raporlar", "veri-ayak-izi.md")), console);
+        Workbook data = Workbook.Open(Path.Combine(runRoot, "raporlar", "veri-analizi.xlsx"));
+        Assert.Equal(["Veri ayak izi", "Tetikleme zincirleri"], data.Names);
+        Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
+        Assert.Contains("paylasilan_alan", plan.Headers("Taşıma planı"));
     }
 
     /// <summary>Two workflows close a case, one watches the field they write, one creates a task, one watches new tasks.</summary>
@@ -94,25 +123,25 @@ public sealed class DataFootprintTests
         [
             Workflow(Closer, "Closer", "incident", [], written: ["incident.statuscode"]),
             Workflow(Stamper, "Stamper", "incident", [], written: ["incident.statuscode", "incident.new_closedby"]),
-            Workflow(Watcher, "Watcher", "incident", ["statuscode"], written: [], mode: "Real-time"),
+            Workflow(Watcher, "Watcher", "incident", ["statuscode"], written: [], mode: "Gerçek zamanlı"),
             Workflow(Creator, "Creator", "incident", [], written: [], creates: "task"),
             Workflow(OnNewTask, "OnNewTask", "task", [], written: [], onCreate: true)
         ];
     }
 
     private static WorkflowIr Workflow(Guid id, string name, string entity, IReadOnlyList<string> triggerFields,
-        IReadOnlyList<string> written, string mode = "Background", string? creates = null, bool onCreate = false)
+        IReadOnlyList<string> written, string mode = "Arka plan", string? creates = null, bool onCreate = false)
     {
         IReadOnlyList<StepNode> steps = creates is null
             ? []
             : [new StepNode("0", StepKind.CreateRecord, "Create", creates, [], [], null, [], "CreateEntity", [new StepSource(id, "0")])];
         return new WorkflowIr(
-            new WorkflowIdentity(id, name, null, "Workflow", "Definition", entity, mode, "Organization", "Activated", false, false, null, null, null, 1, true),
+            new WorkflowIdentity(id, name, null, "İş Akışı", "Tanım", entity, mode, "Organization", "Activated", false, false, null, null, null, 1, true),
             new WorkflowTrigger(onCreate, false, triggerFields, null, null, null, "Owner", false),
             steps,
             new WorkflowDependencies([], []),
             new DataTouched([], [], [], written),
             [],
-            new IrProvenance("raw/xaml/x.xaml", "abc", "2026-09-23T00:00:00Z", "test"));
+            new IrProvenance("ham/xaml/x.xaml", "abc", "2026-09-23T00:00:00Z", "test"));
     }
 }

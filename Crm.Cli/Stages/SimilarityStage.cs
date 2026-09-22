@@ -13,7 +13,7 @@ public static class SimilarityStage
     private const double RebuiltStructural = 0.95;
     private const double RebuiltLexical = 0.5;
 
-    public static async Task<SimilarityResult> RunAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, IReadOnlyList<WorkflowIr> drafts,
+    public static async Task<SimilarityResult> RunAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, IReadOnlyList<WorkflowIr> drafts, IReadOnlyList<WorkflowIr> supplied,
         UsageEvidence? usage, SimilarityOptions options, ILogger logger, CancellationToken token)
     {
         SimilarityResult result = new SimilarityEngine(options).Run(documents);
@@ -21,10 +21,10 @@ public static class SimilarityStage
         Dictionary<Guid, string> clusterOf = result.Clusters.SelectMany(cluster => cluster.Members.Select(member => (member.WorkflowId, cluster.ClusterId)))
             .ToDictionary(pair => pair.WorkflowId, pair => pair.ClusterId);
 
-        await folder.WriteJsonAsync("clusters/clusters.json", new { options, clusters = result.Clusters }, token);
+        await folder.WriteJsonAsync(RunPaths.FamiliesJson, new { options, clusters = result.Clusters }, token);
 
-        ExcelCsv clusters = new("cluster_id", "cluster_size", "workflow_name", "workflow_id", "primary_entity", "category", "state",
-            "score_to_medoid", "is_medoid", "low_cohesion", "name_suggests_test", "last_logged_run", "decision");
+        Sheet clusters = new(SheetNames.Families, "aile_id", "aile_buyuklugu", "is_akisi", "is_akisi_id", "birincil_varlik", "kategori", "durum",
+            "baslangica_benzerlik", "baslangic_noktasi", "zayif_tutarlilik", "adi_deneme_gibi", "son_kayitli_calisma", "karar");
         foreach (WorkflowCluster cluster in result.Clusters)
         {
             foreach (ClusterMember member in cluster.Members)
@@ -34,26 +34,35 @@ public static class SimilarityStage
                     LastLoggedRun(usage, member.WorkflowId), "");
             }
         }
-        await folder.WriteBytesAsync("clusters/clusters.csv", clusters.ToBytes(), token);
+        state.Sheets[SheetNames.Families] = clusters;
 
-        ExcelCsv held = new("workflow_name", "workflow_id", "primary_entity", "category", "name_suggests_test", "modified_on");
+        Sheet held = new(SheetNames.Drafts, "is_akisi", "is_akisi_id", "birincil_varlik", "kategori", "adi_deneme_gibi", "degistirilme");
         foreach (WorkflowIr draft in drafts.OrderBy(draft => draft.Identity.Name, StringComparer.Ordinal))
         {
             held.Row(draft.Identity.Name, draft.Identity.WorkflowId, draft.Identity.PrimaryEntity, draft.Identity.Category,
                 UsageStage.NameSuggestsTest(draft.Identity.Name), draft.Identity.ModifiedOn);
         }
-        await folder.WriteBytesAsync("clusters/drafts.csv", held.ToBytes(), token);
+        state.Sheets[SheetNames.Drafts] = held;
         state.Counts["clusters.draftsHeldApart"] = drafts.Count;
 
-        ExcelCsv pairs = new("left_id", "left_name", "right_id", "right_name", "combined", "structural", "lexical", "path_jaccard", "shingle_jaccard",
-            "name_prefix", "token_jaccard", "jaro_winkler", "same_cluster", "rebuilt_under_other_name");
+        Sheet shipped = new(SheetNames.Supplied, "is_akisi", "is_akisi_id", "birincil_varlik", "kategori", "durum", "degistirilme");
+        foreach (WorkflowIr document in supplied.OrderBy(document => document.Identity.Name, StringComparer.Ordinal))
+        {
+            shipped.Row(document.Identity.Name, document.Identity.WorkflowId, document.Identity.PrimaryEntity,
+                document.Identity.Category, document.Identity.State, document.Identity.ModifiedOn);
+        }
+        state.Sheets[SheetNames.Supplied] = shipped;
+        state.Counts["clusters.suppliedHeldApart"] = supplied.Count;
+
+        Sheet pairs = new(SheetNames.Pairs, "sol_id", "sol_ad", "sag_id", "sag_ad", "bilesik", "yapisal", "sozcuksel", "yol_jaccard", "parca_jaccard",
+            "ad_oneki", "sozcuk_jaccard", "jaro_winkler", "ayni_aile", "baska_adla_yeniden_yazilmis");
         foreach (PairScore pair in result.Pairs)
         {
             pairs.Row(pair.Left, names[pair.Left], pair.Right, names[pair.Right], pair.Combined, pair.Structural, pair.Lexical, pair.PathJaccard,
                 pair.ShingleJaccard, pair.Prefix, pair.TokenJaccard, pair.JaroWinkler, clusterOf[pair.Left] == clusterOf[pair.Right],
                 pair.Structural >= RebuiltStructural && pair.Lexical < RebuiltLexical);
         }
-        await folder.WriteBytesAsync("clusters/pairs.csv", pairs.ToBytes(), token);
+        state.Sheets[SheetNames.Pairs] = pairs;
 
         state.Counts["clusters.total"] = result.Clusters.Count;
         state.Counts["clusters.members"] = result.Clusters.Sum(cluster => cluster.Members.Count);
@@ -61,7 +70,7 @@ public static class SimilarityStage
         state.Counts["clusters.families"] = result.Clusters.Count(cluster => cluster.Members.Count > 1);
         state.Counts["clusters.lowCohesion"] = result.Clusters.Count(cluster => cluster.LowCohesion);
         state.Counts["pairs.reported"] = result.Pairs.Count;
-        state.StagesRun.Add("similarity");
+        state.StagesRun.Add(RunStages.Similarity);
         logger.LogInformation("Similarity: {Families} families of 2+, {Clusters} clusters in total, {Pairs} pairs above the floor",
             state.Counts["clusters.families"], result.Clusters.Count, result.Pairs.Count);
         return result;

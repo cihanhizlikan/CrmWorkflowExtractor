@@ -20,8 +20,8 @@ public static class WorkflowOptionSets
 {
     private static readonly IReadOnlyDictionary<int, string> Stage = new Dictionary<int, string>
     {
-        [20] = "Pre-operation",
-        [40] = "Post-operation"
+        [20] = "İşlem öncesi",
+        [40] = "İşlem sonrası"
     };
 
     public static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<int, string>> ByColumn =
@@ -29,42 +29,42 @@ public static class WorkflowOptionSets
         {
             ["category"] = new Dictionary<int, string>
             {
-                [0] = "Workflow",
-                [1] = "Dialog",
-                [2] = "Business Rule",
-                [3] = "Action",
-                [4] = "Business Process Flow"
+                [0] = "İş Akışı",
+                [1] = "Diyalog",
+                [2] = "İş Kuralı",
+                [3] = "Eylem",
+                [4] = "İş Süreci Akışı"
             },
             ["type"] = new Dictionary<int, string>
             {
-                [1] = "Definition",
-                [2] = "Activation",
-                [3] = "Template"
+                [1] = "Tanım",
+                [2] = "Etkinleştirme",
+                [3] = "Şablon"
             },
             ["mode"] = new Dictionary<int, string>
             {
-                [0] = "Background",
-                [1] = "Real-time"
+                [0] = "Arka plan",
+                [1] = "Gerçek zamanlı"
             },
             ["scope"] = new Dictionary<int, string>
             {
-                [1] = "User",
-                [2] = "Business Unit",
-                [3] = "Parent: Child Business Units",
-                [4] = "Organization"
+                [1] = "Kullanıcı",
+                [2] = "İş Birimi",
+                [3] = "Üst: Alt İş Birimleri",
+                [4] = "Kuruluş"
             },
             ["createstage"] = Stage,
             ["updatestage"] = Stage,
             ["deletestage"] = Stage,
             ["runas"] = new Dictionary<int, string>
             {
-                [0] = "Owner",
-                [1] = "Calling User"
+                [0] = "Sahip",
+                [1] = "Çağıran Kullanıcı"
             },
             ["statecode"] = new Dictionary<int, string>
             {
-                [0] = "Draft",
-                [1] = "Activated"
+                [0] = "Taslak",
+                [1] = "Etkin"
             }
         };
 

@@ -40,23 +40,23 @@ public static class ConsolidationStage
             List<StepSource> sources = [.. outcome.Members.Select(id => new StepSource(id, ""))];
             string stem = BpmnFileNames.ForFamily(byId[cluster.Medoid].Identity.Name, cluster.ClusterId, outcome.Members.Count);
             fileNames[cluster.ClusterId] = stem;
-            await folder.WriteJsonAsync($"consolidated/{stem}.json", combined, token);
+            await folder.WriteJsonAsync($"{RunPaths.Combined}/{stem}.json", combined, token);
             XDocument xml = BpmnSerializer.ToXml(
                 BpmnBuilder.Build(cluster.ClusterId, combined.Identity.Name, combined, sources, names, allNames), state.ToolVersion);
-            await folder.WriteBytesAsync($"consolidated/{stem}.bpmn", BpmnSerializer.ToBytes(xml), token);
+            await folder.WriteBytesAsync($"{RunPaths.Combined}/{stem}.bpmn", BpmnSerializer.ToBytes(xml), token);
             IReadOnlyList<string> errors = BpmnSchemaValidator.Validate(xml);
             if (errors.Count > 0)
             {
-                state.Fail(ExitCode.RunFailed, $"consolidated/{stem}.bpmn fails BPMN 2.0 schema validation: {string.Join(" | ", errors.Take(3))}");
+                state.Fail(ExitCode.RunFailed, $"{RunPaths.Combined}/{stem}.bpmn BPMN 2.0 şemasına uymuyor: {string.Join(" | ", errors.Take(3))}");
             }
         }
 
         state.CombinedFiles = fileNames;
-        await folder.WriteTextAsync("reports/consolidation.md", Markdown(outcomes, byId, fileNames, state.BpmnFiles), token);
+        await folder.WriteTextAsync(RunPaths.Consolidation, Markdown(outcomes, byId, fileNames, state.BpmnFiles), token);
         state.Counts["consolidation.combined"] = outcomes.Count(outcome => outcome.Combined is not null);
         state.Counts["consolidation.skipped"] = outcomes.Count(outcome => outcome.Combined is null);
         state.Counts["consolidation.workflowsCombined"] = outcomes.Where(outcome => outcome.Combined is not null).Sum(outcome => outcome.Members.Count);
-        state.StagesRun.Add("consolidation");
+        state.StagesRun.Add(RunStages.Consolidation);
         logger.LogInformation("Consolidation: {Combined} families combined, {Skipped} skipped", state.Counts["consolidation.combined"], state.Counts["consolidation.skipped"]);
     }
 
@@ -64,12 +64,12 @@ public static class ConsolidationStage
         IReadOnlyDictionary<string, string> fileNames, IReadOnlyDictionary<Guid, string> bpmnFiles)
     {
         StringBuilder text = new();
-        text.AppendLine("# Consolidation").AppendLine();
-        text.AppendLine("Each cohesive family is combined into one workflow as a set union: steps every member shares appear once; where members "
-            + "differ, a *Variant* gateway names exactly which members take which path; every value any member sets is kept with the members "
-            + "that set it. **Check each combined BPMN against the members' own files in `bpmn/`** — this file is the index for that check.").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"Combined: **{outcomes.Count(outcome => outcome.Combined is not null)}** families. "
-            + $"Not combined: **{outcomes.Count(outcome => outcome.Combined is null)}**.").AppendLine();
+        text.AppendLine("# Birleştirme").AppendLine();
+        text.AppendLine("Tutarlı her aile, küme birleşimi olarak tek bir iş akışında toplanır: bütün üyelerin ortak adımları bir kez görünür; üyelerin "
+            + "ayrıştığı yerde bir *Çeşitleme* kapısı hangi üyenin hangi yoldan gittiğini adıyla belirtir; herhangi bir üyenin yazdığı her değer, o değeri "
+            + "yazan üyelerle birlikte saklanır. **Her birleşik BPMN dosyasını üyelerin `bpmn/` altındaki kendi dosyalarıyla karşılaştırın** — bu dosya o kontrolün dizinidir.").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"Birleştirilen: **{outcomes.Count(outcome => outcome.Combined is not null)}** aile. "
+            + $"Birleştirilmeyen: **{outcomes.Count(outcome => outcome.Combined is null)}**.").AppendLine();
 
         foreach (CombineOutcome outcome in outcomes.Where(outcome => outcome.Combined is not null))
         {
@@ -77,27 +77,27 @@ public static class ConsolidationStage
             int variants = CountVariants(combined.Steps);
             text.AppendLine(CultureInfo.InvariantCulture, $"## {combined.Identity.Name}").AppendLine();
             string reconciliation = outcome.ReconciliationErrors.Count == 0
-                ? "every member step accounted for exactly once."
-                : string.Create(CultureInfo.InvariantCulture, $"**{outcome.ReconciliationErrors.Count} reconciliation error(s)**.");
-            text.AppendLine(CultureInfo.InvariantCulture, $"`consolidated/{fileNames.GetValueOrDefault(outcome.ClusterId, outcome.ClusterId)}.bpmn` — {outcome.Members.Count} members, {variants} variant split(s), {reconciliation}");
-            text.AppendLine().AppendLine("| Member | Workflow id | Original BPMN | Trigger |").AppendLine("|---|---|---|---|");
+                ? "her üye adımının hesabı tam olarak bir kez verildi."
+                : string.Create(CultureInfo.InvariantCulture, $"**{outcome.ReconciliationErrors.Count} mutabakat hatası**.");
+            text.AppendLine(CultureInfo.InvariantCulture, $"`{RunPaths.Combined}/{fileNames.GetValueOrDefault(outcome.ClusterId, outcome.ClusterId)}.bpmn` — {outcome.Members.Count} üye, {variants} çeşitleme ayrımı, {reconciliation}");
+            text.AppendLine().AppendLine("| Üye | İş akışı id | Kendi BPMN dosyası | Tetikleyici |").AppendLine("|---|---|---|---|");
             foreach (Guid member in outcome.Members)
             {
                 WorkflowIr document = documents[member];
                 WorkflowTrigger trigger = document.Trigger;
                 string triggerText = string.Join(", ", new[]
                 {
-                    trigger.OnCreate ? "create" : null,
-                    trigger.OnUpdateFields.Count > 0 ? "update(" + string.Join(",", trigger.OnUpdateFields) + ")" : null,
-                    trigger.OnDelete ? "delete" : null,
-                    trigger.OnDemand ? "on demand" : null
+                    trigger.OnCreate ? "oluşturma" : null,
+                    trigger.OnUpdateFields.Count > 0 ? "güncelleme(" + string.Join(",", trigger.OnUpdateFields) + ")" : null,
+                    trigger.OnDelete ? "silme" : null,
+                    trigger.OnDemand ? "istek üzerine" : null
                 }.OfType<string>());
-                text.AppendLine(CultureInfo.InvariantCulture, $"| {document.Identity.Name} | `{member:D}` | `bpmn/{bpmnFiles.GetValueOrDefault(member, member.ToString("D"))}.bpmn` | {triggerText} |");
+                text.AppendLine(CultureInfo.InvariantCulture, $"| {document.Identity.Name} | `{member:D}` | `{RunPaths.Bpmn}/{bpmnFiles.GetValueOrDefault(member, member.ToString("D"))}.bpmn` | {triggerText} |");
             }
             text.AppendLine();
         }
 
-        text.AppendLine("## Not combined").AppendLine();
+        text.AppendLine("## Birleştirilmeyenler").AppendLine();
         foreach (CombineOutcome outcome in outcomes.Where(outcome => outcome.Combined is null))
         {
             string members = string.Join(", ", outcome.Members.Select(member => documents[member].Identity.Name));

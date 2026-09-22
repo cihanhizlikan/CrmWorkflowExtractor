@@ -32,7 +32,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
         RunState state = new(folder.RunId, folder.Root, ToolVersion());
         IReadOnlyList<WorkflowInventoryRecord> records = [];
 
-        RunLogProvider logProvider = new(folder.PathOf("logs/run.log"), folder.PathOf("logs/warnings.txt"));
+        RunLogProvider logProvider = new(folder.PathOf(RunPaths.RunLog), folder.PathOf(RunPaths.WarningLog));
         using (ILoggerFactory loggers = LoggerFactory.Create(builder => builder.SetMinimumLevel(LogLevel.Debug).AddProvider(logProvider)))
         {
             ILogger logger = loggers.CreateLogger("Crm.Run");
@@ -40,7 +40,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
             try
             {
                 records = await LoadSourceAsync(folder, state, logger, token);
-                if (state.Failures.Count == 0 && state.StagesRun.Contains("xaml"))
+                if (state.Failures.Count == 0 && state.StagesRun.Contains(RunStages.Xaml))
                 {
                     await OfflineStages.RunAsync(folder, state, settings, started, logger, token);
                 }
@@ -55,7 +55,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
             }
             catch (Exception error) when (error is HttpRequestException or TaskCanceledException && !token.IsCancellationRequested)
             {
-                state.Fail(ExitCode.ServerUnreachable, $"The server could not be reached: {error.Message}");
+                state.Fail(ExitCode.ServerUnreachable, $"Sunucuya erişilemedi: {error.Message}");
             }
             catch (Exception error) when (error is CrmRequestException or CrmBoundaryViolationException or InvalidDataException or InvalidOperationException
                 or JsonException or KeyNotFoundException or IOException or UnauthorizedAccessException)
@@ -66,7 +66,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
             state.CountChain = CountChain.Evaluate(state);
             foreach (CountLink gap in state.CountChain.Where(link => !link.Holds))
             {
-                state.Fail(ExitCode.RunFailed, "Unexplained gap in the count chain — " + gap);
+                state.Fail(ExitCode.RunFailed, "Sayım zincirinde açıklanamayan boşluk — " + gap);
             }
 
             foreach (string warning in state.Warnings)
@@ -120,32 +120,32 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
         state.OrganizationUrl = client.BaseUri.ToString();
 
         state.Identity = await CrmIdentity.ResolveAsync(client, token);
-        state.StagesRun.Add("identity");
+        state.StagesRun.Add(RunStages.Identity);
         logger.LogInformation("Authenticated as {Domain} ({UserId})", state.Identity.DomainName, state.Identity.UserId);
 
         state.Privileges = await PrivilegeCheck.RunAsync(client, state.Identity.UserId, token);
-        state.StagesRun.Add("privileges");
+        state.StagesRun.Add(RunStages.Privileges);
         ApplyPrivilegeVerdicts(state, settings.Run.Value.RequireOrganizationReadPrivileges);
 
         (IReadOnlyList<string> available, IReadOnlyList<string> missing) = await WorkflowColumns.ResolveAsync(client, token);
         state.ColumnsSelected = available;
         state.ColumnsMissing = missing;
-        state.StagesRun.Add("columns");
+        state.StagesRun.Add(RunStages.Columns);
         foreach (string column in missing)
         {
-            state.Warnings.Add($"Column '{column}' from §3.1 does not exist on this server's workflow entity; excluded from $select.");
+            state.Warnings.Add($"§3.1 listesindeki '{column}' sütunu bu sunucunun workflow varlığında yok; $select dışında bırakıldı.");
         }
 
         // Insufficient privilege does not stop the inventory: the retrieved count is what an administrator compares
         // against, and the run is already marked failed so its output cannot be mistaken for complete.
         WorkflowInventoryRetriever retriever = new(client, crm.PageSize, logger);
         InventoryPass pass = await retriever.RetrieveAsync(available, token);
-        state.StagesRun.Add("inventory");
+        state.StagesRun.Add(RunStages.Inventory);
         await WriteInventoryAsync(folder, state, token);
 
         ReconciliationResult reconciliation = InventoryReconciliation.Evaluate(pass.ApiCount, pass.Records);
         state.Reconciliation = reconciliation;
-        state.StagesRun.Add("reconciliation");
+        state.StagesRun.Add(RunStages.Reconciliation);
         state.Warnings.AddRange(reconciliation.Warnings);
         foreach (string failure in reconciliation.Failures)
         {
@@ -157,7 +157,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
         // every workflow's XAML: whatever it would build on is known to be incomplete.
         if (state.Failures.Count > 0)
         {
-            logger.LogError("Stopping after the inventory: the run has failed and later stages would build on incomplete data.");
+            logger.LogError("Envanterden sonra durduruldu: çalıştırma başarısız oldu ve sonraki aşamalar eksik veri üzerine kurulacaktı.");
             return pass.Records;
         }
         await RetrievalStages.RunAsync(folder, state, client, settings, logger, token);
@@ -171,14 +171,14 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
             string subject = $"{finding.Privilege.Name} ({finding.Privilege.Table})";
             if (finding.Verdict is PrivilegeVerdict.Missing or PrivilegeVerdict.Insufficient)
             {
-                string message = $"{subject} is held at depth '{finding.Depth}', not organization level. Reads of this table return only part of the data (§2.4).";
+                string message = $"{subject} yetkisi '{finding.Depth}' derinliğinde, kuruluş düzeyinde değil. Bu tablodan yapılan okumalar verinin yalnızca bir bölümünü döndürür (§2.4).";
                 if (requireOrganizationRead)
                 {
                     state.Fail(ExitCode.RunFailed, message);
                 }
                 else
                 {
-                    state.Warnings.Add(message + " Run:RequireOrganizationReadPrivileges is false, so this is a warning only.");
+                    state.Warnings.Add(message + " Run:RequireOrganizationReadPrivileges kapalı olduğundan bu yalnızca bir uyarıdır.");
                 }
             }
             else if (finding.Verdict == PrivilegeVerdict.Unverifiable)
@@ -194,7 +194,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
         for (int sequence = 0; sequence < state.Responses.Count; sequence++)
         {
             CrmResponse response = state.Responses[sequence];
-            string file = string.Create(CultureInfo.InvariantCulture, $"raw/http/{sequence + 1:0000}.body");
+            string file = string.Create(CultureInfo.InvariantCulture, $"{RunPaths.RawHttp}/{sequence + 1:0000}.body");
             await folder.WriteVerbatimAsync(file, response.Body, token);
             index.Append(JsonSerializer.Serialize(new
             {
@@ -204,13 +204,13 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
                 file
             })).Append('\n');
         }
-        await folder.WriteTextAsync("raw/http/index.jsonl", index.ToString(), token);
+        await folder.WriteTextAsync(RunPaths.RawHttpIndex, index.ToString(), token);
 
-        if (state.StagesRun.Contains("inventory"))
+        if (state.StagesRun.Contains(RunStages.Inventory))
         {
-            await folder.WriteTextAsync("reports/inventory.md", InventoryReport.Markdown(state, records), token);
+            await folder.WriteTextAsync(RunPaths.Inventory, InventoryReport.Markdown(state, records), token);
         }
-        await folder.WriteTextAsync("reports/report.md", RunReport.Markdown(state), token);
+        await folder.WriteTextAsync(RunPaths.Report, RunReport.Markdown(state), token);
     }
 
     /// <summary>Written as soon as the inventory exists: every later stage reads the records from this file, not from memory.</summary>
@@ -228,7 +228,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
                 lines.Append(record.GetRawText().ReplaceLineEndings("")).Append('\n');
             }
         }
-        await folder.WriteTextAsync("raw/workflows.jsonl", lines.ToString(), token);
+        await folder.WriteTextAsync(RunPaths.RawWorkflows, lines.ToString(), token);
     }
 
     private RunManifest Manifest(RunState state, DateTimeOffset started, DateTimeOffset ended, IReadOnlyList<RunArtifact> artifacts)

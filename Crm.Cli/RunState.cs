@@ -46,6 +46,9 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>The BPMN file path (relative to the run folder, without extension) written for each workflow.</summary>
     public IReadOnlyDictionary<Guid, string> BpmnFiles { get; set; } = new Dictionary<Guid, string>();
 
+    /// <summary>Sheets collected during the run; the offline stages gather them into the workbooks.</summary>
+    public Dictionary<string, Crm.Cli.Reports.Sheet> Sheets { get; } = new(StringComparer.Ordinal);
+
     /// <summary>Named counts for every stage, ordinal-sorted so the manifest diffs cleanly. The §8 count chain reads from here.</summary>
     public SortedDictionary<string, int> Counts { get; } = new(StringComparer.Ordinal);
 

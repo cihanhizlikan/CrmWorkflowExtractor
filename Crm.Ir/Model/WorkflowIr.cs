@@ -77,7 +77,14 @@ public sealed record WorkflowIdentity(
     string? CreatedOn,
     string? ModifiedOn,
     long? VersionNumber,
-    bool? IsCrmUiWorkflow);
+    bool? IsCrmUiWorkflow)
+{
+    /// <summary>
+    /// True when CRM reports the workflow as part of a managed solution: it was shipped with the product or with a
+    /// partner solution, not written here. Null when the server did not answer the column.
+    /// </summary>
+    public bool? IsManaged { get; init; }
+}
 
 public sealed record WorkflowTrigger(
     bool OnCreate,

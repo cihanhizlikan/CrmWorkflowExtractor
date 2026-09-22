@@ -13,7 +13,7 @@ namespace Crm.Cli.Reports;
 /// </summary>
 public static class MigrationPlan
 {
-    public static byte[] Csv(RunState state, IReadOnlyList<WorkflowIr> documents, SimilarityResult? similarity, UsageEvidence? usage)
+    public static Sheet Build(RunState state, IReadOnlyList<WorkflowIr> documents, SimilarityResult? similarity, UsageEvidence? usage)
     {
         Dictionary<Guid, WorkflowCluster> familyOf = [];
         foreach (WorkflowCluster cluster in similarity?.Clusters ?? [])
@@ -26,10 +26,10 @@ public static class MigrationPlan
         CallGraph calls = CallGraph.Build(documents);
         (IReadOnlyDictionary<Guid, int> sharedFields, IReadOnlyDictionary<Guid, int> starts) = DataFootprint.PerWorkflow(documents);
 
-        ExcelCsv csv = new("priority", "workflow_name", "bpmn_file", "category", "mode", "state", "primary_entity", "trigger",
-            "steps", "unmapped_steps", "custom_activities", "calls", "called_by", "role",
-            "family", "family_size", "family_role", "combined_file", "last_logged_run", "usage_verdict",
-            "name_suggests_test", "has_sensitive_literals", "shared_fields_written", "starts_other_workflows", "entities_written", "fields_written");
+        Sheet csv = new(SheetNames.Plan, "öncelik", "is_akisi", "bpmn_dosyasi", "kategori", "mod", "durum", "birincil_varlik", "tetikleyici",
+            "adim", "okunamayan_adim", "ozel_etkinlikler", "cagirdigi", "cagiran", "rol",
+            "aile", "aile_buyuklugu", "aile_rolu", "birlesik_dosya", "son_kayitli_calisma", "kullanim_hukmu",
+            "adi_deneme_gibi", "urunle_gelen", "hassas_deger_var", "paylasilan_alan", "baslattigi_is_akisi", "yazdigi_varliklar", "yazdigi_alanlar");
         foreach (WorkflowIr document in documents.OrderBy(Priority).ThenBy(document => document.Identity.Name, StringComparer.Ordinal))
         {
             WorkflowIdentity identity = document.Identity;
@@ -52,18 +52,19 @@ public static class MigrationPlan
                 calls.RoleOf(identity.WorkflowId),
                 family is null || family.Members.Count < 2 ? "" : family.ClusterId,
                 family is null || family.Members.Count < 2 ? "" : family.Members.Count,
-                family is null || family.Members.Count < 2 ? "" : family.Medoid == identity.WorkflowId ? "starting point" : "member",
+                family is null || family.Members.Count < 2 ? "" : family.Medoid == identity.WorkflowId ? "başlangıç noktası" : "üye",
                 family is not null && state.CombinedFiles.TryGetValue(family.ClusterId, out string? combined) ? combined + ".bpmn" : "",
                 found?.LastLoggedRun is DateTimeOffset last ? last.UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "",
                 UsageStage.Verdict(identity, usage),
                 UsageStage.NameSuggestsTest(identity.Name),
+                identity.IsManaged == true,
                 state.SensitiveWorkflows.Contains(identity.WorkflowId),
                 sharedFields.GetValueOrDefault(identity.WorkflowId),
                 starts.GetValueOrDefault(identity.WorkflowId),
                 string.Join(" | ", document.DataTouched.EntitiesWritten),
                 string.Join(" | ", document.DataTouched.FieldsWritten.Take(12)));
         }
-        return csv.ToBytes();
+        return csv;
     }
 
     /// <summary>
@@ -72,6 +73,10 @@ public static class MigrationPlan
     /// </summary>
     private static int Priority(WorkflowIr document)
     {
+        if (document.Identity.IsManaged == true)
+        {
+            return 5;
+        }
         if (document.Identity.State == UsageStage.DraftState)
         {
             return 4;
@@ -80,37 +85,38 @@ public static class MigrationPlan
         {
             return 3;
         }
-        return document.Identity.Category is "Workflow" or "Action" ? 1 : 2;
+        return document.Identity.Category is ProcessLabels.CategoryWorkflow or ProcessLabels.CategoryAction ? 1 : 2;
     }
 
     public static string Markdown(RunState state, IReadOnlyList<WorkflowIr> documents, SimilarityResult? similarity)
     {
         CallGraph calls = CallGraph.Build(documents);
         StringBuilder text = new();
-        text.AppendLine("# Migration worksheet").AppendLine();
-        text.AppendLine("`migration.csv` has one row per workflow. Open it in Excel and sort or filter; every fact is a column, so the sheet answers whatever question comes up rather than fixing one order.").AppendLine();
-        text.AppendLine("| Column | What it is for |").AppendLine("|---|---|");
-        text.AppendLine("| `priority` | 1 live process · 2 dialog, rule or process flow · 3 name reads like a test · 4 Draft, cannot run |");
-        text.AppendLine("| `bpmn_file` | the diagram, under `bpmn/<category>/<entity>/` |");
-        text.AppendLine("| `trigger` | what starts it: create, update of named fields, delete, on demand |");
-        text.AppendLine("| `steps` / `unmapped_steps` | size, and how much of it the parser could not read (check those by hand) |");
-        text.AppendLine("| `custom_activities` | partner or in-house code the new product has no equivalent for |");
-        text.AppendLine("| `calls` / `called_by` / `role` | the call graph: an entry point is migrated whole, a building block is shared |");
-        text.AppendLine("| `family` / `family_role` / `combined_file` | near-duplicates, and the combined model of the family |");
-        text.AppendLine("| `last_logged_run` / `usage_verdict` | evidence of use. Absence never proves non-use |");
-        text.AppendLine("| `has_sensitive_literals` | its XAML holds a URL, user name or secret; see the restricted report |");
-        text.AppendLine("| `shared_fields_written` | fields it writes that another workflow writes too — see `data-footprint.md` |");
-        text.AppendLine("| `starts_other_workflows` | workflows its writes set off, without any explicit call — see `data-cascades.csv` |");
-        text.AppendLine("| `entities_written` / `fields_written` | the data footprint — two workflows writing one field need care in the new product |");
+        text.AppendLine("# Taşıma çalışma sayfası").AppendLine();
+        text.AppendLine("`tasima-plani.xlsx` kitabının **" + SheetNames.Plan + "** sayfası her iş akışı için bir satır tutar; kitapta ayrıca **" + SheetNames.Usage + "**, **" + SheetNames.CallGraph + "** ve **" + SheetNames.Diagrams + "** sayfaları vardır. Başlık satırı sabit, her sütunda süzgeç açık gelir; her bilgi ayrı bir sütun olduğundan sayfa tek bir sıraya mahkûm değildir, aklınıza gelen soruyu yanıtlar.").AppendLine();
+        text.AppendLine("| Sütun | Ne işe yarar |").AppendLine("|---|---|");
+        text.AppendLine("| `öncelik` | 1 canlı süreç · 2 diyalog, iş kuralı veya süreç akışı · 3 adı deneme gibi okunuyor · 4 taslak, çalışamaz · 5 ürünle gelmiş |");
+        text.AppendLine("| `bpmn_dosyasi` | diyagram; `bpmn/<kategori>/<varlık>/` altında, dizini **" + SheetNames.Diagrams + "** sayfasında |");
+        text.AppendLine("| `tetikleyici` | akışı ne başlatır: kayıt oluşturma, adı verilen alanların güncellenmesi, silme, istek üzerine |");
+        text.AppendLine("| `adim` / `okunamayan_adim` | akışın büyüklüğü ve ayrıştırıcının okuyamadığı adım sayısı (bunları elle kontrol edin) |");
+        text.AppendLine("| `ozel_etkinlikler` | yeni üründe karşılığı bulunmayan iş ortağı veya kurum içi kod |");
+        text.AppendLine("| `cagirdigi` / `cagiran` / `rol` | çağrı ağacı: giriş noktası bir bütün olarak taşınır, yapı taşı birden çok süreççe paylaşılır |");
+        text.AppendLine("| `aile` / `aile_rolu` / `birlesik_dosya` | birbirine çok benzeyen akışlar ve ailenin birleşik modeli |");
+        text.AppendLine("| `son_kayitli_calisma` / `kullanim_hukmu` | kullanım kanıtı. Kaydın bulunmaması kullanılmadığını kanıtlamaz |");
+        text.AppendLine("| `urunle_gelen` | CRM bu akışı yönetilen çözümün parçası olarak bildiriyor: ürünle gelmiş, burada yazılmamış. Gruplanmaz, yeniden kurulması gerekmez |");
+        text.AppendLine("| `hassas_deger_var` | XAML içinde adres, kullanıcı adı veya parola benzeri değer var; kısıtlı rapora bakın |");
+        text.AppendLine("| `paylasilan_alan` | yazdığı alanlardan başka bir iş akışının da yazdıkları — bkz. `veri-analizi.xlsx` ve `veri-ayak-izi.md` |");
+        text.AppendLine("| `baslattigi_is_akisi` | açıkça çağırmadan, yalnızca yazdığı için başlattığı iş akışları — bkz. `veri-analizi.xlsx`, **" + SheetNames.Cascades + "** sayfası |");
+        text.AppendLine("| `yazdigi_varliklar` / `yazdigi_alanlar` | veri ayak izi — aynı alana yazan iki akış yeni üründe dikkat ister |");
         text.AppendLine();
 
         int live = documents.Count(document => Priority(document) == 1);
         int blocks = calls.CalledBy.Count(entry => entry.Value.Count > 0);
-        text.AppendLine(CultureInfo.InvariantCulture, $"**{documents.Count} workflows.** {live} are live processes (priority 1); {documents.Count(document => Priority(document) == 4)} are Draft and cannot run. {blocks} are called by another workflow, so they are building blocks rather than separate work.").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"**{documents.Count} iş akışı.** {live} tanesi canlı süreç (öncelik 1); {documents.Count(document => Priority(document) == 4)} tanesi taslak olduğu için çalışamaz; {documents.Count(document => Priority(document) == 5)} tanesi ürünle gelmiştir ve `{Crm.Extract.Runs.RunPaths.FamilyWorkbook}` kitabının **{SheetNames.Supplied}** sayfasında listelenir. {blocks} tanesi başka bir iş akışınca çağrılır; bunlar ayrı bir kalem değil, ortak yapı taşıdır.").AppendLine();
         int families = similarity?.Clusters.Count(cluster => cluster.Members.Count > 1) ?? 0;
         int inFamilies = similarity?.Clusters.Where(cluster => cluster.Members.Count > 1).Sum(cluster => cluster.Members.Count) ?? 0;
-        text.AppendLine(CultureInfo.InvariantCulture, $"{inFamilies} workflows fall into {families} families of near-duplicates. Start from each family's starting point and treat the rest as variations, not as separate builds.").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"{state.SensitiveWorkflows.Count} workflows hold a sensitive literal. Their diagrams carry those values too — treat `bpmn/` as production data.");
+        text.AppendLine(CultureInfo.InvariantCulture, $"{inFamilies} iş akışı, birbirine çok benzeyen {families} aileye ayrılır. Her ailenin başlangıç noktasından başlayın; kalanları ayrı birer kurulum değil, o akışın çeşitlemeleri olarak ele alın.").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"{state.SensitiveWorkflows.Count} iş akışı hassas değer içerir. Bu değerler diyagramlara da geçer — `bpmn/` klasörünü üretim verisi gibi koruyun.");
         return text.ToString();
     }
 
@@ -131,20 +137,20 @@ public static class MigrationPlan
         List<string> parts = [];
         if (trigger.OnCreate)
         {
-            parts.Add("create");
+            parts.Add("kayıt oluşturulunca");
         }
         if (trigger.OnUpdateFields.Count > 0)
         {
-            parts.Add("update of " + string.Join(", ", trigger.OnUpdateFields.Take(6)));
+            parts.Add("şu alanlar güncellenince: " + string.Join(", ", trigger.OnUpdateFields.Take(6)));
         }
         if (trigger.OnDelete)
         {
-            parts.Add("delete");
+            parts.Add("kayıt silinince");
         }
         if (trigger.OnDemand)
         {
-            parts.Add("on demand");
+            parts.Add("istek üzerine");
         }
-        return parts.Count == 0 ? "child process only" : string.Join(" · ", parts);
+        return parts.Count == 0 ? "yalnızca alt süreç olarak" : string.Join(" · ", parts);
     }
 }

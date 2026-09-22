@@ -13,7 +13,7 @@ public sealed record CountLink(string Name, int Left, string LeftLabel, int Righ
 
     public override string ToString()
     {
-        string verdict = Holds ? "ok" : string.Create(CultureInfo.InvariantCulture, $"GAP of {Left - Right}");
+        string verdict = Holds ? "uygun" : string.Create(CultureInfo.InvariantCulture, $"EKSİK: {Left - Right}");
         return string.Create(CultureInfo.InvariantCulture, $"{Name}: {LeftLabel} {Left} = {RightLabel} {Right} — {verdict}");
     }
 }
@@ -34,30 +34,31 @@ public static class CountChain
             if (inventory.ApiCount >= 0)
             {
                 // With no server count (-1) there is nothing to balance; the reconciliation already warned, loudly.
-                links.Add(new CountLink("records", inventory.ApiCount, "$count", inventory.Retrieved, "retrieved"));
+                links.Add(new CountLink("kayıtlar", inventory.ApiCount, "$count", inventory.Retrieved, "alınan"));
             }
-            links.Add(new CountLink("classified", inventory.Retrieved, "retrieved",
-                inventory.Definitions + inventory.Activations + inventory.Templates + inventory.OtherType, "definitions + activations + templates + other"));
+            links.Add(new CountLink("sınıflandırma", inventory.Retrieved, "alınan",
+                inventory.Definitions + inventory.Activations + inventory.Templates + inventory.OtherType, "tanım + etkinleştirme + şablon + diğer"));
             if (counts.ContainsKey("xaml.written"))
             {
-                links.Add(new CountLink("xaml", inventory.Definitions + inventory.Activations, "definitions + activations",
-                    Get(counts, "xaml.written") + Get(counts, "xaml.withoutXaml") + Get(counts, "xaml.failed"), "xaml written + without xaml + failed"));
+                links.Add(new CountLink("xaml", inventory.Definitions + inventory.Activations, "tanım + etkinleştirme",
+                    Get(counts, "xaml.written") + Get(counts, "xaml.withoutXaml") + Get(counts, "xaml.failed"), "yazılan + xaml içermeyen + başarısız"));
             }
         }
         if (counts.ContainsKey("ir.documents") && counts.ContainsKey("xaml.definitions"))
         {
-            links.Add(new CountLink("ir", Get(counts, "xaml.definitions"), "definition xaml files",
+            links.Add(new CountLink("ara model", Get(counts, "xaml.definitions"), "tanım xaml dosyası",
                 Get(counts, "ir.documents") + Get(counts, "manualReview") + Get(counts, "ir.parseFailed") + Get(counts, "ir.noInventoryRecord"),
-                "ir documents + manual review + parse failures + orphaned xaml"));
+                "ara model + elle inceleme + ayrıştırma hatası + karşılıksız xaml"));
         }
         if (counts.ContainsKey("bpmn.written"))
         {
-            links.Add(new CountLink("bpmn", Get(counts, "ir.documents"), "ir documents", Get(counts, "bpmn.written"), "bpmn files"));
+            links.Add(new CountLink("bpmn", Get(counts, "ir.documents"), "ara model belgesi", Get(counts, "bpmn.written"), "bpmn dosyası"));
         }
         if (counts.ContainsKey("clusters.total"))
         {
-            links.Add(new CountLink("clusters", Get(counts, "ir.documents"), "ir documents",
-                Get(counts, "clusters.members") + Get(counts, "clusters.draftsHeldApart"), "workflows placed in a cluster + drafts held apart"));
+            links.Add(new CountLink("aileler", Get(counts, "ir.documents"), "ara model belgesi",
+                Get(counts, "clusters.members") + Get(counts, "clusters.draftsHeldApart") + Get(counts, "clusters.suppliedHeldApart"),
+                "aileye yerleşen + ayrı tutulan taslak + ürünle gelen"));
         }
         return links;
     }

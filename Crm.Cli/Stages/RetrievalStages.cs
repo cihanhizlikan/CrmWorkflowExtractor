@@ -13,7 +13,7 @@ namespace Crm.Cli.Stages;
 /// <summary>M2: everything the offline stages need from the server beyond the inventory.</summary>
 public static class RetrievalStages
 {
-    public const string ManualReviewIndex = "manual-review/index.md";
+    public const string ManualReviewIndex = RunPaths.ManualReviewIndex;
 
     public static async Task RunAsync(RunFolder folder, RunState state, CrmHttpClient client, ExtractorSettings settings, ILogger logger, CancellationToken token)
     {
@@ -21,7 +21,7 @@ public static class RetrievalStages
 
         IReadOnlyDictionary<(Guid, long), ReusableXaml> reusable = PriorRuns.FindReusableXaml(outputRoot, folder.RunId);
         XamlPass xaml = await new XamlRetriever(client, logger).RetrieveAsync(folder, state.Records, reusable, state.Warnings, token);
-        state.StagesRun.Add("xaml");
+        state.StagesRun.Add(RunStages.Xaml);
         state.Counts["xaml.fetched"] = xaml.Fetched;
         state.Counts["xaml.reused"] = xaml.Reused;
         state.Counts["xaml.withoutXaml"] = xaml.WithoutXaml;
@@ -37,11 +37,11 @@ public static class RetrievalStages
             IReadOnlyList<ProcessStage> stages = await new ProcessStageRetriever(client, settings.Crm.Value.PageSize).RetrieveAsync(token);
             await folder.WriteJsonAsync(ProcessStageRetriever.IndexFile, stages, token);
             state.Counts["processStages"] = stages.Count;
-            state.StagesRun.Add("processStages");
+            state.StagesRun.Add(RunStages.ProcessStages);
         }
         catch (CrmRequestException error)
         {
-            state.Warnings.Add("Business Process Flow stages could not be retrieved; BPF stages will be unnamed: " + error.Message);
+            state.Warnings.Add("İş süreci akışı aşamaları alınamadı; bu akışların aşamaları adsız kalacak: " + error.Message);
         }
     }
 
@@ -51,8 +51,8 @@ public static class RetrievalStages
         await RouteManualReviewAsync(folder, state, entries, token);
 
         DriftReport drift = DriftAnalyzer.Analyze(state.Records, entries, folder.ReadText);
-        await folder.WriteTextAsync("reports/drift.md", DriftAnalyzer.Markdown(drift), token);
-        state.StagesRun.Add("drift");
+        await folder.WriteTextAsync(RunPaths.Drift, DriftAnalyzer.Markdown(drift), token);
+        state.StagesRun.Add(RunStages.Drift);
         state.Counts["drift.pairsCompared"] = drift.PairsCompared;
         state.Counts["drift.structureDiffers"] = drift.Drifted.Count(finding => finding.StructureDiffers);
         state.Counts["drift.draftDefinitions"] = drift.DraftDefinitions.Count;
@@ -67,13 +67,13 @@ public static class RetrievalStages
             .OrderBy(record => record.WorkflowId)];
 
         StringBuilder index = new();
-        index.AppendLine("# Manual review — not designer-authored").AppendLine();
-        index.AppendLine("`iscrmuiworkflow = false`: hand-authored XAML that the CRM designer cannot open. Not parsed and no BPMN emitted, "
-            + "because a wrong diagram is worse than an acknowledged gap (§3.3).").AppendLine();
+        index.AppendLine("# Elle inceleme — tasarımcıyla yazılmamış").AppendLine();
+        index.AppendLine("`iscrmuiworkflow = false`: CRM tasarımcısının açamadığı, elle yazılmış XAML. Ayrıştırılmaz ve BPMN üretilmez; "
+            + "çünkü yanlış bir diyagram, kabul edilmiş bir boşluktan daha kötüdür (§3.3).").AppendLine();
         foreach (WorkflowInventoryRecord record in manual)
         {
-            await folder.CopyVerbatimAsync(folder.PathOf(XamlEntry.FileFor(record.WorkflowId)), $"manual-review/{record.WorkflowId:D}.xaml", token);
-            index.AppendLine(CultureInfo.InvariantCulture, $"- {record.Name} (`{record.WorkflowId:D}`, {record.Category.Label}, entity `{record.PrimaryEntity}`)");
+            await folder.CopyVerbatimAsync(folder.PathOf(XamlEntry.FileFor(record.WorkflowId)), RunPaths.ManualReviewXaml(record.WorkflowId), token);
+            index.AppendLine(CultureInfo.InvariantCulture, $"- {record.Name} (`{record.WorkflowId:D}`, {record.Category.Label}, varlık `{record.PrimaryEntity}`)");
         }
         await folder.WriteTextAsync(ManualReviewIndex, index.ToString(), token);
         state.Counts["manualReview"] = manual.Count;
@@ -94,15 +94,15 @@ public static class RetrievalStages
             try
             {
                 await retriever.GetAsync(outputRoot, entity, token);
-                await folder.CopyVerbatimAsync(OptionSetMetadataRetriever.CachePath(outputRoot, entity), $"raw/metadata/{entity}.json", token);
+                await folder.CopyVerbatimAsync(OptionSetMetadataRetriever.CachePath(outputRoot, entity), RunPaths.MetadataFile(entity), token);
                 entities++;
             }
             catch (CrmRequestException error)
             {
-                state.Warnings.Add($"Option-set metadata for entity '{entity}' could not be retrieved; its conditions will show raw values only: {error.Message}");
+                state.Warnings.Add($"'{entity}' varlığının seçenek kümesi üst verisi alınamadı; koşullarında yalnızca ham değerler görünecek: {error.Message}");
             }
         }
         state.Counts["metadata.entities"] = entities;
-        state.StagesRun.Add("metadata");
+        state.StagesRun.Add(RunStages.Metadata);
     }
 }

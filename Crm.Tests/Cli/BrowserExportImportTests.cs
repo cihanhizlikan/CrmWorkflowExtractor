@@ -32,15 +32,15 @@ public sealed partial class BrowserExportImportTests
         Assert.Empty(silent.Requests);
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
         JsonElement root = manifest.RootElement;
-        Assert.Contains("import:mock-crm-export.json", root.GetProperty("stagesRun").EnumerateArray().Select(stage => stage.GetString()));
-        Assert.All(root.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— ok", link.GetString(), StringComparison.Ordinal));
+        Assert.Contains("içe aktarma:mock-crm-export.json", root.GetProperty("stagesRun").EnumerateArray().Select(stage => stage.GetString()));
+        Assert.All(root.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— uygun", link.GetString(), StringComparison.Ordinal));
         Assert.Equal(51, root.GetProperty("counts").GetProperty("apiCount").GetInt32());
         Assert.Equal(1, root.GetProperty("stageCounts").GetProperty("xaml.failed").GetInt32());
         Assert.Equal("ANADOLUHAYAT\\KMM2456", root.GetProperty("authenticatedUser").GetProperty("domainName").GetString());
         Assert.Equal(46, Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Length);
         Assert.True(File.Exists(Path.Combine(runRoot, BrowserExportEvidence())));
         Assert.Equal(File.ReadAllBytes(Fixture()), File.ReadAllBytes(Path.Combine(runRoot, BrowserExportEvidence())));
-        Assert.Contains("Column 'businessprocesstype'", console, StringComparison.Ordinal);
+        Assert.Contains("'businessprocesstype' sütunu", console, StringComparison.Ordinal);
         Assert.Contains("Simulated failure for one record", console, StringComparison.Ordinal);
     }
 
@@ -57,7 +57,7 @@ public sealed partial class BrowserExportImportTests
         (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: tampered);
 
         Assert.Equal(ExitCode.RunFailed, code);
-        Assert.Contains("$count reported 312 workflows but 51 were retrieved", console, StringComparison.Ordinal);
+        Assert.Contains("$count 312 iş akışı bildirdi, 51 kayıt alındı", console, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -75,10 +75,10 @@ public sealed partial class BrowserExportImportTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: uncounted);
 
         Assert.True(code == ExitCode.Success, console);
-        Assert.Contains("The server gave no independent count (it answered -1)", console, StringComparison.Ordinal);
+        Assert.Contains("Sunucu bağımsız bir sayım vermedi (-1 yanıtladı)", console, StringComparison.Ordinal);
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
         JsonElement chain = manifest.RootElement.GetProperty("countChain");
-        Assert.All(chain.EnumerateArray(), link => Assert.EndsWith("— ok", link.GetString(), StringComparison.Ordinal));
+        Assert.All(chain.EnumerateArray(), link => Assert.EndsWith("— uygun", link.GetString(), StringComparison.Ordinal));
         Assert.DoesNotContain(chain.EnumerateArray(), link => link.GetString()!.Contains("$count", StringComparison.Ordinal));
     }
 
@@ -93,7 +93,7 @@ public sealed partial class BrowserExportImportTests
         (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: other);
 
         Assert.Equal(ExitCode.RunFailed, code);
-        Assert.Contains("is not a crm-browser-export/1 file", console, StringComparison.Ordinal);
+        Assert.Contains("bir crm-browser-export/1 dosyası değil", console, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public sealed partial class BrowserExportImportTests
         (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: Path.Combine(output.Root, "nope.json"));
 
         Assert.Equal(ExitCode.RunFailed, code);
-        Assert.Contains("does not exist", console, StringComparison.Ordinal);
+        Assert.Contains("bulunamadı", console, StringComparison.Ordinal);
     }
 
     /// <summary>The bookmarklet page embeds the script. If someone edits the script and forgets to regenerate the page, the button runs old code.</summary>
@@ -126,7 +126,7 @@ public sealed partial class BrowserExportImportTests
 
     private static string BrowserExportEvidence()
     {
-        return Path.Combine("raw", "browser-export.json");
+        return Path.Combine("ham", "tarayici-disa-aktarim.json");
     }
 
     [GeneratedRegex("data-script-sha256=\"([0-9a-f]{64})\"")]

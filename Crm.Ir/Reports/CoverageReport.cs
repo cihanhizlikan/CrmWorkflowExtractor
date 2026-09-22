@@ -17,15 +17,15 @@ public static class CoverageReport
         int stepTotal = all.Count(observation => observation.Status != CoverageStatus.Support);
 
         StringBuilder text = new();
-        text.AppendLine("# Parse coverage").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"Workflows parsed: **{workflows.Count}**. XAML that failed to parse at all: **{parseFailures}**.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"Elements seen: **{all.Count}** — step-level **{stepTotal}**, of which unmapped **{unmappedTotal}**.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"Workflows with at least one unmapped construct: **{workflows.Count(HasGap)}**.").AppendLine();
-        text.AppendLine("*Mapped* became an IR step. *Support* is machinery a step consumes (variables, arguments, helper activities). "
-            + "*Unmapped* is not understood and is shown as an explicitly unmapped task in the BPMN. Fix the top of the unmapped list first.").AppendLine();
+        text.AppendLine("# Ayrıştırma kapsamı").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"Ayrıştırılan iş akışı: **{workflows.Count}**. Hiç ayrıştırılamayan XAML: **{parseFailures}**.");
+        text.AppendLine(CultureInfo.InvariantCulture, $"Görülen öğe: **{all.Count}** — adım düzeyinde **{stepTotal}**, bunların **{unmappedTotal}** tanesi okunamadı.");
+        text.AppendLine(CultureInfo.InvariantCulture, $"En az bir yapısı okunamayan iş akışı: **{workflows.Count(HasGap)}**.").AppendLine();
+        text.AppendLine("*Eşlendi*: ara modelde bir adıma dönüştü. *Yardımcı*: bir adımın kullandığı altyapıdır (değişkenler, bağımsız değişkenler, yardımcı etkinlikler). "
+            + "*Okunamadı*: anlaşılamamıştır ve BPMN içinde açıkça okunamadı olarak işaretlenmiş bir görev olarak görünür. Önce listenin başındakileri ele alın.").AppendLine();
 
-        text.AppendLine("## Constructs by frequency").AppendLine();
-        text.AppendLine("| Construct | Status | Occurrences | Workflows |").AppendLine("|---|---|---:|---:|");
+        text.AppendLine("## Sıklığa göre yapılar").AppendLine();
+        text.AppendLine("| Yapı | Durum | Görülme | İş akışı |").AppendLine("|---|---|---:|---:|");
         foreach ((string Construct, CoverageStatus Status, int Count, int Workflows) group in workflows
             .SelectMany(workflow => workflow.Observations.Select(observation => (workflow.WorkflowId, observation)))
             .GroupBy(pair => (pair.observation.Construct, pair.observation.Status))
@@ -34,19 +34,30 @@ public static class CoverageReport
             .ThenByDescending(row => row.Count)
             .ThenBy(row => row.Construct, StringComparer.Ordinal))
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"| `{group.Construct}` | {group.Status} | {group.Count} | {group.Workflows} |");
+            text.AppendLine(CultureInfo.InvariantCulture, $"| `{group.Construct}` | {Status(group.Status)} | {group.Count} | {group.Workflows} |");
         }
 
-        text.AppendLine().AppendLine("## Workflows with unmapped constructs").AppendLine();
+        text.AppendLine().AppendLine("## Yapısı okunamayan iş akışları").AppendLine();
         foreach (WorkflowCoverage workflow in workflows.Where(HasGap).OrderBy(workflow => workflow.Name, StringComparer.Ordinal))
         {
             IEnumerable<string> gaps = workflow.Observations
                 .Where(observation => observation.Status == CoverageStatus.Unmapped)
-                .Select(observation => $"`{observation.Construct}` at {(observation.Path.Length == 0 ? "root" : observation.Path)}")
+                .Select(observation => $"`{observation.Construct}` — {(observation.Path.Length == 0 ? "kök" : observation.Path)}")
                 .Distinct(StringComparer.Ordinal);
             text.AppendLine(CultureInfo.InvariantCulture, $"- **{workflow.Name}** (`{workflow.WorkflowId:D}`): {string.Join("; ", gaps)}");
         }
         return text.ToString();
+    }
+
+    /// <summary>The three coverage verdicts as the report prints them.</summary>
+    private static string Status(CoverageStatus status)
+    {
+        return status switch
+        {
+            CoverageStatus.Mapped => "Eşlendi",
+            CoverageStatus.Support => "Yardımcı",
+            _ => "Okunamadı"
+        };
     }
 
     private static bool HasGap(WorkflowCoverage workflow)

@@ -24,8 +24,8 @@ public sealed class ExtractionRunTests
         Assert.Equal("CORP\\svc-crm-read", root.GetProperty("authenticatedUser").GetProperty("domainName").GetString());
         Assert.Equal(45, root.GetProperty("counts").GetProperty("apiCount").GetInt32());
         Assert.Equal(45, root.GetProperty("counts").GetProperty("retrieved").GetInt32());
-        Assert.Equal(45, File.ReadAllLines(Path.Combine(runRoot, "raw", "workflows.jsonl")).Length);
-        Assert.Contains("$count 45 -> retrieved 45", console, StringComparison.Ordinal);
+        Assert.Equal(45, File.ReadAllLines(Path.Combine(runRoot, "ham", "is-akislari.jsonl")).Length);
+        Assert.Contains("$count 45 -> alınan 45", console, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed class ExtractionRunTests
             .Where(path => path != "manifest.json")
             .Order(StringComparer.Ordinal)];
         Assert.Equal(onDisk, artifacts.Select(artifact => artifact.GetProperty("path").GetString()));
-        Assert.Contains("logs/run.log", onDisk);
+        Assert.Contains("gunlukler/calistirma.log", onDisk);
         foreach (JsonElement artifact in artifacts)
         {
             byte[] bytes = File.ReadAllBytes(Path.Combine(runRoot, artifact.GetProperty("path").GetString()!));
@@ -63,8 +63,8 @@ public sealed class ExtractionRunTests
         Assert.Equal(ExitCode.RunFailed, code);
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
         Assert.Equal("failed", manifest.RootElement.GetProperty("status").GetString());
-        Assert.Contains("inventory", manifest.RootElement.GetProperty("stagesRun").EnumerateArray().Select(stage => stage.GetString()));
-        Assert.Contains("prvReadWorkflow (Process) is held at depth 'Basic'", console, StringComparison.Ordinal);
+        Assert.Contains("envanter", manifest.RootElement.GetProperty("stagesRun").EnumerateArray().Select(stage => stage.GetString()));
+        Assert.Contains("prvReadWorkflow (Process) yetkisi 'Basic' derinliğinde", console, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public sealed class ExtractionRunTests
         (ExitCode code, _, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.Equal(ExitCode.RunFailed, code);
-        Assert.Contains("$count reported 312 workflows but 45 were retrieved", console, StringComparison.Ordinal);
+        Assert.Contains("$count 312 iş akışı bildirdi, 45 kayıt alındı", console, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class ExtractionRunTests
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
         Assert.Equal(45, manifest.RootElement.GetProperty("counts").GetProperty("apiCount").GetInt32());
         // The aggregate's {"n":45} row must not be mistaken for a workflow record.
-        Assert.Equal(45, File.ReadAllLines(Path.Combine(runRoot, "raw", "workflows.jsonl")).Length);
+        Assert.Equal(45, File.ReadAllLines(Path.Combine(runRoot, "ham", "is-akislari.jsonl")).Length);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public sealed class ExtractionRunTests
         (ExitCode code, _, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.True(code == ExitCode.Success, console);
-        Assert.Contains("The server gave no independent count (it answered -1)", console, StringComparison.Ordinal);
+        Assert.Contains("Sunucu bağımsız bir sayım vermedi (-1 yanıtladı)", console, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public sealed class ExtractionRunTests
         (ExitCode code, _, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.Equal(ExitCode.RunFailed, code);
-        Assert.Contains("$count reported 50 workflows but 45 were retrieved", console, StringComparison.Ordinal);
+        Assert.Contains("$count 50 iş akışı bildirdi, 45 kayıt alındı", console, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -127,8 +127,8 @@ public sealed class ExtractionRunTests
 
         (_, _, string console) = await RunHarness.RunAsync(server, output);
 
-        Assert.Contains("ONLY ONE DISTINCT OWNER", console, StringComparison.Ordinal);
-        Assert.Contains("Distinct owners:        1", console, StringComparison.Ordinal);
+        Assert.Contains("YALNIZCA TEK BİR SAHİP", console, StringComparison.Ordinal);
+        Assert.Contains("Farklı sahip:           1", console, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public sealed class ExtractionRunTests
         (ExitCode code, _, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.Equal(ExitCode.Success, code);
-        Assert.Contains("Column 'businessprocesstype'", console, StringComparison.Ordinal);
+        Assert.Contains("'businessprocesstype' sütunu", console, StringComparison.Ordinal);
         Assert.DoesNotContain(server.Requests, request => Uri.UnescapeDataString(request.Uri.Query).Contains("businessprocesstype", StringComparison.Ordinal));
     }
 

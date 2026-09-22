@@ -19,7 +19,8 @@ public sealed class RunFolder
 {
     public const string ManifestFileName = "manifest.json";
 
-    public static readonly string[] Subfolders = ["raw", "ir", "bpmn", "clusters", "consolidated", "manual-review", "reports", "logs"];
+    public static readonly string[] Subfolders =
+        [RunPaths.Raw, RunPaths.Ir, RunPaths.Bpmn, RunPaths.Families, RunPaths.Combined, RunPaths.ManualReview, RunPaths.Reports, RunPaths.Logs];
 
     /// <summary>Deterministic JSON for everything this tool writes: indented, LF, readable Turkish, no BOM.</summary>
     public static readonly JsonSerializerOptions JsonOptions = new()

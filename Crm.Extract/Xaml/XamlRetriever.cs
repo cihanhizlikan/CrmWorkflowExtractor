@@ -57,14 +57,14 @@ public sealed class XamlRetriever(CrmHttpClient client, ILogger logger)
             }
             catch (Exception error) when (error is CrmRequestException or JsonException)
             {
-                warnings.Add($"XAML of {kind} '{record.Name}' ({record.WorkflowId:D}) could not be retrieved: {error.Message}");
+                warnings.Add($"{kind} '{record.Name}' ({record.WorkflowId:D}) XAML dosyası alınamadı: {error.Message}");
                 failed++;
                 continue;
             }
 
             if (string.IsNullOrEmpty(xaml))
             {
-                warnings.Add($"The {kind} '{record.Name}' ({record.WorkflowId:D}) has no XAML.");
+                warnings.Add($"{kind} '{record.Name}' ({record.WorkflowId:D}) XAML içermiyor.");
                 withoutXaml++;
                 continue;
             }

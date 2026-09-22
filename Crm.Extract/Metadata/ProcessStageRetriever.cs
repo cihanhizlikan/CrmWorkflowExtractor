@@ -9,7 +9,7 @@ public sealed record ProcessStage(Guid StageId, Guid? ProcessId, string Name, in
 /// <summary>Retrieves every <c>processstages</c> record, paged. Used to name BPF stages in BPMN.</summary>
 public sealed class ProcessStageRetriever(CrmHttpClient client, int pageSize)
 {
-    public const string IndexFile = "raw/processstages.json";
+    public const string IndexFile = Runs.RunPaths.Raw + "/surec-asamalari.json";
 
     public async Task<IReadOnlyList<ProcessStage>> RetrieveAsync(CancellationToken token)
     {

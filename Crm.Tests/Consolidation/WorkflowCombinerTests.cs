@@ -140,7 +140,7 @@ public sealed class WorkflowCombinerTests
             new Dictionary<Guid, string> { [A] = "Birinci", [B] = "İkinci" }), "test");
 
         Assert.Empty(BpmnSchemaValidator.Validate(xml));
-        Assert.Contains(xml.Descendants(BpmnSerializer.Model + "sequenceFlow"), flow => flow.Attribute("name")?.Value.StartsWith("Variant: ", StringComparison.Ordinal) == true);
+        Assert.Contains(xml.Descendants(BpmnSerializer.Model + "sequenceFlow"), flow => flow.Attribute("name")?.Value.StartsWith("Çeşitleme: ", StringComparison.Ordinal) == true);
         Assert.Contains(xml.Descendants(BpmnSerializer.Provenance + "source"), source => source.Attribute("workflowId")?.Value == B.ToString("D"));
         Assert.Empty(outcome.ReconciliationErrors);
     }
@@ -156,7 +156,7 @@ public sealed class WorkflowCombinerTests
     private static Dictionary<Guid, WorkflowIr> Documents(params (Guid Id, string Name, StepNode[] Steps)[] workflows)
     {
         return workflows.ToDictionary(workflow => workflow.Id, workflow => new WorkflowIr(
-            new WorkflowIdentity(workflow.Id, workflow.Name, null, "Workflow", "Definition", "new_policy", "Background", "Organization", "Activated", false, false, null, null, null, 1, true),
+            new WorkflowIdentity(workflow.Id, workflow.Name, null, "İş Akışı", "Tanım", "new_policy", "Arka plan", "Kuruluş", "Etkin", false, false, null, null, null, 1, true),
             new WorkflowTrigger(true, false, [], null, null, null, "Owner", false),
             Paths(workflow.Id, workflow.Steps, ""),
             new WorkflowDependencies([], []), new DataTouched([], [], [], []), [], new IrProvenance("", "", "", "")));

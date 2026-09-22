@@ -36,7 +36,7 @@ public static class IrStage
         {
             if (!inventory.TryGetValue(entry.WorkflowId, out JsonElement record))
             {
-                state.Warnings.Add($"XAML {entry.File} has no inventory record; skipped.");
+                state.Warnings.Add($"{entry.File} XAML dosyasının envanter kaydı yok; atlandı.");
                 orphaned++;
                 continue;
             }
@@ -54,13 +54,13 @@ public static class IrStage
             }
             catch (Exception error) when (error is XmlException or InvalidDataException)
             {
-                state.Warnings.Add($"XAML of '{identity.Name}' ({identity.WorkflowId:D}) could not be parsed: {error.Message}");
+                state.Warnings.Add($"'{identity.Name}' ({identity.WorkflowId:D}) XAML dosyası ayrıştırılamadı: {error.Message}");
                 failures++;
                 continue;
             }
 
             WorkflowIr document = Document(identity, record, result, entry, extractedAt, state.ToolVersion);
-            await folder.WriteJsonAsync($"ir/{identity.WorkflowId:D}.json", document, token);
+            await folder.WriteJsonAsync(RunPaths.IrFile(identity.WorkflowId), document, token);
             documents.Add(document);
             coverage.Add(new WorkflowCoverage(identity.WorkflowId, identity.Name, result.Coverage));
             sensitive.AddRange(SensitiveLiteralScanner.Scan(identity.WorkflowId, identity.Name, entry.File, result.Literals));
@@ -76,7 +76,7 @@ public static class IrStage
         state.SensitiveWorkflows = sensitive.Select(finding => finding.WorkflowId).ToHashSet();
         state.UnmappedSteps = coverage.ToDictionary(workflow => workflow.WorkflowId,
             workflow => workflow.Observations.Count(observation => observation.Status == CoverageStatus.Unmapped));
-        state.StagesRun.Add("ir");
+        state.StagesRun.Add(RunStages.Ir);
         logger.LogInformation("IR: {Documents} documents, {Failures} parse failures, {Sensitive} sensitive literal findings", documents.Count, failures, sensitive.Count);
         return documents;
     }
@@ -90,18 +90,18 @@ public static class IrStage
 
     private static async Task WriteReportsAsync(RunFolder folder, IReadOnlyList<WorkflowCoverage> coverage, IReadOnlyList<SensitiveFinding> sensitive, int failures, CancellationToken token)
     {
-        await folder.WriteTextAsync("reports/parse-coverage.md", CoverageReport.Markdown(coverage, failures), token);
-        await folder.WriteTextAsync("reports/sensitive-literals.md", SensitiveLiteralScanner.Markdown(sensitive), token);
+        await folder.WriteTextAsync(RunPaths.ParseCoverage, CoverageReport.Markdown(coverage, failures), token);
+        await folder.WriteTextAsync(RunPaths.SensitiveLiterals, SensitiveLiteralScanner.Markdown(sensitive), token);
     }
 
     public static Dictionary<Guid, JsonElement> ReadInventory(RunFolder folder)
     {
         Dictionary<Guid, JsonElement> records = [];
-        if (!folder.Exists("raw/workflows.jsonl"))
+        if (!folder.Exists(RunPaths.RawWorkflows))
         {
             return records;
         }
-        foreach (string line in folder.ReadText("raw/workflows.jsonl").Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        foreach (string line in folder.ReadText(RunPaths.RawWorkflows).Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
             using JsonDocument document = JsonDocument.Parse(line);
             if (document.RootElement.TryGetProperty("workflowid", out JsonElement id) && id.TryGetGuid(out Guid workflowId))
@@ -115,7 +115,7 @@ public static class IrStage
     private static OptionLabels ReadLabels(RunFolder folder)
     {
         OptionLabels labels = new();
-        string directory = folder.PathOf("raw/metadata");
+        string directory = folder.PathOf(RunPaths.RawMetadata);
         if (!Directory.Exists(directory))
         {
             return labels;
@@ -152,7 +152,10 @@ public static class IrStage
             Text(record, "createdon"),
             Text(record, "modifiedon"),
             record.TryGetProperty("versionnumber", out JsonElement version) && long.TryParse(version.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long number) ? number : null,
-            Bool(record, "iscrmuiworkflow"));
+            Bool(record, "iscrmuiworkflow"))
+        {
+            IsManaged = Bool(record, "ismanaged")
+        };
     }
 
     private static WorkflowTrigger Trigger(JsonElement record)

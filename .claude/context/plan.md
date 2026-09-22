@@ -366,3 +366,65 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   and cascade counts are plausible for 1437 workflows, and a spot-checked cascade matches what CRM does (the
   target workflow really is triggered by that field). **Capture:** the three summary bullets at the top of the
   report and the count line from `report.md`; no workflow names needed.
+
+### Second production run (20260922-194435) and what it showed — committed, awaiting merge
+- **Result of the parser work:** unmapped step-level constructs 15405 → **879**, workflows with any unmapped
+  construct 1046 → **90**. The dialog and business-rule markup guessed on 2026-09-23 was right: `Interaction`
+  (1022), `InteractionPage` (766), `QueryData` (95), `SetVisibility` (209), `SetFieldRequiredLevel` (194),
+  `SetDisplayMode` (106), `SetMessage` (25) all map. Families 68 → 56 because the 211 drafts are now held apart.
+- **Usage, first real evidence:** 418 Used · 413 no logged run since 2024-01-11 · 265 real-time (failures only) ·
+  112 business rules (never logged) · 211 Draft · 18 dialogs with nothing since 2014-11-13. **Six workflows named
+  `DRAFT_*` are activated AND ran on the day of the export** — names do not say what runs.
+- **Fixed here — `Postpone` (79 waits in 62 workflows):** the designer writes "wait N days, then do X" as ONE
+  Sequence holding the `Postpone` beside the action. The wait was therefore never a step, and the diagram claimed
+  the action happened at once. A step sequence holding a wait now becomes a group: timer first, then the action.
+- **Fixed here — 7009 cascades were unreadable.** The page now rolls them up: the fields that set off the most
+  work (writers × watchers), and workflow pairs (60 shown). The full list stays in `data-cascades.csv`.
+- **Fixed here:** a reprocessed run said "WhoAmI did not complete"; it now carries the source run's user.
+- **Left open:** Business Process Flows (23) are the only structural gap now — `Control`, `StepComposite`,
+  `StageComposite`, `EntityComposite`, `PageComposite`, `SetNextStage`. Most are Microsoft's out-of-the-box
+  samples; about 9 are the company's own. Maintainer's call.
+- **Left open:** 9 `If` elements in 5 workflows that do more than load a related record.
+
+### Workflows supplied with the product (2026-09-23) — committed
+- **Maintainer:** weed out the Microsoft examples the company does not use.
+- **Signal — CRM's own, not a guess:** `ismanaged`. A workflow in a managed solution was shipped with the product
+  or a partner solution; one written here is unmanaged. Names are never used for this: "Opportunity to Invoice
+  (B2B)" only *looks* like Microsoft's, and a company workflow could carry any name.
+- **Built:** managed definitions are held apart from grouping and combining, listed in
+  `clusters/supplied-with-the-product.csv`, marked `supplied_with_product` in `migration.csv` and sorted into
+  priority band 5. They keep their IR and BPMN, so nothing disappears silently, and the count chain accounts for
+  them: clustered + drafts held apart + supplied.
+- **Acceptance — Do:** reprocess and open `clusters/supplied-with-the-product.csv`. **Pass:** the out-of-the-box
+  BPFs ("Opportunity to Invoice (B2B)", "Phone Sales Campaign", "Collaborative selling", "In store Excellence",
+  "Marketing List Builder", "Multichannel Sales Campaign", "Service Appointment Scheduling", "Service Case
+  Upsell", "Upsell after service interaction", "Contact to Order (B2C)", "Email Sales Campaign", "Guided Service
+  Case") appear there, and the company's own Turkish-named flows do NOT. **Capture:** the row count and whether
+  that holds. **If the file is empty**, this server keeps those processes unmanaged and the flag cannot do the
+  job — then ask the CRM team which solution they belong to.
+
+### Turkish output (2026-09-23) — committed
+- **Maintainer:** every output file, in name and in content, is Turkish; anything that comes from CRM stays as it is.
+- **Built:** `RunPaths` (folders and files: `ham/`, `ara-model/`, `aileler/`, `birlesik/`, `elle-inceleme/`,
+  `raporlar/`, `gunlukler/`; `rapor.md`, `tasima-plani.csv`, `kullanim.md`, `cagri-agaci.md`, `veri-ayak-izi.md`,
+  `ayristirma-kapsami.md`, `hassas-degerler.md`, `sapma.md`, `birlestirme.md`, `aileler.csv`, `taslaklar.csv`,
+  `urunle-gelenler.csv`, `dizin.csv`), `RunStages` (stage names) and `ProcessLabels` (category, mode and state
+  labels, which the usage verdicts, the priority bands and the Draft split branch on — `OptionLabelTests` pins them
+  to the §3.1 tables). Every report, CSV header, BPMN label and documentation line, the console summary and every
+  warning and failure is Turkish.
+- **Left in English on purpose:** configuration messages (they name `appsettings.json` keys), `manifest.json` keys
+  and the IR JSON schema (machine-read), `ILogger` diagnostics, and the code itself.
+- **Compatibility:** a run from before this still reprocesses — its `raw/` is read and copied forward as `ham/`.
+
+### Workbooks instead of CSV (2026-09-23) — committed
+- **Maintainer:** replace the CSVs with Excel files and combine the conceptually similar ones; ease of use is king.
+- **Built:** `ExcelWorkbook` writes .xlsx by hand — a workbook is a zip of XML parts, so it needs no dependency
+  (§10). Header row frozen and bold, a filter on every column, widths from the content, numbers written as numbers
+  so Excel sorts them, and a fixed zip timestamp so two runs over the same data are byte-identical.
+- **Ten CSVs became three workbooks**, grouped by the question the reader has:
+  `raporlar/tasima-plani.xlsx` (Taşıma planı · Kullanım · Çağrı ağacı · BPMN dizini) — what the work is;
+  `raporlar/aileler.xlsx` (Aileler · Çiftler · Taslaklar · Ürünle gelenler) — which of these are the same;
+  `raporlar/veri-analizi.xlsx` (Veri ayak izi · Tetikleme zincirleri) — what touches what.
+- **Verified:** the tests read the files back through the zip, and SheetJS — an independent reader — opened both
+  workbooks in a browser: sheet names with Turkish characters intact, 46 rows, `öncelik` typed as a number.
+- **Unverified:** Excel itself, which is not on this machine. Nothing in the format is Excel-specific.
