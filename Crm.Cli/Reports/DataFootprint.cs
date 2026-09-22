@@ -139,7 +139,7 @@ public static class DataFootprint
         text.AppendLine("Which workflows touch which data. Two things no single diagram shows: a field several workflows write, and a write that starts another workflow.").AppendLine();
         text.AppendLine(CultureInfo.InvariantCulture, $"- {fields.Count} field(s) written, read or triggering across {documents.Count} workflows");
         text.AppendLine(CultureInfo.InvariantCulture, $"- **{shared.Count} field(s) are written by more than one workflow.** CRM never guaranteed the order they ran in; the new product has to decide one");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- **{cascades.Count} cascade(s)**: one workflow's write starts another. {cascades.Count(cascade => cascade.Source == cascade.Target)} of them start themselves").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"- **{cascades.Count} cascade(s)** between {cascades.Select(cascade => (cascade.Source, cascade.Target)).Distinct().Count()} pairs of workflows: one workflow's write starts another. {cascades.Count(cascade => cascade.Source == cascade.Target)} of them start themselves").AppendLine();
 
         text.AppendLine("## Entities, most written first").AppendLine();
         text.AppendLine("| Entity | Fields written | Workflows writing | Workflows reading |").AppendLine("|---|---:|---:|---:|");
@@ -165,17 +165,37 @@ public static class DataFootprint
         text.AppendLine();
 
         text.AppendLine("## Cascades: a write that starts another workflow").AppendLine();
-        text.AppendLine("These chains are invisible in the diagrams — CRM starts the second workflow because the first one wrote a field it watches, or created a record. In the new product they have to be made explicit or rebuilt as one process.").AppendLine();
-        text.AppendLine("| Starts | Through | Then runs | Modes |").AppendLine("|---|---|---|---|");
-        foreach (Cascade cascade in cascades.OrderBy(cascade => byId[cascade.Source].Name, StringComparer.Ordinal).Take(60))
+        text.AppendLine("These chains are invisible in the diagrams — CRM starts the second workflow because the first one wrote a field it watches, or created a record. In the new product they have to be made explicit or rebuilt as one process. Every cascade is in `data-cascades.csv`; this page rolls them up, because the list itself is too long to read.").AppendLine();
+
+        text.AppendLine(CultureInfo.InvariantCulture, $"### The fields that set off the most work ({fields.Count(use => use.Writers.Count > 0 && use.TriggeredBy.Count > 0)} fields start something)").AppendLine();
+        text.AppendLine("Each of these is written by several workflows and watched by several others, so one write fans out. Fix these first: decide who owns the field.").AppendLine();
+        text.AppendLine("| Field | Written by | Starts | Cascades |").AppendLine("|---|---:|---:|---:|");
+        foreach (FieldUse use in fields.Where(use => use.Writers.Count > 0 && use.TriggeredBy.Count > 0)
+            .OrderByDescending(use => use.Writers.Count * use.TriggeredBy.Count)
+            .ThenBy(use => use.Field, StringComparer.Ordinal)
+            .Take(25))
         {
-            string self = cascade.Source == cascade.Target ? " **(itself)**" : "";
-            text.AppendLine(CultureInfo.InvariantCulture,
-                $"| {byId[cascade.Source].Name} | {cascade.Kind}: {cascade.Through} | {byId[cascade.Target].Name}{self} | {byId[cascade.Source].Mode} → {byId[cascade.Target].Mode} |");
+            text.AppendLine(CultureInfo.InvariantCulture, $"| {use.Entity}.{use.Field} | {use.Writers.Count} | {use.TriggeredBy.Count} | {use.Writers.Count * use.TriggeredBy.Count} |");
         }
-        if (cascades.Count > 60)
+        text.AppendLine();
+
+        List<IGrouping<(Guid Source, Guid Target), Cascade>> pairs = [.. cascades.GroupBy(cascade => (cascade.Source, cascade.Target))];
+        text.AppendLine(CultureInfo.InvariantCulture, $"### Workflow pairs ({pairs.Count} pairs, {pairs.Count(pair => pair.Key.Source == pair.Key.Target)} of them a workflow starting itself)").AppendLine();
+        text.AppendLine("| Starts | Then runs | Through | Modes |").AppendLine("|---|---|---|---|");
+        foreach (IGrouping<(Guid Source, Guid Target), Cascade> pair in pairs
+            .OrderByDescending(pair => pair.Count())
+            .ThenBy(pair => byId[pair.Key.Source].Name, StringComparer.Ordinal)
+            .Take(60))
         {
-            text.AppendLine().AppendLine(CultureInfo.InvariantCulture, $"…and {cascades.Count - 60} more in `data-cascades.csv`.");
+            string self = pair.Key.Source == pair.Key.Target ? " **(itself)**" : "";
+            IReadOnlyList<string> through = [.. pair.Select(cascade => cascade.Through).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal)];
+            string shown = string.Join(", ", through.Take(3)) + (through.Count > 3 ? $", …({through.Count})" : "");
+            text.AppendLine(CultureInfo.InvariantCulture,
+                $"| {byId[pair.Key.Source].Name} | {byId[pair.Key.Target].Name}{self} | {shown} | {byId[pair.Key.Source].Mode} → {byId[pair.Key.Target].Mode} |");
+        }
+        if (pairs.Count > 60)
+        {
+            text.AppendLine().AppendLine(CultureInfo.InvariantCulture, $"…and {pairs.Count - 60} more pairs in `data-cascades.csv`.");
         }
         return text.ToString();
     }

@@ -1,4 +1,5 @@
 using System.Text;
+using Crm.Cli;
 using Crm.Cli.Reports;
 using Crm.Ir.Model;
 using Crm.Tests.Fakes;
@@ -71,6 +72,31 @@ public sealed class DataFootprintTests
         string csv = Encoding.UTF8.GetString(DataFootprint.CascadeCsv(documents));
         Assert.Contains("Closer;field update;Watcher;incident.statuscode;Background;Real-time;no", csv, StringComparison.Ordinal);
         Assert.Contains("incident;statuscode;2;", Encoding.UTF8.GetString(DataFootprint.Csv(documents)), StringComparison.Ordinal);
+    }
+
+    /// <summary>7009 cascades on the real data (2026-09-22): the list is unreadable, so the page rolls them up.</summary>
+    [Fact]
+    public void The_Report_Rolls_Cascades_Up_By_Field_And_By_Workflow_Pair()
+    {
+        string markdown = DataFootprint.Markdown(Organization());
+
+        Assert.Contains("### The fields that set off the most work", markdown, StringComparison.Ordinal);
+        Assert.Contains("### Workflow pairs (3 pairs, 0 of them a workflow starting itself)", markdown, StringComparison.Ordinal);
+        Assert.Contains("| incident.statuscode | 2 | 1 | 2 |", markdown, StringComparison.Ordinal);
+        Assert.Contains("between 3 pairs of workflows", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_Reprocessed_Run_Says_Who_Read_The_Data_Instead_Of_Claiming_WhoAmI_Failed()
+    {
+        using TemporaryOutput output = new();
+        (_, string first, _) = await RunHarness.RunAsync(new FakeOrganization().Build(), output);
+
+        (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, reprocessRunId: Path.GetFileName(first));
+
+        Assert.True(code == ExitCode.Success, console);
+        Assert.Contains("svc-crm-read", console, StringComparison.Ordinal);
+        Assert.DoesNotContain("WhoAmI did not complete", console, StringComparison.Ordinal);
     }
 
     [Fact]

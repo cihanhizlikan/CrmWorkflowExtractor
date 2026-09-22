@@ -366,3 +366,22 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   and cascade counts are plausible for 1437 workflows, and a spot-checked cascade matches what CRM does (the
   target workflow really is triggered by that field). **Capture:** the three summary bullets at the top of the
   report and the count line from `report.md`; no workflow names needed.
+
+### Second production run (20260922-194435) and what it showed — committed, awaiting merge
+- **Result of the parser work:** unmapped step-level constructs 15405 → **879**, workflows with any unmapped
+  construct 1046 → **90**. The dialog and business-rule markup guessed on 2026-09-23 was right: `Interaction`
+  (1022), `InteractionPage` (766), `QueryData` (95), `SetVisibility` (209), `SetFieldRequiredLevel` (194),
+  `SetDisplayMode` (106), `SetMessage` (25) all map. Families 68 → 56 because the 211 drafts are now held apart.
+- **Usage, first real evidence:** 418 Used · 413 no logged run since 2024-01-11 · 265 real-time (failures only) ·
+  112 business rules (never logged) · 211 Draft · 18 dialogs with nothing since 2014-11-13. **Six workflows named
+  `DRAFT_*` are activated AND ran on the day of the export** — names do not say what runs.
+- **Fixed here — `Postpone` (79 waits in 62 workflows):** the designer writes "wait N days, then do X" as ONE
+  Sequence holding the `Postpone` beside the action. The wait was therefore never a step, and the diagram claimed
+  the action happened at once. A step sequence holding a wait now becomes a group: timer first, then the action.
+- **Fixed here — 7009 cascades were unreadable.** The page now rolls them up: the fields that set off the most
+  work (writers × watchers), and workflow pairs (60 shown). The full list stays in `data-cascades.csv`.
+- **Fixed here:** a reprocessed run said "WhoAmI did not complete"; it now carries the source run's user.
+- **Left open:** Business Process Flows (23) are the only structural gap now — `Control`, `StepComposite`,
+  `StageComposite`, `EntityComposite`, `PageComposite`, `SetNextStage`. Most are Microsoft's out-of-the-box
+  samples; about 9 are the company's own. Maintainer's call.
+- **Left open:** 9 `If` elements in 5 workflows that do more than load a related record.

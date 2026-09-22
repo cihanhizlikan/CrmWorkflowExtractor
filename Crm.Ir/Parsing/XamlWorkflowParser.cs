@@ -162,6 +162,27 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
         XElement? evidence = sequence.Elements().FirstOrDefault(child => XamlNames.StepEvidence.Contains(child.Name.LocalName)
             || XamlNames.IsCustomActivityElement(child)
             || (XamlNames.AssemblyQualifiedName(child) is string aqn && !XamlNames.IsMicrosoftAssembly(XamlNames.AssemblyOf(aqn))));
+
+        // A designer "wait N days, then …" step writes the wait beside the action it delays, inside one Sequence.
+        // The wait is a step of its own in the model: without it the diagram claims the action happens at once.
+        List<XElement> waits = [.. sequence.Elements().Where(child => child.Name.LocalName == "Postpone")];
+        if (waits.Count > 0)
+        {
+            StepNode group = context.Node(sequence, path, StepKind.Sequence, StepDisplayName(sequence), null, [], [], null, [], "Sequence");
+            List<StepNode> steps = [];
+            foreach (XElement wait in waits)
+            {
+                string waitPath = string.Create(CultureInfo.InvariantCulture, $"{path}/{steps.Count}");
+                steps.Add(context.Node(wait, waitPath, StepKind.Timeout, XamlNames.DisplayName(wait), null, [], [], TimeoutDetail(wait), [], "Postpone"));
+            }
+            if (evidence is not null)
+            {
+                // Anchors the sequence a second time, which is what coverage should report: the action, not the group.
+                steps.Add(FromEvidence(sequence, evidence, string.Create(CultureInfo.InvariantCulture, $"{path}/{steps.Count}"), context));
+            }
+            return group with { Branches = [new Branch("", null, steps, [])] };
+        }
+
         if (evidence is not null)
         {
             return FromEvidence(sequence, evidence, path, context);

@@ -178,7 +178,27 @@ public sealed class XamlWorkflowParserTests
         Assert.Contains(Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), result.Dependencies.ChildWorkflowCalls);
     }
 
+    /// <summary>
+    /// The production run (2026-09-22) left 79 <c>Postpone</c> elements unmapped in 62 workflows: a wait written
+    /// inside a step, beside the action it delays, rather than as a step of its own.
+    /// </summary>
+    [Fact]
+    public void A_Wait_Written_Inside_A_Step_Becomes_A_Timeout_Before_That_Step()
+    {
+        ParseResult result = new XamlWorkflowParser(OptionLabels.Empty).Parse(Id, Fixture("wait-inside-step.xaml"));
+
+        Assert.DoesNotContain(result.Coverage, observation => observation.Status == CoverageStatus.Unmapped);
+        StepNode group = Assert.Single(result.Steps);
+        Assert.Equal(StepKind.Sequence, group.Kind);
+        IReadOnlyList<StepNode> steps = group.Branches[0].Steps;
+        Assert.Equal([StepKind.Timeout, StepKind.UpdateRecord], steps.Select(step => step.Kind));
+        Assert.Contains("WaitStep1_1", steps[0].Detail, StringComparison.Ordinal);
+        Assert.Equal("incident", steps[1].Entity);
+        Assert.Equal("statuscode", Assert.Single(steps[1].Fields).Field);
+    }
+
     [Theory]
+    [InlineData("wait-inside-step.xaml")]
     [InlineData("business-rule.xaml")]
     [InlineData("dialog.xaml")]
     [InlineData("production-helpers.xaml")]

@@ -41,7 +41,9 @@ public static class OfflineStages
         state.Counts["callGraph.entryPoints"] = documents.Count(document => calls.RoleOf(document.Identity.WorkflowId) == CallGraph.EntryPoint);
         state.Counts["callGraph.buildingBlocks"] = calls.CalledBy.Count;
         state.Counts["data.sharedFields"] = DataFootprint.Fields(documents).Count(use => use.Writers.Count > 1);
-        state.Counts["data.cascades"] = DataFootprint.Cascades(documents).Count;
+        IReadOnlyList<Cascade> allCascades = DataFootprint.Cascades(documents);
+        state.Counts["data.cascades"] = allCascades.Count;
+        state.Counts["data.cascadePairs"] = allCascades.Select(cascade => (cascade.Source, cascade.Target)).Distinct().Count();
         state.StagesRun.Add("migration");
     }
 }

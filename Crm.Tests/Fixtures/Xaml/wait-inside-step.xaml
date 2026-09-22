@@ -1,0 +1,25 @@
+<Activity x:Class="XrmWorkflow00000000000000000000000000000008" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mxs="clr-namespace:Microsoft.Xrm.Sdk;assembly=Microsoft.Xrm.Sdk, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:mxsw="clr-namespace:Microsoft.Xrm.Sdk.Workflow;assembly=Microsoft.Xrm.Sdk.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:mxswa="clr-namespace:Microsoft.Xrm.Sdk.Workflow.Activities;assembly=Microsoft.Xrm.Sdk.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:s="clr-namespace:System;assembly=mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <mxswa:Workflow>
+    <Sequence DisplayName="WaitStep1: İki gün bekle ve kapat">
+      <Sequence.Variables>
+        <Variable x:TypeArguments="x:Object" Name="WaitStep1_1" />
+      </Sequence.Variables>
+      <mxswa:ActivityReference AssemblyQualifiedName="Microsoft.Crm.Workflow.Activities.EvaluateExpression, Microsoft.Crm.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" DisplayName="EvaluateExpression">
+        <mxswa:ActivityReference.Arguments>
+          <InArgument x:TypeArguments="x:String" x:Key="ExpressionOperator">AddTimeSpan</InArgument>
+          <InArgument x:TypeArguments="s:Object[]" x:Key="Parameters">
+            <mxswa:ReferenceLiteral x:TypeArguments="s:Object[]">
+              <mxswa:ReferenceLiteral.Value>
+                <mxsw:XrmTimeSpan Days="2" Hours="0" Minutes="0" Months="0" Years="0" />
+              </mxswa:ReferenceLiteral.Value>
+            </mxswa:ReferenceLiteral>
+          </InArgument>
+          <OutArgument x:TypeArguments="x:Object" x:Key="Result">[WaitStep1_1]</OutArgument>
+        </mxswa:ActivityReference.Arguments>
+      </mxswa:ActivityReference>
+      <mxswa:Postpone BlockExecution="True" DisplayName="WaitStep1" PostponeUntil="[DirectCast(WaitStep1_1, System.DateTime)]" />
+      <mxswa:SetEntityProperty Attribute="statuscode" Entity="[UpdatedEntities(&quot;primaryEntity#Temp&quot;)]" EntityName="incident" Value="[WaitStep1_1]" />
+      <mxswa:UpdateEntity DisplayName="WaitStep1" Entity="[UpdatedEntities(&quot;primaryEntity#Temp&quot;)]" EntityName="incident" />
+    </Sequence>
+  </mxswa:Workflow>
+</Activity>

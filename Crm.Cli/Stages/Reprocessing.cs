@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Crm.Extract.Inventory;
+using Crm.Extract.Preflight;
 using Crm.Extract.Runs;
 using Crm.Extract.Xaml;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,30 @@ namespace Crm.Cli.Stages;
 /// </summary>
 public static class Reprocessing
 {
+    private static CrmIdentity? UserOf(JsonElement manifest)
+    {
+        if (!manifest.TryGetProperty("authenticatedUser", out JsonElement user) || user.ValueKind != JsonValueKind.Object
+            || Id(user, "userId") is not Guid userId)
+        {
+            return null;
+        }
+        return new CrmIdentity(userId, Id(user, "businessUnitId") ?? Guid.Empty, Id(user, "organizationId") ?? Guid.Empty,
+            Text(user, "fullName"), Text(user, "domainName"));
+    }
+
+    private static Guid? Id(JsonElement element, string name)
+    {
+        return element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String
+            && Guid.TryParse(value.GetString(), out Guid parsed)
+            ? parsed
+            : null;
+    }
+
+    private static string? Text(JsonElement element, string name)
+    {
+        return element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+    }
+
     public static async Task<IReadOnlyList<WorkflowInventoryRecord>> LoadAsync(RunFolder folder, RunState state, string outputRoot, string runId, ILogger logger, CancellationToken token)
     {
         string source = Path.Combine(outputRoot, "runs", runId);
@@ -31,6 +56,10 @@ public static class Reprocessing
         using JsonDocument manifest = JsonDocument.Parse(await File.ReadAllTextAsync(manifestPath, token));
         JsonElement root = manifest.RootElement;
         state.OrganizationUrl = root.TryGetProperty("organizationUrl", out JsonElement url) ? url.GetString() : null;
+
+        // Nothing is fetched here, so there is no WhoAmI to make. Who read the data is a fact of the source run,
+        // and carrying it forward keeps the summary honest instead of reading like a failure.
+        state.Identity = UserOf(root);
         if (root.TryGetProperty("stageCounts", out JsonElement stageCounts))
         {
             foreach (JsonProperty count in stageCounts.EnumerateObject().Where(count => count.Name.StartsWith("xaml.", StringComparison.Ordinal) && count.Name != "xaml.definitions"))
