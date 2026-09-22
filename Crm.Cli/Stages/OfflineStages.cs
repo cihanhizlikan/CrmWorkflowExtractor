@@ -33,10 +33,15 @@ public static class OfflineStages
         CallGraph calls = CallGraph.Build(documents);
         await folder.WriteTextAsync("reports/call-graph.md", calls.Markdown(), token);
         await folder.WriteBytesAsync("reports/call-graph.csv", calls.Csv(), token);
+        await folder.WriteTextAsync("reports/data-footprint.md", DataFootprint.Markdown(documents), token);
+        await folder.WriteBytesAsync("reports/data-footprint.csv", DataFootprint.Csv(documents), token);
+        await folder.WriteBytesAsync("reports/data-cascades.csv", DataFootprint.CascadeCsv(documents), token);
         await folder.WriteBytesAsync("reports/migration.csv", MigrationPlan.Csv(state, documents, families, usage), token);
         await folder.WriteTextAsync("reports/migration.md", MigrationPlan.Markdown(state, documents, families), token);
         state.Counts["callGraph.entryPoints"] = documents.Count(document => calls.RoleOf(document.Identity.WorkflowId) == CallGraph.EntryPoint);
         state.Counts["callGraph.buildingBlocks"] = calls.CalledBy.Count;
+        state.Counts["data.sharedFields"] = DataFootprint.Fields(documents).Count(use => use.Writers.Count > 1);
+        state.Counts["data.cascades"] = DataFootprint.Cascades(documents).Count;
         state.StagesRun.Add("migration");
     }
 }

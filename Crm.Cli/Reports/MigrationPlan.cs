@@ -24,11 +24,12 @@ public static class MigrationPlan
             }
         }
         CallGraph calls = CallGraph.Build(documents);
+        (IReadOnlyDictionary<Guid, int> sharedFields, IReadOnlyDictionary<Guid, int> starts) = DataFootprint.PerWorkflow(documents);
 
         ExcelCsv csv = new("priority", "workflow_name", "bpmn_file", "category", "mode", "state", "primary_entity", "trigger",
             "steps", "unmapped_steps", "custom_activities", "calls", "called_by", "role",
             "family", "family_size", "family_role", "combined_file", "last_logged_run", "usage_verdict",
-            "name_suggests_test", "has_sensitive_literals", "entities_written", "fields_written");
+            "name_suggests_test", "has_sensitive_literals", "shared_fields_written", "starts_other_workflows", "entities_written", "fields_written");
         foreach (WorkflowIr document in documents.OrderBy(Priority).ThenBy(document => document.Identity.Name, StringComparer.Ordinal))
         {
             WorkflowIdentity identity = document.Identity;
@@ -57,6 +58,8 @@ public static class MigrationPlan
                 UsageStage.Verdict(identity, usage),
                 UsageStage.NameSuggestsTest(identity.Name),
                 state.SensitiveWorkflows.Contains(identity.WorkflowId),
+                sharedFields.GetValueOrDefault(identity.WorkflowId),
+                starts.GetValueOrDefault(identity.WorkflowId),
                 string.Join(" | ", document.DataTouched.EntitiesWritten),
                 string.Join(" | ", document.DataTouched.FieldsWritten.Take(12)));
         }
@@ -96,6 +99,8 @@ public static class MigrationPlan
         text.AppendLine("| `family` / `family_role` / `combined_file` | near-duplicates, and the combined model of the family |");
         text.AppendLine("| `last_logged_run` / `usage_verdict` | evidence of use. Absence never proves non-use |");
         text.AppendLine("| `has_sensitive_literals` | its XAML holds a URL, user name or secret; see the restricted report |");
+        text.AppendLine("| `shared_fields_written` | fields it writes that another workflow writes too — see `data-footprint.md` |");
+        text.AppendLine("| `starts_other_workflows` | workflows its writes set off, without any explicit call — see `data-cascades.csv` |");
         text.AppendLine("| `entities_written` / `fields_written` | the data footprint — two workflows writing one field need care in the new product |");
         text.AppendLine();
 

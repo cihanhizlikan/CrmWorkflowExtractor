@@ -352,3 +352,17 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
     Verified in bpmn-js; a test asserts no shape overlaps the note.
 - **Not done:** grouping by data footprint (which workflows write the same field), which would show migration
   ordering conflicts in the new product. Worth doing if the analysts ask.
+
+### Data footprint and cascades (2026-09-23) — committed, awaiting merge
+- **Maintainer:** build grouping by data footprint.
+- **Built (branch `feature/data-footprint`):** `reports/data-footprint.md` / `.csv` (per field: writers, readers,
+  and the workflows a change to it starts) and `data-cascades.csv` (one workflow's write starting another, through
+  a watched field or a created record, with both modes and a self-start flag). `migration.csv` gains
+  `shared_fields_written` and `starts_other_workflows`.
+- **Why it matters for the rebuild:** a field several workflows write has no guaranteed order in CRM, so the target
+  product must choose one; and a cascade is coupling with no call between the two workflows, invisible in the XAML
+  and in the BPMN.
+- **Acceptance on the company network — Do:** reprocess and open `data-footprint.md`. **Pass:** the shared-field
+  and cascade counts are plausible for 1437 workflows, and a spot-checked cascade matches what CRM does (the
+  target workflow really is triggered by that field). **Capture:** the three summary bullets at the top of the
+  report and the count line from `report.md`; no workflow names needed.
