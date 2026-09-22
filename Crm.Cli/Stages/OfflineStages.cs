@@ -34,12 +34,17 @@ public static class OfflineStages
         // Last, because it gathers what every stage before it learned into the one sheet the analysts work from.
         CallGraph calls = CallGraph.Build(documents);
         await folder.WriteTextAsync(RunPaths.CallGraph, calls.Markdown(), token);
-        await folder.WriteBytesAsync(RunPaths.CallGraphCsv, calls.Csv(), token);
         await folder.WriteTextAsync(RunPaths.DataFootprint, DataFootprint.Markdown(documents), token);
-        await folder.WriteBytesAsync(RunPaths.DataFootprintCsv, DataFootprint.Csv(documents), token);
-        await folder.WriteBytesAsync(RunPaths.DataCascadesCsv, DataFootprint.CascadeCsv(documents), token);
-        await folder.WriteBytesAsync(RunPaths.MigrationPlanCsv, MigrationPlan.Csv(state, documents, families, usage), token);
         await folder.WriteTextAsync(RunPaths.MigrationPlan, MigrationPlan.Markdown(state, documents, families), token);
+
+        // One workbook per question the reader has: what is the work, which of these are the same, what touches what.
+        state.Sheets[SheetNames.Plan] = MigrationPlan.Build(state, documents, families, usage);
+        state.Sheets[SheetNames.CallGraph] = calls.Build();
+        state.Sheets[SheetNames.DataFootprint] = DataFootprint.Build(documents);
+        state.Sheets[SheetNames.Cascades] = DataFootprint.BuildCascades(documents);
+        await WriteWorkbookAsync(folder, state, RunPaths.PlanWorkbook, [SheetNames.Plan, SheetNames.Usage, SheetNames.CallGraph, SheetNames.Diagrams], token);
+        await WriteWorkbookAsync(folder, state, RunPaths.FamilyWorkbook, [SheetNames.Families, SheetNames.Pairs, SheetNames.Drafts, SheetNames.Supplied], token);
+        await WriteWorkbookAsync(folder, state, RunPaths.DataWorkbook, [SheetNames.DataFootprint, SheetNames.Cascades], token);
         state.Counts["callGraph.entryPoints"] = documents.Count(document => calls.RoleOf(document.Identity.WorkflowId) == CallGraph.EntryPoint);
         state.Counts["callGraph.buildingBlocks"] = calls.CalledBy.Count;
         state.Counts["data.sharedFields"] = DataFootprint.Fields(documents).Count(use => use.Writers.Count > 1);
@@ -47,5 +52,15 @@ public static class OfflineStages
         state.Counts["data.cascades"] = allCascades.Count;
         state.Counts["data.cascadePairs"] = allCascades.Select(cascade => (cascade.Source, cascade.Target)).Distinct().Count();
         state.StagesRun.Add(RunStages.MigrationPlan);
+    }
+
+    /// <summary>A sheet a stage never produced is left out rather than written empty: an empty tab reads like a bug.</summary>
+    private static async Task WriteWorkbookAsync(RunFolder folder, RunState state, string path, IReadOnlyList<string> sheetNames, CancellationToken token)
+    {
+        List<Sheet> sheets = [.. sheetNames.Select(name => state.Sheets.GetValueOrDefault(name)).OfType<Sheet>()];
+        if (sheets.Count > 0)
+        {
+            await folder.WriteBytesAsync(path, ExcelWorkbook.Build(sheets), token);
+        }
     }
 }

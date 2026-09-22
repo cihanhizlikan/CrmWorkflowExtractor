@@ -13,7 +13,7 @@ namespace Crm.Cli.Reports;
 /// </summary>
 public static class MigrationPlan
 {
-    public static byte[] Csv(RunState state, IReadOnlyList<WorkflowIr> documents, SimilarityResult? similarity, UsageEvidence? usage)
+    public static Sheet Build(RunState state, IReadOnlyList<WorkflowIr> documents, SimilarityResult? similarity, UsageEvidence? usage)
     {
         Dictionary<Guid, WorkflowCluster> familyOf = [];
         foreach (WorkflowCluster cluster in similarity?.Clusters ?? [])
@@ -26,7 +26,7 @@ public static class MigrationPlan
         CallGraph calls = CallGraph.Build(documents);
         (IReadOnlyDictionary<Guid, int> sharedFields, IReadOnlyDictionary<Guid, int> starts) = DataFootprint.PerWorkflow(documents);
 
-        ExcelCsv csv = new("öncelik", "is_akisi", "bpmn_dosyasi", "kategori", "mod", "durum", "birincil_varlik", "tetikleyici",
+        Sheet csv = new(SheetNames.Plan, "öncelik", "is_akisi", "bpmn_dosyasi", "kategori", "mod", "durum", "birincil_varlik", "tetikleyici",
             "adim", "okunamayan_adim", "ozel_etkinlikler", "cagirdigi", "cagiran", "rol",
             "aile", "aile_buyuklugu", "aile_rolu", "birlesik_dosya", "son_kayitli_calisma", "kullanim_hukmu",
             "adi_deneme_gibi", "urunle_gelen", "hassas_deger_var", "paylasilan_alan", "baslattigi_is_akisi", "yazdigi_varliklar", "yazdigi_alanlar");
@@ -64,7 +64,7 @@ public static class MigrationPlan
                 string.Join(" | ", document.DataTouched.EntitiesWritten),
                 string.Join(" | ", document.DataTouched.FieldsWritten.Take(12)));
         }
-        return csv.ToBytes();
+        return csv;
     }
 
     /// <summary>
@@ -93,10 +93,10 @@ public static class MigrationPlan
         CallGraph calls = CallGraph.Build(documents);
         StringBuilder text = new();
         text.AppendLine("# Taşıma çalışma sayfası").AppendLine();
-        text.AppendLine("`tasima-plani.csv` her iş akışı için bir satır tutar. Excel'de açıp sıralayın veya süzün; her bilgi ayrı bir sütun olduğundan sayfa tek bir sıraya mahkûm değildir, aklınıza gelen soruyu yanıtlar.").AppendLine();
+        text.AppendLine("`tasima-plani.xlsx` kitabının **" + SheetNames.Plan + "** sayfası her iş akışı için bir satır tutar; kitapta ayrıca **" + SheetNames.Usage + "**, **" + SheetNames.CallGraph + "** ve **" + SheetNames.Diagrams + "** sayfaları vardır. Başlık satırı sabit, her sütunda süzgeç açık gelir; her bilgi ayrı bir sütun olduğundan sayfa tek bir sıraya mahkûm değildir, aklınıza gelen soruyu yanıtlar.").AppendLine();
         text.AppendLine("| Sütun | Ne işe yarar |").AppendLine("|---|---|");
         text.AppendLine("| `öncelik` | 1 canlı süreç · 2 diyalog, iş kuralı veya süreç akışı · 3 adı deneme gibi okunuyor · 4 taslak, çalışamaz · 5 ürünle gelmiş |");
-        text.AppendLine("| `bpmn_dosyasi` | diyagram; `bpmn/<kategori>/<varlık>/` altında |");
+        text.AppendLine("| `bpmn_dosyasi` | diyagram; `bpmn/<kategori>/<varlık>/` altında, dizini **" + SheetNames.Diagrams + "** sayfasında |");
         text.AppendLine("| `tetikleyici` | akışı ne başlatır: kayıt oluşturma, adı verilen alanların güncellenmesi, silme, istek üzerine |");
         text.AppendLine("| `adim` / `okunamayan_adim` | akışın büyüklüğü ve ayrıştırıcının okuyamadığı adım sayısı (bunları elle kontrol edin) |");
         text.AppendLine("| `ozel_etkinlikler` | yeni üründe karşılığı bulunmayan iş ortağı veya kurum içi kod |");
@@ -105,14 +105,14 @@ public static class MigrationPlan
         text.AppendLine("| `son_kayitli_calisma` / `kullanim_hukmu` | kullanım kanıtı. Kaydın bulunmaması kullanılmadığını kanıtlamaz |");
         text.AppendLine("| `urunle_gelen` | CRM bu akışı yönetilen çözümün parçası olarak bildiriyor: ürünle gelmiş, burada yazılmamış. Gruplanmaz, yeniden kurulması gerekmez |");
         text.AppendLine("| `hassas_deger_var` | XAML içinde adres, kullanıcı adı veya parola benzeri değer var; kısıtlı rapora bakın |");
-        text.AppendLine("| `paylasilan_alan` | yazdığı alanlardan başka bir iş akışının da yazdıkları — bkz. `veri-ayak-izi.md` |");
-        text.AppendLine("| `baslattigi_is_akisi` | açıkça çağırmadan, yalnızca yazdığı için başlattığı iş akışları — bkz. `veri-zincirleri.csv` |");
+        text.AppendLine("| `paylasilan_alan` | yazdığı alanlardan başka bir iş akışının da yazdıkları — bkz. `veri-analizi.xlsx` ve `veri-ayak-izi.md` |");
+        text.AppendLine("| `baslattigi_is_akisi` | açıkça çağırmadan, yalnızca yazdığı için başlattığı iş akışları — bkz. `veri-analizi.xlsx`, **" + SheetNames.Cascades + "** sayfası |");
         text.AppendLine("| `yazdigi_varliklar` / `yazdigi_alanlar` | veri ayak izi — aynı alana yazan iki akış yeni üründe dikkat ister |");
         text.AppendLine();
 
         int live = documents.Count(document => Priority(document) == 1);
         int blocks = calls.CalledBy.Count(entry => entry.Value.Count > 0);
-        text.AppendLine(CultureInfo.InvariantCulture, $"**{documents.Count} iş akışı.** {live} tanesi canlı süreç (öncelik 1); {documents.Count(document => Priority(document) == 4)} tanesi taslak olduğu için çalışamaz; {documents.Count(document => Priority(document) == 5)} tanesi ürünle gelmiştir ve `{Crm.Extract.Runs.RunPaths.SuppliedCsv}` dosyasında listelenir. {blocks} tanesi başka bir iş akışınca çağrılır; bunlar ayrı bir kalem değil, ortak yapı taşıdır.").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"**{documents.Count} iş akışı.** {live} tanesi canlı süreç (öncelik 1); {documents.Count(document => Priority(document) == 4)} tanesi taslak olduğu için çalışamaz; {documents.Count(document => Priority(document) == 5)} tanesi ürünle gelmiştir ve `{Crm.Extract.Runs.RunPaths.FamilyWorkbook}` kitabının **{SheetNames.Supplied}** sayfasında listelenir. {blocks} tanesi başka bir iş akışınca çağrılır; bunlar ayrı bir kalem değil, ortak yapı taşıdır.").AppendLine();
         int families = similarity?.Clusters.Count(cluster => cluster.Members.Count > 1) ?? 0;
         int inFamilies = similarity?.Clusters.Where(cluster => cluster.Members.Count > 1).Sum(cluster => cluster.Members.Count) ?? 0;
         text.AppendLine(CultureInfo.InvariantCulture, $"{inFamilies} iş akışı, birbirine çok benzeyen {families} aileye ayrılır. Her ailenin başlangıç noktasından başlayın; kalanları ayrı birer kurulum değil, o akışın çeşitlemeleri olarak ele alın.").AppendLine();

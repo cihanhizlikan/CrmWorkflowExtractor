@@ -23,8 +23,8 @@ public sealed class EndToEndTests
 
         Assert.True(code == ExitCode.Success, console);
         foreach (string file in new[] { "manifest.json", "ham/is-akislari.jsonl", "ham/xaml/dizin.json", "raporlar/rapor.md", "raporlar/ayristirma-kapsami.md",
-            "raporlar/sapma.md", "raporlar/birlestirme.md", "raporlar/hassas-degerler.md", "raporlar/envanter.md", "aileler/aileler.csv",
-            "aileler/ciftler.csv", "aileler/aileler.json", "elle-inceleme/dizin.md", "gunlukler/calistirma.log" })
+            "raporlar/sapma.md", "raporlar/birlestirme.md", "raporlar/hassas-degerler.md", "raporlar/envanter.md", "raporlar/aileler.xlsx", "raporlar/tasima-plani.xlsx",
+            "aileler/aileler.json", "elle-inceleme/dizin.md", "gunlukler/calistirma.log" })
         {
             Assert.True(File.Exists(Path.Combine(runRoot, file)), file + " is missing");
         }

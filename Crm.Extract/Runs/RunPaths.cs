@@ -39,22 +39,29 @@ public static class RunPaths
     public const string Drift = Reports + "/sapma.md";
     public const string Consolidation = Reports + "/birlestirme.md";
     public const string Usage = Reports + "/kullanim.md";
-    public const string UsageCsv = Reports + "/kullanim.csv";
+
     public const string MigrationPlan = Reports + "/tasima-plani.md";
-    public const string MigrationPlanCsv = Reports + "/tasima-plani.csv";
+    /// <summary>The planning workbook: the worksheet, usage, the call graph and the diagram index.</summary>
+    public const string PlanWorkbook = Reports + "/tasima-plani.xlsx";
+
+    /// <summary>The grouping workbook: families, pair scores, drafts and what came with the product.</summary>
+    public const string FamilyWorkbook = Reports + "/aileler.xlsx";
+
+    /// <summary>The data workbook: the field footprint and the cascades.</summary>
+    public const string DataWorkbook = Reports + "/veri-analizi.xlsx";
     public const string CallGraph = Reports + "/cagri-agaci.md";
-    public const string CallGraphCsv = Reports + "/cagri-agaci.csv";
+
     public const string DataFootprint = Reports + "/veri-ayak-izi.md";
-    public const string DataFootprintCsv = Reports + "/veri-ayak-izi.csv";
-    public const string DataCascadesCsv = Reports + "/veri-zincirleri.csv";
+
+
 
     public const string FamiliesJson = Families + "/aileler.json";
-    public const string FamiliesCsv = Families + "/aileler.csv";
-    public const string PairsCsv = Families + "/ciftler.csv";
-    public const string DraftsCsv = Families + "/taslaklar.csv";
-    public const string SuppliedCsv = Families + "/urunle-gelenler.csv";
 
-    public const string BpmnIndex = Bpmn + "/dizin.csv";
+
+
+
+
+
     public const string ManualReviewIndex = ManualReview + "/dizin.md";
 
     public static string IrFile(Guid workflowId)

@@ -415,3 +415,16 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Left in English on purpose:** configuration messages (they name `appsettings.json` keys), `manifest.json` keys
   and the IR JSON schema (machine-read), `ILogger` diagnostics, and the code itself.
 - **Compatibility:** a run from before this still reprocesses — its `raw/` is read and copied forward as `ham/`.
+
+### Workbooks instead of CSV (2026-09-23) — committed
+- **Maintainer:** replace the CSVs with Excel files and combine the conceptually similar ones; ease of use is king.
+- **Built:** `ExcelWorkbook` writes .xlsx by hand — a workbook is a zip of XML parts, so it needs no dependency
+  (§10). Header row frozen and bold, a filter on every column, widths from the content, numbers written as numbers
+  so Excel sorts them, and a fixed zip timestamp so two runs over the same data are byte-identical.
+- **Ten CSVs became three workbooks**, grouped by the question the reader has:
+  `raporlar/tasima-plani.xlsx` (Taşıma planı · Kullanım · Çağrı ağacı · BPMN dizini) — what the work is;
+  `raporlar/aileler.xlsx` (Aileler · Çiftler · Taslaklar · Ürünle gelenler) — which of these are the same;
+  `raporlar/veri-analizi.xlsx` (Veri ayak izi · Tetikleme zincirleri) — what touches what.
+- **Verified:** the tests read the files back through the zip, and SheetJS — an independent reader — opened both
+  workbooks in a browser: sheet names with Turkish characters intact, 46 rows, `öncelik` typed as a number.
+- **Unverified:** Excel itself, which is not on this machine. Nothing in the format is Excel-specific.

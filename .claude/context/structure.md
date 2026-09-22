@@ -20,10 +20,14 @@ The stages after retrieval read only the run folder, never the network.
 ```
 out/runs/<yyyyMMdd-HHmmss>/   manifest.json (written LAST — its presence seals the run)
   ham/  ara-model/  aileler/  birlesik/  elle-inceleme/  raporlar/  gunlukler/
-  bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn   + bpmn/dizin.csv
-  raporlar/  tasima-plani.csv (analistlerin çalışma sayfası) · cagri-agaci.md · kullanim.md · rapor.md · …
+  bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn
+  raporlar/  tasima-plani.xlsx (çalışma kitabı) · aileler.xlsx · veri-analizi.xlsx · rapor.md · …
 out/cache/metadata/           shared across runs, copied into each run's ham/ust-veri/
 ```
+
+**Tables are .xlsx, not CSV** (`ExcelWorkbook`, written by hand — a workbook is a zip of XML, so no dependency).
+Three workbooks, one per question: `tasima-plani.xlsx` (what is the work), `aileler.xlsx` (which of these are the
+same), `veri-analizi.xlsx` (what touches what). Header frozen, filter on every column, numbers kept as numbers.
 
 **The output is Turkish** — folder names, file names and every word the tool writes. Three tables carry it:
 `RunPaths` (paths), `RunStages` (stage names) and `ProcessLabels` (category, mode and state labels, which code also

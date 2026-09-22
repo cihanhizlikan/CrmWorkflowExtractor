@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using Crm.Bpmn;
@@ -30,8 +29,9 @@ public sealed class MigrationPlanTests
         Assert.True(File.Exists(Path.Combine(bpmn, "is-akisi", "new-claim", "hasar-onay-10.bpmn")));
         Assert.Empty(Directory.GetFiles(bpmn, "*.bpmn", SearchOption.TopDirectoryOnly));
 
-        string index = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(bpmn, "dizin.csv")));
-        Assert.Contains("is-akisi/new-policy/police-iptal-sureci-0.bpmn;Poliçe İptal Süreci 0;", index, StringComparison.Ordinal);
+        Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
+        Assert.Contains(plan.Rows("BPMN dizini"), row => row.Count > 1
+            && row[0] == "is-akisi/new-policy/police-iptal-sureci-0.bpmn" && row[1] == "Poliçe İptal Süreci 0");
     }
 
     [Fact]
@@ -42,15 +42,18 @@ public sealed class MigrationPlanTests
         (_, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output,
             importFile: Fixture("mock-crm-export.json"), usageFile: Fixture("mock-usage-export.json"));
 
-        string[] lines = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "tasima-plani.csv")))
-            .Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
-        Assert.Equal(1 + 46, lines.Length);
-        Assert.StartsWith("öncelik;is_akisi;bpmn_dosyasi;", lines[0].TrimStart('﻿'), StringComparison.Ordinal);
-        // Priority 1 is a live process; the 44 drafts (43 with XAML) sort last.
-        Assert.StartsWith("1;", lines[1], StringComparison.Ordinal);
-        Assert.StartsWith("4;", lines[^1], StringComparison.Ordinal);
-        Assert.Contains(lines, line => line.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20", StringComparison.Ordinal));
-        Assert.Contains(lines, line => line.Contains("is-akisi/new-policy/police-iptal-sureci-0.bpmn", StringComparison.Ordinal));
+        Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
+        Assert.Equal(["Taşıma planı", "Kullanım", "Çağrı ağacı", "BPMN dizini"], workbook.Names);
+        IReadOnlyList<IReadOnlyList<string>> rows = workbook.Rows("Taşıma planı");
+        Assert.Equal(1 + 46, rows.Count);
+        Assert.Equal(["öncelik", "is_akisi", "bpmn_dosyasi"], rows[0].Take(3));
+        // Priority 1 is a live process; the 44 drafts (43 with XAML) sort last. The band is a number, so Excel sorts it.
+        Assert.Equal("1", rows[1][0]);
+        Assert.Equal("4", rows[^1][0]);
+        Assert.True(workbook.IsNumeric("Taşıma planı", 1, 0));
+        Assert.True(workbook.HasFrozenHeaderAndFilter("Taşıma planı"));
+        Assert.Contains(rows, row => row.Any(cell => cell.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20", StringComparison.Ordinal)));
+        Assert.Contains(rows, row => row.Any(cell => cell.Contains("is-akisi/new-policy/police-iptal-sureci-0.bpmn", StringComparison.Ordinal)));
         Assert.True(File.Exists(Path.Combine(runRoot, "raporlar", "tasima-plani.md")), console);
     }
 
@@ -68,8 +71,8 @@ public sealed class MigrationPlanTests
         string graph = File.ReadAllText(Path.Combine(runRoot, "raporlar", "cagri-agaci.md"));
         Assert.Contains("alt iş akışı çağrısı", graph, StringComparison.Ordinal);
         Assert.Contains("bu çalıştırmada bulunmayan", graph, StringComparison.Ordinal);
-        string csv = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "cagri-agaci.csv")));
-        Assert.Contains("giriş noktası", csv, StringComparison.Ordinal);
+        Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
+        Assert.Contains(plan.Rows("Çağrı ağacı"), row => row.Contains("giriş noktası"));
     }
 
     /// <summary>
@@ -85,12 +88,13 @@ public sealed class MigrationPlanTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.True(code == ExitCode.Success, console);
-        string supplied = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "aileler", "urunle-gelenler.csv")));
-        Assert.Contains("Poliçe İptal Süreci 6", supplied, StringComparison.Ordinal);
-        Assert.DoesNotContain("Poliçe İptal Süreci 6", Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "aileler", "aileler.csv"))), StringComparison.Ordinal);
+        Workbook families = Workbook.Open(Path.Combine(runRoot, "raporlar", "aileler.xlsx"));
+        Assert.Contains(families.Rows("Ürünle gelenler"), row => row.Contains("Poliçe İptal Süreci 6"));
+        Assert.DoesNotContain(families.Rows("Aileler"), row => row.Contains("Poliçe İptal Süreci 6"));
 
         // It keeps its diagram and its row, marked, so nothing disappears silently.
-        Assert.Contains("5;Poliçe İptal Süreci 6;", Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "tasima-plani.csv"))), StringComparison.Ordinal);
+        Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
+        Assert.Contains(plan.Rows("Taşıma planı"), row => row.Count > 1 && row[0] == "5" && row[1] == "Poliçe İptal Süreci 6");
         Assert.True(File.Exists(Path.Combine(runRoot, "bpmn", "is-akisi", "new-policy", "police-iptal-sureci-6.bpmn")));
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));

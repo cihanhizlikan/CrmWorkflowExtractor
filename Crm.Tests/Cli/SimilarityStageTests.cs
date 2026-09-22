@@ -1,4 +1,3 @@
-using System.Text;
 using Crm.Cli;
 using Crm.Tests.Fakes;
 using Crm.Tests.Ir;
@@ -9,7 +8,7 @@ namespace Crm.Tests.Cli;
 public sealed class SimilarityStageTests
 {
     [Fact]
-    public async Task Clusters_Csv_Opens_In_Turkish_Excel_With_One_Row_Per_Workflow_And_An_Empty_Decision_Column()
+    public async Task The_Family_Workbook_Has_One_Row_Per_Workflow_And_An_Empty_Decision_Column()
     {
         string update = XamlWorkflowParserTests.Fixture("condition-update-stop.xaml");
         string custom = XamlWorkflowParserTests.Fixture("child-and-custom.xaml");
@@ -19,14 +18,20 @@ public sealed class SimilarityStageTests
         (ExitCode code, string runRoot, _) = await RunHarness.RunAsync(server, output);
 
         Assert.Equal(ExitCode.Success, code);
-        byte[] bytes = File.ReadAllBytes(Path.Combine(runRoot, "aileler", "aileler.csv"));
-        Assert.Equal(Encoding.UTF8.GetPreamble(), bytes[..3]);
-        string[] lines = Encoding.UTF8.GetString(bytes[3..]).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
-        Assert.Equal("aile_id;aile_buyuklugu;is_akisi;is_akisi_id;birincil_varlik;kategori;durum;baslangica_benzerlik;baslangic_noktasi;zayif_tutarlilik;adi_deneme_gibi;son_kayitli_calisma;karar", lines[0]);
-        Assert.Equal(4, lines.Length - 1);
-        Assert.All(lines.Skip(1), line => Assert.EndsWith(";", line, StringComparison.Ordinal));
-        Assert.Contains(lines, line => line.Contains("Poliçe İptal Süreci 0", StringComparison.Ordinal));
+        Workbook families = Workbook.Open(Path.Combine(runRoot, "raporlar", "aileler.xlsx"));
+        Assert.Equal(["Aileler", "Çiftler", "Taslaklar", "Ürünle gelenler"], families.Names);
+        Assert.Equal(
+            ["aile_id", "aile_buyuklugu", "is_akisi", "is_akisi_id", "birincil_varlik", "kategori", "durum",
+             "baslangica_benzerlik", "baslangic_noktasi", "zayif_tutarlilik", "adi_deneme_gibi", "son_kayitli_calisma", "karar"],
+            families.Headers("Aileler"));
+
+        IReadOnlyList<IReadOnlyList<string>> rows = families.Rows("Aileler");
+        Assert.Equal(4, rows.Count - 1);
+        // The decision column is the architect's to fill in, so it is written empty — and an empty trailing cell is
+        // simply absent from the row, which is what a reader of the file sees as a blank.
+        Assert.All(rows.Skip(1), row => Assert.True(row.Count < 13 || row[12].Length == 0));
+        Assert.Contains(rows, row => row.Contains("Poliçe İptal Süreci 0"));
+        Assert.True(families.HasFrozenHeaderAndFilter("Aileler"));
         Assert.True(File.Exists(Path.Combine(runRoot, "aileler", "aileler.json")));
-        Assert.True(File.Exists(Path.Combine(runRoot, "aileler", "ciftler.csv")));
     }
 }

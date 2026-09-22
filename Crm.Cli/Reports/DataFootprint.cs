@@ -99,10 +99,10 @@ public static class DataFootprint
         return [.. cascades.DistinctBy(cascade => (cascade.Source, cascade.Target, cascade.Through, cascade.Kind))];
     }
 
-    public static byte[] Csv(IReadOnlyList<WorkflowIr> documents)
+    public static Sheet Build(IReadOnlyList<WorkflowIr> documents)
     {
         Dictionary<Guid, string> names = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity.Name);
-        ExcelCsv csv = new("varlik", "alan", "yazan", "okuyan", "bu_alanin_baslattigi",
+        Sheet csv = new(SheetNames.DataFootprint, "varlik", "alan", "yazan", "okuyan", "bu_alanin_baslattigi",
             "paylasilan_yazma", "is_akisi_baslatir", "yazanlar", "okuyanlar", "baslattiklari");
         foreach (FieldUse use in Fields(documents).OrderByDescending(use => use.Writers.Count).ThenBy(use => use.Entity, StringComparer.Ordinal).ThenBy(use => use.Field, StringComparer.Ordinal))
         {
@@ -110,13 +110,13 @@ public static class DataFootprint
                 use.Writers.Count > 1, use.TriggeredBy.Count > 0 && use.Writers.Count > 0,
                 Names(names, use.Writers), Names(names, use.Readers), Names(names, use.TriggeredBy));
         }
-        return csv.ToBytes();
+        return csv;
     }
 
-    public static byte[] CascadeCsv(IReadOnlyList<WorkflowIr> documents)
+    public static Sheet BuildCascades(IReadOnlyList<WorkflowIr> documents)
     {
         Dictionary<Guid, WorkflowIdentity> byId = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity);
-        ExcelCsv csv = new("baslatan", "nasil", "baslayan", "hangi_veri", "baslatan_modu", "baslayan_modu", "kendini_baslatiyor");
+        Sheet csv = new(SheetNames.Cascades, "baslatan", "nasil", "baslayan", "hangi_veri", "baslatan_modu", "baslayan_modu", "kendini_baslatiyor");
         foreach (Cascade cascade in Cascades(documents)
             .OrderBy(cascade => byId[cascade.Source].Name, StringComparer.Ordinal)
             .ThenBy(cascade => byId[cascade.Target].Name, StringComparer.Ordinal))
@@ -124,7 +124,7 @@ public static class DataFootprint
             csv.Row(byId[cascade.Source].Name, cascade.Kind, byId[cascade.Target].Name, cascade.Through,
                 byId[cascade.Source].Mode, byId[cascade.Target].Mode, cascade.Source == cascade.Target);
         }
-        return csv.ToBytes();
+        return csv;
     }
 
     public static string Markdown(IReadOnlyList<WorkflowIr> documents)
@@ -165,7 +165,7 @@ public static class DataFootprint
         text.AppendLine();
 
         text.AppendLine("## Tetikleme zincirleri: başka bir iş akışını başlatan yazmalar").AppendLine();
-        text.AppendLine("Bu zincirler diyagramlarda görünmez — ilk akış, ikincinin izlediği bir alana yazdığı ya da bir kayıt oluşturduğu için CRM ikinciyi başlatır. Yeni üründe bu bağ ya açıkça kurulmalı ya da iki akış tek süreç olarak yeniden yazılmalıdır. Zincirlerin tamamı `veri-zincirleri.csv` dosyasındadır; liste okunamayacak kadar uzun olduğu için bu sayfa özetler.").AppendLine();
+        text.AppendLine("Bu zincirler diyagramlarda görünmez — ilk akış, ikincinin izlediği bir alana yazdığı ya da bir kayıt oluşturduğu için CRM ikinciyi başlatır. Yeni üründe bu bağ ya açıkça kurulmalı ya da iki akış tek süreç olarak yeniden yazılmalıdır. Zincirlerin tamamı `veri-analizi.xlsx` kitabının **Tetikleme zincirleri** sayfasındadır; liste okunamayacak kadar uzun olduğu için bu sayfa özetler.").AppendLine();
 
         text.AppendLine(CultureInfo.InvariantCulture, $"### En çok işi tetikleyen alanlar (bir şey başlatan {fields.Count(use => use.Writers.Count > 0 && use.TriggeredBy.Count > 0)} alan)").AppendLine();
         text.AppendLine("Bu alanların her birine birden çok akış yazar, birden çok akış da onu izler; dolayısıyla tek bir yazma dallanarak yayılır. Önce bunları ele alın: alanın sahibinin kim olduğuna karar verin.").AppendLine();
@@ -195,7 +195,7 @@ public static class DataFootprint
         }
         if (pairs.Count > 60)
         {
-            text.AppendLine().AppendLine(CultureInfo.InvariantCulture, $"…ve `veri-zincirleri.csv` dosyasındaki {pairs.Count - 60} çift daha.");
+            text.AppendLine().AppendLine(CultureInfo.InvariantCulture, $"…ve `veri-analizi.xlsx` kitabındaki {pairs.Count - 60} çift daha.");
         }
         return text.ToString();
     }

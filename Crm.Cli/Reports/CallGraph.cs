@@ -134,9 +134,9 @@ public sealed class CallGraph
         return text.ToString();
     }
 
-    public byte[] Csv()
+    public Sheet Build()
     {
-        ExcelCsv csv = new("is_akisi", "is_akisi_id", "rol", "cagirdigi", "cagiran", "alt_akislar", "cagiranlar");
+        Sheet csv = new(SheetNames.CallGraph, "is_akisi", "is_akisi_id", "rol", "cagirdigi", "cagiran", "alt_akislar", "cagiranlar");
         foreach ((Guid id, IReadOnlyList<Guid> children) in Calls.OrderBy(entry => Names[entry.Key], StringComparer.Ordinal))
         {
             IReadOnlyList<Guid> parents = CalledBy.GetValueOrDefault(id, []);
@@ -144,6 +144,6 @@ public sealed class CallGraph
                 string.Join(" | ", children.Select(child => Names.GetValueOrDefault(child, child.ToString("D")))),
                 string.Join(" | ", parents.Select(parent => Names[parent])));
         }
-        return csv.ToBytes();
+        return csv;
     }
 }

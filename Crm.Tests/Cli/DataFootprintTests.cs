@@ -1,4 +1,3 @@
-using System.Text;
 using Crm.Cli;
 using Crm.Cli.Reports;
 using Crm.Ir.Model;
@@ -69,9 +68,12 @@ public sealed class DataFootprintTests
         Assert.Equal(1, starts[Closer]);
         Assert.Equal(1, starts[Creator]);
 
-        string csv = Encoding.UTF8.GetString(DataFootprint.CascadeCsv(documents));
-        Assert.Contains("Closer;alan güncellendi;Watcher;incident.statuscode;Arka plan;Gerçek zamanlı;", csv, StringComparison.Ordinal);
-        Assert.Contains("incident;statuscode;2;", Encoding.UTF8.GetString(DataFootprint.Csv(documents)), StringComparison.Ordinal);
+        Sheet cascades = DataFootprint.BuildCascades(documents);
+        Assert.Contains(cascades.Rows, row => row.Take(6).Select(cell => Sheet.Cell(cell)?.ToString()).SequenceEqual(
+            ["Closer", "alan güncellendi", "Watcher", "incident.statuscode", "Arka plan", "Gerçek zamanlı"]));
+        Sheet fields = DataFootprint.Build(documents);
+        Assert.Contains(fields.Rows, row => Sheet.Cell(row[0])?.ToString() == "incident" && Sheet.Cell(row[1])?.ToString() == "statuscode"
+            && Sheet.Cell(row[2]) is 2);
     }
 
     /// <summary>7009 cascades on the real data (2026-09-22): the list is unreadable, so the page rolls them up.</summary>
@@ -108,9 +110,10 @@ public sealed class DataFootprintTests
             importFile: Path.Combine(AppContext.BaseDirectory, "Fixtures", "BrowserExport", "mock-crm-export.json"));
 
         Assert.True(File.Exists(Path.Combine(runRoot, "raporlar", "veri-ayak-izi.md")), console);
-        Assert.True(File.Exists(Path.Combine(runRoot, "raporlar", "veri-ayak-izi.csv")));
-        Assert.True(File.Exists(Path.Combine(runRoot, "raporlar", "veri-zincirleri.csv")));
-        Assert.Contains("paylasilan_alan", Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "tasima-plani.csv"))), StringComparison.Ordinal);
+        Workbook data = Workbook.Open(Path.Combine(runRoot, "raporlar", "veri-analizi.xlsx"));
+        Assert.Equal(["Veri ayak izi", "Tetikleme zincirleri"], data.Names);
+        Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
+        Assert.Contains("paylasilan_alan", plan.Headers("Taşıma planı"));
     }
 
     /// <summary>Two workflows close a case, one watches the field they write, one creates a task, one watches new tasks.</summary>

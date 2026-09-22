@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using Crm.Cli;
 using Crm.Cli.Stages;
@@ -31,19 +30,20 @@ public sealed class UsageStageTests
         Assert.Equal(File.ReadAllBytes(Fixture("mock-usage-export.json")), File.ReadAllBytes(Path.Combine(runRoot, "ham", "kullanim-disa-aktarim.json")));
         Assert.Contains("1 sorgu başarısız oldu", console, StringComparison.Ordinal);
 
-        string usage = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "kullanim.csv")));
-        string ran = Assert.Single(usage.Split("\r\n"), line => line.Contains(DefinitionThatRan.ToString("D"), StringComparison.Ordinal));
-        Assert.Contains("2026-09-20", ran, StringComparison.Ordinal);
-        Assert.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20 (sistem işi)", ran, StringComparison.Ordinal);
-        Assert.Contains("Kayıtlı çalışma yok; görülen en eski çalışma 2026-09-20: kullanılmadığının KANITI DEĞİLDİR", usage, StringComparison.Ordinal);
-        Assert.Contains("Taslak: yeni çalıştırma başlatamaz", usage, StringComparison.Ordinal);
+        Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
+        IReadOnlyList<IReadOnlyList<string>> usage = plan.Rows("Kullanım");
+        IReadOnlyList<string> ran = Assert.Single(usage, row => row.Contains(DefinitionThatRan.ToString("D")));
+        Assert.Contains("2026-09-20", ran);
+        Assert.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20 (sistem işi)", ran);
+        Assert.Contains(usage, row => row.Any(cell => cell.StartsWith("Kayıtlı çalışma yok; görülen en eski çalışma 2026-09-20", StringComparison.Ordinal)));
+        Assert.Contains(usage, row => row.Contains("Taslak: yeni çalıştırma başlatamaz"));
 
         // 44 drafts in the fixture, one without XAML (the simulated failure), so 43 IR documents: listed on their own, absent from clusters.csv, and the count chain still balances.
-        string drafts = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "aileler", "taslaklar.csv")));
-        Assert.Equal(1 + 43, drafts.Split("\r\n", StringSplitOptions.RemoveEmptyEntries).Length);
-        string clusters = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "aileler", "aileler.csv")));
-        Assert.DoesNotContain("Hasar Onay", clusters, StringComparison.Ordinal);
-        Assert.Contains("2026-09-20", clusters, StringComparison.Ordinal);
+        Workbook families = Workbook.Open(Path.Combine(runRoot, "raporlar", "aileler.xlsx"));
+        Assert.Equal(1 + 43, families.Rows("Taslaklar").Count);
+        IReadOnlyList<IReadOnlyList<string>> clusters = families.Rows("Aileler");
+        Assert.DoesNotContain(clusters, row => row.Any(cell => cell.StartsWith("Hasar Onay", StringComparison.Ordinal)));
+        Assert.Contains(clusters, row => row.Contains("2026-09-20"));
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
         Assert.All(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— uygun", link.GetString(), StringComparison.Ordinal));
         Assert.Contains(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => link.GetString()!.Contains("aileye yerleşen + ayrı tutulan taslak", StringComparison.Ordinal));
@@ -59,7 +59,8 @@ public sealed class UsageStageTests
         (ExitCode code, string second, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, reprocessRunId: Path.GetFileName(first));
 
         Assert.True(code == ExitCode.Success, console);
-        Assert.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20", File.ReadAllText(Path.Combine(second, "raporlar", "kullanim.csv")), StringComparison.Ordinal);
+        Workbook plan = Workbook.Open(Path.Combine(second, "raporlar", "tasima-plani.xlsx"));
+        Assert.Contains(plan.Rows("Kullanım"), row => row.Any(cell => cell.StartsWith("Kullanılıyor: son kayıtlı çalışma 2026-09-20", StringComparison.Ordinal)));
     }
 
     /// <summary>Asking the server for the oldest record of all sorts the whole System Job table; production leaves it pending.</summary>

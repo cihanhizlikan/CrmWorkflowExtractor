@@ -152,7 +152,7 @@ public static partial class UsageStage
 
     public static async Task WriteReportAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage, CancellationToken token)
     {
-        ExcelCsv csv = new("is_akisi", "bpmn_dosyasi", "is_akisi_id", "kategori", "mod", "durum", "adi_deneme_gibi", "son_kayitli_calisma", "kanit", "hukum");
+        Sheet csv = new(SheetNames.Usage, "is_akisi", "bpmn_dosyasi", "is_akisi_id", "kategori", "mod", "durum", "adi_deneme_gibi", "son_kayitli_calisma", "kanit", "hukum");
         foreach (WorkflowIr document in documents.OrderBy(document => document.Identity.Name, StringComparer.Ordinal))
         {
             WorkflowIdentity identity = document.Identity;
@@ -161,7 +161,7 @@ public static partial class UsageStage
             csv.Row(identity.Name, bpmn, identity.WorkflowId, identity.Category, identity.Mode, identity.State, NameSuggestsTest(identity.Name),
                 found?.LastLoggedRun is DateTimeOffset last ? Day(last) : "", found?.Source ?? "", Verdict(identity, usage));
         }
-        await folder.WriteBytesAsync(RunPaths.UsageCsv, csv.ToBytes(), token);
+        state.Sheets[SheetNames.Usage] = csv;
 
         List<WorkflowIr> drafts = [.. documents.Where(document => document.Identity.State == DraftState)];
         List<WorkflowIr> testNamedActive = [.. documents.Where(document => document.Identity.State != DraftState && NameSuggestsTest(document.Identity.Name))];
@@ -182,7 +182,7 @@ public static partial class UsageStage
             text.AppendLine(CultureInfo.InvariantCulture, $"| {group.Key} | {group.Count()} |");
         }
         text.AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"**Taslak tanımlar ({drafts.Count})** benzerlik gruplamasının ve birleştirmenin dışında tutulur; her birinin ara modeli ve BPMN dosyası yine üretilir, listeleri `{Crm.Extract.Runs.RunPaths.DraftsCsv}` dosyasındadır.").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"**Taslak tanımlar ({drafts.Count})** benzerlik gruplamasının ve birleştirmenin dışında tutulur; her birinin ara modeli ve BPMN dosyası yine üretilir, listeleri `{Crm.Extract.Runs.RunPaths.FamilyWorkbook}` kitabının **{SheetNames.Drafts}** sayfasındadır.").AppendLine();
         text.AppendLine(CultureInfo.InvariantCulture, $"## Adı taslak veya deneme gibi okunan etkin akışlar ({testNamedActive.Count})").AppendLine();
         text.AppendLine("Bunlar üretimde çalışabilir, bu yüzden gruplamada kalırlar. Herhangi birini kullanılmıyor saymadan önce hükmü okuyun.").AppendLine();
         text.AppendLine("| İş akışı | Kategori | Mod | Hüküm |").AppendLine("|---|---|---|---|");
