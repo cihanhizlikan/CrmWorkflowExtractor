@@ -13,7 +13,7 @@ public static class SimilarityStage
     private const double RebuiltStructural = 0.95;
     private const double RebuiltLexical = 0.5;
 
-    public static async Task<SimilarityResult> RunAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, IReadOnlyList<WorkflowIr> drafts,
+    public static async Task<SimilarityResult> RunAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, IReadOnlyList<WorkflowIr> drafts, IReadOnlyList<WorkflowIr> supplied,
         UsageEvidence? usage, SimilarityOptions options, ILogger logger, CancellationToken token)
     {
         SimilarityResult result = new SimilarityEngine(options).Run(documents);
@@ -44,6 +44,15 @@ public static class SimilarityStage
         }
         await folder.WriteBytesAsync("clusters/drafts.csv", held.ToBytes(), token);
         state.Counts["clusters.draftsHeldApart"] = drafts.Count;
+
+        ExcelCsv shipped = new("workflow_name", "workflow_id", "primary_entity", "category", "state", "modified_on");
+        foreach (WorkflowIr document in supplied.OrderBy(document => document.Identity.Name, StringComparer.Ordinal))
+        {
+            shipped.Row(document.Identity.Name, document.Identity.WorkflowId, document.Identity.PrimaryEntity,
+                document.Identity.Category, document.Identity.State, document.Identity.ModifiedOn);
+        }
+        await folder.WriteBytesAsync("clusters/supplied-with-the-product.csv", shipped.ToBytes(), token);
+        state.Counts["clusters.suppliedHeldApart"] = supplied.Count;
 
         ExcelCsv pairs = new("left_id", "left_name", "right_id", "right_name", "combined", "structural", "lexical", "path_jaccard", "shingle_jaccard",
             "name_prefix", "token_jaccard", "jaro_winkler", "same_cluster", "rebuilt_under_other_name");

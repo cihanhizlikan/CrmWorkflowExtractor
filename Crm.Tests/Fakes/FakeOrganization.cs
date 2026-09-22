@@ -35,6 +35,9 @@ internal sealed class FakeOrganization
     /// <summary>Record indexes whose <c>iscrmuiworkflow</c> is false (hand-authored XAML).</summary>
     public IReadOnlySet<int> NonDesigner { get; set; } = new HashSet<int>();
 
+    /// <summary>Record indexes CRM reports as part of a managed solution: supplied with the product.</summary>
+    public IReadOnlySet<int> Managed { get; set; } = new HashSet<int>();
+
     /// <summary>Definition indexes whose activation runs different logic from the definition.</summary>
     public IReadOnlySet<int> Drifted { get; set; } = new HashSet<int>();
 
@@ -171,7 +174,8 @@ internal sealed class FakeOrganization
             $"{{\"workflowid\":\"{WorkflowId(index):D}\",\"name\":\"Poliçe İptal Süreci {index}\",\"primaryentity\":\"new_policy\","
             + $"\"category\":{category},\"category@OData.Community.Display.V1.FormattedValue\":\"İş Akışı\","
             + $"\"type\":{(definition ? 1 : 2)},\"mode\":0,\"scope\":4,\"statecode\":1,\"runas\":1,"
-            + $"\"iscrmuiworkflow\":{(NonDesigner.Contains(index) ? "false" : "true")},\"versionnumber\":\"{1000 + index + VersionOffset}\",\"_ownerid_value\":\"{owner:D}\","
+            + $"\"iscrmuiworkflow\":{(NonDesigner.Contains(index) ? "false" : "true")},\"ismanaged\":{(Managed.Contains(index) ? "true" : "false")},"
+            + $"\"versionnumber\":\"{1000 + index + VersionOffset}\",\"_ownerid_value\":\"{owner:D}\","
             + $"\"_parentworkflowid_value\":{parent},\"_activeworkflowid_value\":{active}}}");
     }
 

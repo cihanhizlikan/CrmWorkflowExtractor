@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using System.Xml.Linq;
 using Crm.Bpmn;
 using Crm.Cli;
@@ -69,6 +70,33 @@ public sealed class MigrationPlanTests
         Assert.Contains("not in this run", graph, StringComparison.Ordinal);
         string csv = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "reports", "call-graph.csv")));
         Assert.Contains("entry point", csv, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Workflows that came with the product are not this company's to rebuild. The split is CRM's own
+    /// <c>ismanaged</c> flag — never a guess from the name, which would be a judgement the tool cannot make.
+    /// </summary>
+    [Fact]
+    public async Task Workflows_Supplied_With_The_Product_Are_Held_Apart_From_The_Work()
+    {
+        FakeCrmServer server = new FakeOrganization { WorkflowCount = 8, Managed = new HashSet<int> { 6 } }.Build();
+        using TemporaryOutput output = new();
+
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+
+        Assert.True(code == ExitCode.Success, console);
+        string supplied = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "clusters", "supplied-with-the-product.csv")));
+        Assert.Contains("Poliçe İptal Süreci 6", supplied, StringComparison.Ordinal);
+        Assert.DoesNotContain("Poliçe İptal Süreci 6", Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "clusters", "clusters.csv"))), StringComparison.Ordinal);
+
+        // It keeps its diagram and its row, marked, so nothing disappears silently.
+        Assert.Contains("5;Poliçe İptal Süreci 6;", Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "reports", "migration.csv"))), StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(runRoot, "bpmn", "workflow", "new-policy", "police-iptal-sureci-6.bpmn")));
+
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
+        Assert.All(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— ok", link.GetString(), StringComparison.Ordinal));
+        Assert.Contains(manifest.RootElement.GetProperty("countChain").EnumerateArray(),
+            link => link.GetString()!.Contains("supplied with the product", StringComparison.Ordinal));
     }
 
     [Fact]

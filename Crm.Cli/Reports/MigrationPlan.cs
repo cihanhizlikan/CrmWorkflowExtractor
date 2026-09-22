@@ -29,7 +29,7 @@ public static class MigrationPlan
         ExcelCsv csv = new("priority", "workflow_name", "bpmn_file", "category", "mode", "state", "primary_entity", "trigger",
             "steps", "unmapped_steps", "custom_activities", "calls", "called_by", "role",
             "family", "family_size", "family_role", "combined_file", "last_logged_run", "usage_verdict",
-            "name_suggests_test", "has_sensitive_literals", "shared_fields_written", "starts_other_workflows", "entities_written", "fields_written");
+            "name_suggests_test", "supplied_with_product", "has_sensitive_literals", "shared_fields_written", "starts_other_workflows", "entities_written", "fields_written");
         foreach (WorkflowIr document in documents.OrderBy(Priority).ThenBy(document => document.Identity.Name, StringComparer.Ordinal))
         {
             WorkflowIdentity identity = document.Identity;
@@ -57,6 +57,7 @@ public static class MigrationPlan
                 found?.LastLoggedRun is DateTimeOffset last ? last.UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "",
                 UsageStage.Verdict(identity, usage),
                 UsageStage.NameSuggestsTest(identity.Name),
+                identity.IsManaged == true,
                 state.SensitiveWorkflows.Contains(identity.WorkflowId),
                 sharedFields.GetValueOrDefault(identity.WorkflowId),
                 starts.GetValueOrDefault(identity.WorkflowId),
@@ -72,6 +73,10 @@ public static class MigrationPlan
     /// </summary>
     private static int Priority(WorkflowIr document)
     {
+        if (document.Identity.IsManaged == true)
+        {
+            return 5;
+        }
         if (document.Identity.State == UsageStage.DraftState)
         {
             return 4;
@@ -90,7 +95,7 @@ public static class MigrationPlan
         text.AppendLine("# Migration worksheet").AppendLine();
         text.AppendLine("`migration.csv` has one row per workflow. Open it in Excel and sort or filter; every fact is a column, so the sheet answers whatever question comes up rather than fixing one order.").AppendLine();
         text.AppendLine("| Column | What it is for |").AppendLine("|---|---|");
-        text.AppendLine("| `priority` | 1 live process · 2 dialog, rule or process flow · 3 name reads like a test · 4 Draft, cannot run |");
+        text.AppendLine("| `priority` | 1 live process · 2 dialog, rule or process flow · 3 name reads like a test · 4 Draft, cannot run · 5 supplied with the product |");
         text.AppendLine("| `bpmn_file` | the diagram, under `bpmn/<category>/<entity>/` |");
         text.AppendLine("| `trigger` | what starts it: create, update of named fields, delete, on demand |");
         text.AppendLine("| `steps` / `unmapped_steps` | size, and how much of it the parser could not read (check those by hand) |");
@@ -98,6 +103,7 @@ public static class MigrationPlan
         text.AppendLine("| `calls` / `called_by` / `role` | the call graph: an entry point is migrated whole, a building block is shared |");
         text.AppendLine("| `family` / `family_role` / `combined_file` | near-duplicates, and the combined model of the family |");
         text.AppendLine("| `last_logged_run` / `usage_verdict` | evidence of use. Absence never proves non-use |");
+        text.AppendLine("| `supplied_with_product` | CRM reports it as part of a managed solution: shipped with the product, not written here. Not grouped, not yours to rebuild |");
         text.AppendLine("| `has_sensitive_literals` | its XAML holds a URL, user name or secret; see the restricted report |");
         text.AppendLine("| `shared_fields_written` | fields it writes that another workflow writes too — see `data-footprint.md` |");
         text.AppendLine("| `starts_other_workflows` | workflows its writes set off, without any explicit call — see `data-cascades.csv` |");
@@ -106,7 +112,7 @@ public static class MigrationPlan
 
         int live = documents.Count(document => Priority(document) == 1);
         int blocks = calls.CalledBy.Count(entry => entry.Value.Count > 0);
-        text.AppendLine(CultureInfo.InvariantCulture, $"**{documents.Count} workflows.** {live} are live processes (priority 1); {documents.Count(document => Priority(document) == 4)} are Draft and cannot run. {blocks} are called by another workflow, so they are building blocks rather than separate work.").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"**{documents.Count} workflows.** {live} are live processes (priority 1); {documents.Count(document => Priority(document) == 4)} are Draft and cannot run; {documents.Count(document => Priority(document) == 5)} came with the product and are listed in `clusters/supplied-with-the-product.csv`. {blocks} are called by another workflow, so they are building blocks rather than separate work.").AppendLine();
         int families = similarity?.Clusters.Count(cluster => cluster.Members.Count > 1) ?? 0;
         int inFamilies = similarity?.Clusters.Where(cluster => cluster.Members.Count > 1).Sum(cluster => cluster.Members.Count) ?? 0;
         text.AppendLine(CultureInfo.InvariantCulture, $"{inFamilies} workflows fall into {families} families of near-duplicates. Start from each family's starting point and treat the rest as variations, not as separate builds.").AppendLine();

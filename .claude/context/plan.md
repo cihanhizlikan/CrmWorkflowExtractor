@@ -385,3 +385,20 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   `StageComposite`, `EntityComposite`, `PageComposite`, `SetNextStage`. Most are Microsoft's out-of-the-box
   samples; about 9 are the company's own. Maintainer's call.
 - **Left open:** 9 `If` elements in 5 workflows that do more than load a related record.
+
+### Workflows supplied with the product (2026-09-23) — committed
+- **Maintainer:** weed out the Microsoft examples the company does not use.
+- **Signal — CRM's own, not a guess:** `ismanaged`. A workflow in a managed solution was shipped with the product
+  or a partner solution; one written here is unmanaged. Names are never used for this: "Opportunity to Invoice
+  (B2B)" only *looks* like Microsoft's, and a company workflow could carry any name.
+- **Built:** managed definitions are held apart from grouping and combining, listed in
+  `clusters/supplied-with-the-product.csv`, marked `supplied_with_product` in `migration.csv` and sorted into
+  priority band 5. They keep their IR and BPMN, so nothing disappears silently, and the count chain accounts for
+  them: clustered + drafts held apart + supplied.
+- **Acceptance — Do:** reprocess and open `clusters/supplied-with-the-product.csv`. **Pass:** the out-of-the-box
+  BPFs ("Opportunity to Invoice (B2B)", "Phone Sales Campaign", "Collaborative selling", "In store Excellence",
+  "Marketing List Builder", "Multichannel Sales Campaign", "Service Appointment Scheduling", "Service Case
+  Upsell", "Upsell after service interaction", "Contact to Order (B2C)", "Email Sales Campaign", "Guided Service
+  Case") appear there, and the company's own Turkish-named flows do NOT. **Capture:** the row count and whether
+  that holds. **If the file is empty**, this server keeps those processes unmanaged and the flag cannot do the
+  job — then ask the CRM team which solution they belong to.

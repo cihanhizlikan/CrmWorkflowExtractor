@@ -21,12 +21,14 @@ public static class OfflineStages
         await BpmnStage.RunAsync(folder, state, documents, logger, token);
         await UsageStage.WriteReportAsync(folder, state, documents, usage, token);
 
-        // A Draft definition cannot start a run, so it is not grouped or combined with running logic. It keeps its IR
-        // and BPMN and is listed on its own. The split is by state, never by name.
-        List<WorkflowIr> runnable = [.. documents.Where(document => document.Identity.State != UsageStage.DraftState)];
-        List<WorkflowIr> drafts = [.. documents.Where(document => document.Identity.State == UsageStage.DraftState)];
+        // Two kinds of workflow are not this company's to rebuild, and neither is grouped or combined: a Draft, which
+        // cannot start a run, and one CRM reports as part of a managed solution, which was shipped with the product.
+        // Both keep their IR and BPMN and are listed on their own. The split is by what CRM says, never by name.
+        List<WorkflowIr> supplied = [.. documents.Where(document => document.Identity.IsManaged == true)];
+        List<WorkflowIr> drafts = [.. documents.Where(document => document.Identity.IsManaged != true && document.Identity.State == UsageStage.DraftState)];
+        List<WorkflowIr> runnable = [.. documents.Where(document => document.Identity.IsManaged != true && document.Identity.State != UsageStage.DraftState)];
         SimilarityOptions similarity = settings.Similarity?.Value ?? new SimilarityOptions();
-        SimilarityResult families = await SimilarityStage.RunAsync(folder, state, runnable, drafts, usage, similarity, logger, token);
+        SimilarityResult families = await SimilarityStage.RunAsync(folder, state, runnable, drafts, supplied, usage, similarity, logger, token);
         await ConsolidationStage.RunAsync(folder, state, runnable, families, logger, token);
 
         // Last, because it gathers what every stage before it learned into the one sheet the analysts work from.

@@ -152,7 +152,10 @@ public static class IrStage
             Text(record, "createdon"),
             Text(record, "modifiedon"),
             record.TryGetProperty("versionnumber", out JsonElement version) && long.TryParse(version.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long number) ? number : null,
-            Bool(record, "iscrmuiworkflow"));
+            Bool(record, "iscrmuiworkflow"))
+        {
+            IsManaged = Bool(record, "ismanaged")
+        };
     }
 
     private static WorkflowTrigger Trigger(JsonElement record)
