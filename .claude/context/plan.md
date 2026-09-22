@@ -201,3 +201,18 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   one; (B) OAuth through AD FS, which needs AD FS registration and a token request — a POST to AD FS, which the
   read-only ban currently forbids everywhere; (C) read the workflow definitions from the CRM database's filtered
   views with a read-only database account instead of the Web API — outside the handout's design.
+
+### Looking for an internal address (2026-09-22)
+- Organization unique name **`AHECRM`**, organization id `48c22744-77c6-e411-80ce-005056b34efe`; discovery at
+  `ahecrmdisco.anadoluhayat.com.tr` (the standard IFD host naming, alongside `ahecrmadfs.`).
+- `ahecrm.anadoluhayat.com.tr` → `10.10.32.170`; reverse DNS → `form2crmsvc.anadoluhayat.com.tr`. That name serves a
+  separate WCF application (`FormService.svc`), not CRM: `/AHECRM/api/…` and `/api/…` return 404 on both http and
+  https. The address is shared (host-header routing or a load balancer). The CRM server's computer name must come
+  from the server team — DNS cannot give it.
+
+**Out-of-scope findings (for the security team, recorded, not acted on):**
+- `https://form2crmsvc.anadoluhayat.com.tr/` has **IIS directory browsing enabled** and lists `bin/`, `Web.config`,
+  `Global.asax`, `FormService.svc`. Web.config is normally blocked from download, but listing it at all is a finding;
+  it was not opened.
+- `FormService.svc` ("form to CRM service") looks like an integration that writes into CRM from outside — business
+  logic that no workflow XAML will show, like North52.
