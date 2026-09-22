@@ -188,3 +188,16 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Do:** (1) note whether the browser asked for a password; (2) re-run and read the account named in the failure;
   (3) if the account is the authorized one, set `Crm:AuthenticationScheme` to `Ntlm` and re-run.
 - **Capture:** the three answers and the console output.
+
+### The deployment is IFD / claims-based through AD FS (2026-09-22)
+- **Observed:** browsing to `https://ahecrm.anadoluhayat.com.tr` sends the user to
+  `https://ahecrmadfs.anadoluhayat.com.tr/adfs/ls/`; after that sign-in the browser's session cookie opens the Web API.
+  Windows authentication straight to the API was refused for `ANADOLUHAYAT\KMM2456` (explicit, NTLM) and for the
+  Windows login (Negotiate), in the tool and in the browser's own prompt.
+- **Consequence:** handout §2.2 applies — stop and report; no OAuth path improvised. The tool's IFD detector did NOT
+  fire, because the Web API answers with a Windows `Negotiate, NTLM` challenge rather than an AD FS redirect or a
+  Bearer challenge. The earlier "on-premises, not IFD" conclusion (drawn from that challenge) was wrong.
+- **Decision needed (maintainer):** (A) an internal Windows-authentication address, if the configuration team has
+  one; (B) OAuth through AD FS, which needs AD FS registration and a token request — a POST to AD FS, which the
+  read-only ban currently forbids everywhere; (C) read the workflow definitions from the CRM database's filtered
+  views with a read-only database account instead of the Web API — outside the handout's design.
