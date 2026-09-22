@@ -29,6 +29,9 @@ internal sealed partial class ExpressionIndex
 
     public Dictionary<string, LogicalCombination> Logicals { get; } = new(StringComparer.Ordinal);
 
+    /// <summary><c>ConvertCrmXrmTypes</c> result variable → the variable it converts: the same value in another type.</summary>
+    private readonly Dictionary<string, string> _conversions = new(StringComparer.Ordinal);
+
     public static ExpressionIndex Build(XElement root)
     {
         ExpressionIndex index = new();
@@ -57,7 +60,12 @@ internal sealed partial class ExpressionIndex
             {
                 index.AddLogical(element);
             }
+            else if (type == "ConvertCrmXrmTypes")
+            {
+                index.AddConversion(element);
+            }
         }
+        index.ResolveConversions();
         return index;
     }
 
@@ -133,6 +141,38 @@ internal sealed partial class ExpressionIndex
             return;
         }
         Literals[result] = [Dynamic];
+    }
+
+    private void AddConversion(XElement element)
+    {
+        string? result = VariableOf(ArgumentText(element, "Result"));
+        string? source = VariableOf(ArgumentText(element, "Value"));
+        if (result is not null && source is not null)
+        {
+            _conversions[result] = source;
+        }
+    }
+
+    /// <summary>A converted variable holds what its source holds. Chains of conversions are followed; a cycle stops.</summary>
+    private void ResolveConversions()
+    {
+        foreach ((string result, string source) in _conversions)
+        {
+            string current = source;
+            HashSet<string> seen = new(StringComparer.Ordinal) { result };
+            while (seen.Add(current) && _conversions.TryGetValue(current, out string? next))
+            {
+                current = next;
+            }
+            if (Literals.TryGetValue(current, out IReadOnlyList<string>? values))
+            {
+                Literals.TryAdd(result, values);
+            }
+            if (Reads.TryGetValue(current, out AttributeRead? read))
+            {
+                Reads.TryAdd(result, read);
+            }
+        }
     }
 
     private void AddComparison(XElement element)

@@ -14,6 +14,7 @@ literals replaced) and keep this note accurate about which files are which.
 | `child-and-custom.xaml` | child workflow call, partner custom activity with a hardcoded URL and password argument |
 | `wait-timeout.xaml` | wait condition with a timeout |
 | `unknown-construct.xaml` | a Microsoft activity and an element the parser does not know |
+| `production-helpers.xaml` | the helper constructs the first production run reported as unmapped (`ConvertCrmXrmTypes`, `OptionSetValue`, `XrmTimeSpan`, `If`+`RetrieveEntity`, element-form `Postpone`). The construct **names** and where they sit come from that run's coverage report; the markup around them is still written from the documented shape |
 
 Not covered yet, because their XAML shape could not be written credibly without a sample: Business Process Flow,
 Dialog, business rule.

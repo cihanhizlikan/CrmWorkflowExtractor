@@ -107,7 +107,44 @@ public sealed class XamlWorkflowParserTests
         Assert.Contains(result.Warnings, warning => warning.Message.Contains("Mystery", StringComparison.Ordinal));
     }
 
+    /// <summary>The helper constructs the first production run reported as unmapped in 595 workflows (2026-09-22).</summary>
+    [Fact]
+    public void Type_Conversions_Typed_Literals_And_Related_Record_Loads_Are_Support_Not_Steps()
+    {
+        ParseResult result = new XamlWorkflowParser(OptionLabels.Empty).Parse(Id, Fixture("production-helpers.xaml"));
+
+        Assert.DoesNotContain(result.Coverage, observation => observation.Status == CoverageStatus.Unmapped);
+        Assert.Equal([StepKind.UpdateRecord, StepKind.CreateRecord, StepKind.Sequence, StepKind.ChangeStatus], result.Steps.Select(step => step.Kind));
+        Assert.Equal(StepKind.Timeout, Assert.Single(result.Steps[2].Branches[0].Steps).Kind);
+        Assert.Contains("WaitStep3_1", result.Steps[2].Branches[0].Steps[0].Detail, StringComparison.Ordinal);
+        Assert.Contains("systemuser", result.DataTouched.EntitiesRead);
+    }
+
+    [Fact]
+    public void A_Value_Passed_Through_A_Type_Conversion_Keeps_Its_Literal()
+    {
+        ParseResult result = new XamlWorkflowParser(OptionLabels.Empty).Parse(Id, Fixture("production-helpers.xaml"));
+
+        FieldWrite status = Assert.Single(result.Steps[0].Fields);
+        Assert.Equal("new_status", status.Field);
+        Assert.Equal("100000007", Assert.Single(status.Values).Raw);
+    }
+
+    [Fact]
+    public void An_If_That_Does_More_Than_Load_A_Related_Record_Stays_Unmapped()
+    {
+        string xaml = Fixture("production-helpers.xaml").Replace(
+            "<mxswa:RetrieveEntity ",
+            "<mxswa:UpdateEntity DisplayName=\"Hidden\" Entity=\"[x]\" EntityName=\"new_policy\" /><mxswa:RetrieveEntity ",
+            StringComparison.Ordinal);
+
+        ParseResult result = new XamlWorkflowParser(OptionLabels.Empty).Parse(Id, xaml);
+
+        Assert.Contains(result.Coverage, observation => observation.Construct == "If" && observation.Status == CoverageStatus.Unmapped);
+    }
+
     [Theory]
+    [InlineData("production-helpers.xaml")]
     [InlineData("condition-update-stop.xaml")]
     [InlineData("child-and-custom.xaml")]
     [InlineData("wait-timeout.xaml")]

@@ -38,6 +38,14 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
             steps = ParseSequence(workflow.Elements(), "", context);
         }
 
+        foreach (string entity in (workflow ?? root).Descendants()
+            .Where(element => element.Name.LocalName == "RetrieveEntity")
+            .Select(element => element.Attribute("EntityName")?.Value)
+            .OfType<string>())
+        {
+            context.EntitiesRead.Add(entity);
+        }
+
         List<CoverageObservation> coverage = [];
         List<XamlLiteral> literals = [];
         foreach (XElement element in (workflow ?? root).DescendantsAndSelf())
@@ -71,7 +79,7 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
         {
             return new CoverageObservation(construct, kind == StepKind.Unmapped ? CoverageStatus.Unmapped : CoverageStatus.Mapped, path);
         }
-        if (XamlNames.IsPropertyElement(element) || XamlNames.Support.Contains(construct)
+        if (XamlNames.IsPropertyElement(element) || XamlNames.Support.Contains(construct) || IsRelatedRecordLoad(element)
             || element.Name.LocalName is "Sequence" && context.InsideStep(element))
         {
             return new CoverageObservation(construct, CoverageStatus.Support, path);
@@ -108,11 +116,16 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
         {
             return ParseStepSequence(element, path, context);
         }
+        if (element.Name.LocalName == "Postpone")
+        {
+            // The element form, as the production server writes it; the fixtures' ActivityReference form is above.
+            return context.Node(element, path, StepKind.Timeout, XamlNames.DisplayName(element), null, [], [], TimeoutDetail(element), [], "Postpone");
+        }
         if (XamlNames.StepEvidence.Contains(element.Name.LocalName) || XamlNames.IsCustomActivityElement(element))
         {
             return FromEvidence(element, element, path, context);
         }
-        if (XamlNames.IsPropertyElement(element) || XamlNames.Support.Contains(element.Name.LocalName))
+        if (XamlNames.IsPropertyElement(element) || XamlNames.Support.Contains(element.Name.LocalName) || IsRelatedRecordLoad(element))
         {
             return null;
         }
@@ -133,7 +146,7 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
             "Composite" => context.Node(element, path, StepKind.Sequence, XamlNames.DisplayName(element), null, [], [], null, [], type)
                 with
             { Branches = [new Branch("", null, ParseSequence(Activities(element), path, context), [])] },
-            "EvaluateCondition" or "EvaluateLogicalCondition" or "EvaluateExpression" => null,
+            "EvaluateCondition" or "EvaluateLogicalCondition" or "EvaluateExpression" or "ConvertCrmXrmTypes" => null,
             _ => context.Unmapped(element, path, type)
         };
     }
@@ -181,7 +194,7 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
             "CreateEntity" => StepKind.CreateRecord,
             "AssignEntity" => StepKind.AssignRecord,
             "SetState" => StepKind.ChangeStatus,
-            "SendEmail" => StepKind.SendEmail,
+            "SendEmail" or "SendEmailFromTemplate" => StepKind.SendEmail,
             "StartChildWorkflow" => StepKind.StartChildWorkflow,
             _ => StepKind.StopWorkflow
         };
@@ -214,7 +227,7 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
             {
                 AddBranches(child, path, branches, context);
             }
-            else if (aqn is not null && XamlNames.ShortTypeName(aqn) == "Postpone")
+            else if ((aqn is not null && XamlNames.ShortTypeName(aqn) == "Postpone") || (aqn is null && child.Name.LocalName == "Postpone"))
             {
                 string branchPath = string.Create(CultureInfo.InvariantCulture, $"{path}/{branches.Count}");
                 StepNode timeout = context.Node(child, branchPath + "/0", StepKind.Timeout, XamlNames.DisplayName(child), null, [], [], TimeoutDetail(child), [], "Postpone");
@@ -265,7 +278,8 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
             {
                 continue;
             }
-            string? variable = set.Descendants()
+            // Value="[UpdateStep1_2]" (attribute form) or <SetEntityProperty.Value>…ExpressionText="UpdateStep1_2"… (element form).
+            string? variable = ExpressionIndex.VariableOf(set.Attribute("Value")?.Value) ?? set.Descendants()
                 .Select(value => value.Attribute("ExpressionText")?.Value ?? (value.HasElements ? null : value.Value))
                 .Select(ExpressionIndex.VariableOf)
                 .FirstOrDefault(name => name is not null);
@@ -355,8 +369,25 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
 
     private static string? TimeoutDetail(XElement postpone)
     {
-        string? until = ArgumentText(postpone, "PostponeUntil");
+        string? until = ArgumentText(postpone, "PostponeUntil")
+            ?? postpone.Attribute("PostponeUntil")?.Value
+            ?? postpone.Elements().FirstOrDefault(child => child.Name.LocalName == "Postpone.PostponeUntil")?.Value;
         return until is null ? null : until.Trim();
+    }
+
+    /// <summary>
+    /// <c>&lt;If&gt;</c> whose only work is <c>RetrieveEntity</c>: the designer loading a related record (the owner of the
+    /// case, say) so later steps can read its fields. Machinery, not a step. Any other <c>If</c> stays unmapped.
+    /// </summary>
+    private static bool IsRelatedRecordLoad(XElement element)
+    {
+        if (element.Name.LocalName != "If")
+        {
+            return false;
+        }
+        List<XElement> work = [.. element.Descendants().Where(descendant => !XamlNames.IsPropertyElement(descendant)
+            && !XamlNames.Support.Contains(XamlNames.ConstructName(descendant)))];
+        return work.Count == 0 && element.Descendants().Any(descendant => descendant.Name.LocalName == "RetrieveEntity");
     }
 
     private static string StepDisplayName(XElement element)

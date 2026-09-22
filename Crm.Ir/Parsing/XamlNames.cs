@@ -14,13 +14,17 @@ internal static partial class XamlNames
         "GetEntityProperty", "SetEntityProperty", "EvaluateCondition", "EvaluateLogicalCondition", "EvaluateExpression",
         "Assign", "Persist", "Variable", "Collection", "InArgument", "OutArgument", "InOutArgument", "ReferenceLiteral",
         "Literal", "VisualBasicValue", "VisualBasicReference", "Null", "String", "Boolean", "Int32", "Members", "Property",
-        "Composite", "ConditionBranch", "Workflow", "Activity", "Type", "Object"
+        "Composite", "ConditionBranch", "Workflow", "Activity", "Type", "Object",
+        // Seen on the production 8.2 server (2026-09-22): conversion between Xrm and CRM types, and typed literals.
+        "ConvertCrmXrmTypes", "OptionSetValue", "XrmTimeSpan",
+        // Loads a related record so later steps can read its fields; recorded as a read in DataTouched.
+        "RetrieveEntity"
     };
 
     /// <summary>Elements that are themselves the evidence of an out-of-the-box step.</summary>
     public static readonly HashSet<string> StepEvidence = new(StringComparer.Ordinal)
     {
-        "UpdateEntity", "CreateEntity", "AssignEntity", "SetState", "SendEmail", "StartChildWorkflow", "TerminateWorkflow"
+        "UpdateEntity", "CreateEntity", "AssignEntity", "SetState", "SendEmail", "StartChildWorkflow", "TerminateWorkflow", "SendEmailFromTemplate"
     };
 
     public static string DisplayName(XElement element)

@@ -259,3 +259,24 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   non-aggregate pages.
 - **Unverified:** whether the production server allows the aggregate (the 50 000-record aggregate limit is far
   above 3237). The maintainer can check by opening the URL in the signed-in browser.
+
+### First full run on production data (run 20260922-171100, tool 4d6aea4)
+- **Result:** completed, exit 0. Every link in the count chain balances. Output: 1437 IR · 1437 BPMN · 68 families of
+  2 or more · 52 combined (127 workflows) · 16 not combined · 0 drift · 211 drafts · 0 hand-authored. There are 148
+  sensitive-literal findings in 34 workflows (the security team has the file; only the count leaves the machine).
+- **Definitions by category:** Workflow 1137, Business Rule 142, Dialog 129, Business Process Flow 23, Action 6.
+- **Parse coverage:** 1046 workflows had an unmapped construct. Grouped by cause:
+  - **595 only helpers:** `ConvertCrmXrmTypes` (8353 occurrences), `OptionSetValue`, `XrmTimeSpan`. These are type
+    conversion and typed literals, not steps. Parser bug; **fixed**: they are support now, and a value passed
+    through a conversion keeps its literal.
+  - **About 293 Dialog / Business Rule / BPF:** `Interaction*`, `Step*`, `Stage*`, `Control`, `Set*`. These are
+    different designers with their own XAML vocabulary. **Not parsed yet (decision needed; see below).**
+  - **158 real workflow constructs:** `If`+`RetrieveEntity` (106, loading a related record: now support, with the
+    entity recorded as read), element-form `Postpone` (62, a wait: now a Timeout step), `SendEmailFromTemplate`
+    (2: now Send Email).
+  - Also: `SetEntityProperty` values in attribute form (`Value="[X]"`) are now read, not only the element form.
+- **Next evidence:** reprocess this run (`Run:ReprocessRunId = 20260922-171100`; no new export) and compare
+  parse-coverage.md. The constructs left over name the next fix.
+- **Decisions needed (maintainer):** (1) whether Dialogs (deprecated by Microsoft), Business Rules and BPFs are in
+  scope for BPMN, or should be listed only and kept out of grouping; (2) whether DRAFT_/TEST/DEBUG workflows (211
+  drafts) are kept out of grouping. Several of the largest families have a draft as their medoid.
