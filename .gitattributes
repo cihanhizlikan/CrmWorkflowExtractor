@@ -5,3 +5,5 @@ Crm.Tests/Fixtures/** -text
 # byte-identical on every checkout (a CRLF conversion would make the drift test fail on Windows clones).
 tools/crm-browser-export.js -text
 tools/crm-export.html -text
+tools/crm-usage-export.js -text
+tools/crm-usage.html -text

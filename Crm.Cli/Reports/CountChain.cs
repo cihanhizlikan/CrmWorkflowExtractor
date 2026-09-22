@@ -56,7 +56,8 @@ public static class CountChain
         }
         if (counts.ContainsKey("clusters.total"))
         {
-            links.Add(new CountLink("clusters", Get(counts, "ir.documents"), "ir documents", Get(counts, "clusters.members"), "workflows placed in a cluster"));
+            links.Add(new CountLink("clusters", Get(counts, "ir.documents"), "ir documents",
+                Get(counts, "clusters.members") + Get(counts, "clusters.draftsHeldApart"), "workflows placed in a cluster + drafts held apart"));
         }
         return links;
     }

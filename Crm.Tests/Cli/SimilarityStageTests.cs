@@ -22,7 +22,7 @@ public sealed class SimilarityStageTests
         byte[] bytes = File.ReadAllBytes(Path.Combine(runRoot, "clusters", "clusters.csv"));
         Assert.Equal(Encoding.UTF8.GetPreamble(), bytes[..3]);
         string[] lines = Encoding.UTF8.GetString(bytes[3..]).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
-        Assert.Equal("cluster_id;cluster_size;workflow_name;workflow_id;primary_entity;category;state;score_to_medoid;is_medoid;low_cohesion;decision", lines[0]);
+        Assert.Equal("cluster_id;cluster_size;workflow_name;workflow_id;primary_entity;category;state;score_to_medoid;is_medoid;low_cohesion;name_suggests_test;last_logged_run;decision", lines[0]);
         Assert.Equal(4, lines.Length - 1);
         Assert.All(lines.Skip(1), line => Assert.EndsWith(";", line, StringComparison.Ordinal));
         Assert.Contains(lines, line => line.Contains("Poliçe İptal Süreci 0", StringComparison.Ordinal));

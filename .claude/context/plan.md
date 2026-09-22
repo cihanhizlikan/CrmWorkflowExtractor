@@ -280,3 +280,17 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Decisions needed (maintainer):** (1) whether Dialogs (deprecated by Microsoft), Business Rules and BPFs are in
   scope for BPMN, or should be listed only and kept out of grouping; (2) whether DRAFT_/TEST/DEBUG workflows (211
   drafts) are kept out of grouping. Several of the largest families have a draft as their medoid.
+
+### Usage evidence and drafts (2026-09-23) — DECIDED
+- **Maintainer:** keep draft/test workflows apart only if there is a *guaranteed* way to know that they are unused.
+- **What is guaranteed:** a Draft definition cannot start new runs, and a logged run proves use. Nothing proves
+  non-use: System Jobs are deleted, real-time workflows log only failures, and business rules are never logged.
+- **Built:** Draft definitions (by `statecode`, never by name) are held apart from similarity grouping and
+  combining. They keep their IR and BPMN, are listed in `clusters/drafts.csv`, and have their own link in the
+  count chain. Activated workflows with test-like names stay in the grouping and are flagged.
+  `tools/crm-usage-export.js` (bookmarklet `tools/crm-usage.html`, GET only) records the last logged System Job of
+  each activation, the last dialog session of each dialog, and how far back the logs reach. `Run:UsageFile` makes it
+  run evidence (`raw/usage-export.json`, which a reprocessed run inherits), and it feeds `reports/usage.md` /
+  `usage.csv` and the `last_logged_run` column of `clusters.csv`.
+- **Unverified on production:** that the `asyncoperations` / `processsessions` filters answer in reasonable time on
+  a large System Job table.

@@ -25,6 +25,7 @@ public static class Program
     private const string RequireOrganizationReadPrivileges = "true";
     private const string ReprocessRunId = "";               // e.g. "20260915-101500": rebuild from that run's raw/, no network
     private const string ImportFile = "";                   // e.g. "D:/exports/crm-export-20260922-150000.json" (tools/crm-export.html)
+    private const string UsageFile = "";                    // e.g. "D:/exports/crm-usage-20260923-090000.json" (tools/crm-usage.html)
     // -----------------------------------------------------------------------------------------------------------
 
     public static async Task<int> Main()
@@ -96,7 +97,8 @@ public static class Program
             ["Output:Root"] = OutputRoot,
             ["Run:RequireOrganizationReadPrivileges"] = RequireOrganizationReadPrivileges,
             ["Run:ReprocessRunId"] = ReprocessRunId,
-            ["Run:ImportFile"] = ImportFile
+            ["Run:ImportFile"] = ImportFile,
+            ["Run:UsageFile"] = UsageFile
         };
     }
 }

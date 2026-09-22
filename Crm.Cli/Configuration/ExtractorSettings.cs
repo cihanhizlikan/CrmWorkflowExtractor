@@ -40,6 +40,12 @@ public sealed class RunOptions
     /// against the executable's folder.
     /// </summary>
     public string ImportFile { get; set; } = "";
+
+    /// <summary>
+    /// Path to a <c>crm-usage-*.json</c> file saved by <c>tools/crm-usage-export.js</c>: the last logged run of every
+    /// workflow. Optional; it becomes this run's evidence, and a reprocessed run inherits it from its source run.
+    /// </summary>
+    public string UsageFile { get; set; } = "";
 }
 
 /// <summary>The bound, validated configuration for one run.</summary>

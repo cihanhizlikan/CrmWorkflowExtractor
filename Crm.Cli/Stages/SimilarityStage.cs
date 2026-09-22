@@ -13,7 +13,8 @@ public static class SimilarityStage
     private const double RebuiltStructural = 0.95;
     private const double RebuiltLexical = 0.5;
 
-    public static async Task<SimilarityResult> RunAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, SimilarityOptions options, ILogger logger, CancellationToken token)
+    public static async Task<SimilarityResult> RunAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, IReadOnlyList<WorkflowIr> drafts,
+        UsageEvidence? usage, SimilarityOptions options, ILogger logger, CancellationToken token)
     {
         SimilarityResult result = new SimilarityEngine(options).Run(documents);
         Dictionary<Guid, string> names = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity.Name);
@@ -23,16 +24,26 @@ public static class SimilarityStage
         await folder.WriteJsonAsync("clusters/clusters.json", new { options, clusters = result.Clusters }, token);
 
         ExcelCsv clusters = new("cluster_id", "cluster_size", "workflow_name", "workflow_id", "primary_entity", "category", "state",
-            "score_to_medoid", "is_medoid", "low_cohesion", "decision");
+            "score_to_medoid", "is_medoid", "low_cohesion", "name_suggests_test", "last_logged_run", "decision");
         foreach (WorkflowCluster cluster in result.Clusters)
         {
             foreach (ClusterMember member in cluster.Members)
             {
                 clusters.Row(cluster.ClusterId, cluster.Members.Count, member.Name, member.WorkflowId, member.PrimaryEntity, member.Category, member.State,
-                    member.ScoreToMedoid, member.WorkflowId == cluster.Medoid, cluster.LowCohesion, "");
+                    member.ScoreToMedoid, member.WorkflowId == cluster.Medoid, cluster.LowCohesion, UsageStage.NameSuggestsTest(member.Name),
+                    LastLoggedRun(usage, member.WorkflowId), "");
             }
         }
         await folder.WriteBytesAsync("clusters/clusters.csv", clusters.ToBytes(), token);
+
+        ExcelCsv held = new("workflow_name", "workflow_id", "primary_entity", "category", "name_suggests_test", "modified_on");
+        foreach (WorkflowIr draft in drafts.OrderBy(draft => draft.Identity.Name, StringComparer.Ordinal))
+        {
+            held.Row(draft.Identity.Name, draft.Identity.WorkflowId, draft.Identity.PrimaryEntity, draft.Identity.Category,
+                UsageStage.NameSuggestsTest(draft.Identity.Name), draft.Identity.ModifiedOn);
+        }
+        await folder.WriteBytesAsync("clusters/drafts.csv", held.ToBytes(), token);
+        state.Counts["clusters.draftsHeldApart"] = drafts.Count;
 
         ExcelCsv pairs = new("left_id", "left_name", "right_id", "right_name", "combined", "structural", "lexical", "path_jaccard", "shingle_jaccard",
             "name_prefix", "token_jaccard", "jaro_winkler", "same_cluster", "rebuilt_under_other_name");
@@ -54,5 +65,12 @@ public static class SimilarityStage
         logger.LogInformation("Similarity: {Families} families of 2+, {Clusters} clusters in total, {Pairs} pairs above the floor",
             state.Counts["clusters.families"], result.Clusters.Count, result.Pairs.Count);
         return result;
+    }
+
+    private static string LastLoggedRun(UsageEvidence? usage, Guid workflowId)
+    {
+        return usage?.Workflows.GetValueOrDefault(workflowId)?.LastLoggedRun is DateTimeOffset last
+            ? last.UtcDateTime.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)
+            : "";
     }
 }

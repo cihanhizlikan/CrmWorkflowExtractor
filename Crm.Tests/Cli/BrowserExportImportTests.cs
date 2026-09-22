@@ -108,18 +108,20 @@ public sealed partial class BrowserExportImportTests
     }
 
     /// <summary>The bookmarklet page embeds the script. If someone edits the script and forgets to regenerate the page, the button runs old code.</summary>
-    [Fact]
-    public void The_Bookmarklet_Page_Was_Generated_From_The_Current_Script()
+    [Theory]
+    [InlineData("crm-browser-export.js", "crm-export.html")]
+    [InlineData("crm-usage-export.js", "crm-usage.html")]
+    public void The_Bookmarklet_Page_Was_Generated_From_The_Current_Script(string script, string pageName)
     {
         string tools = Path.Combine(RepositoryTree.Root().FullName, "tools");
-        string scriptHash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(tools, "crm-browser-export.js"))));
-        string page = File.ReadAllText(Path.Combine(tools, "crm-export.html"));
+        string scriptHash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(tools, script))));
+        string page = File.ReadAllText(Path.Combine(tools, pageName));
 
         Match embedded = EmbeddedHash().Match(page);
 
-        Assert.True(embedded.Success, "crm-export.html has no data-script-sha256.");
+        Assert.True(embedded.Success, $"{pageName} has no data-script-sha256.");
         Assert.True(embedded.Groups[1].Value == scriptHash,
-            "tools/crm-export.html is stale — run: node tools/build-export-page.js");
+            $"tools/{pageName} is stale — run: node tools/build-export-page.js");
     }
 
     private static string BrowserExportEvidence()
