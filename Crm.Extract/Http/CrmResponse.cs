@@ -43,10 +43,13 @@ public sealed class CrmRequestException(CrmResponse response)
     }
 }
 
-/// <summary>Windows authentication was rejected by an on-premises server: wrong account, domain or password.</summary>
-public sealed class CrmAuthenticationException(CrmResponse response)
+/// <summary>Windows authentication was rejected by an on-premises server: wrong account, domain, password — or a Kerberos fault.</summary>
+public sealed class CrmAuthenticationException(CrmResponse response, string credentials)
     : Exception($"GET {response.RequestUri} was refused ({(int)response.StatusCode}); the server offers Windows authentication "
-        + $"({string.Join(", ", response.WwwAuthenticate)}) and did not accept the configured credentials.")
+        + $"({string.Join(", ", response.WwwAuthenticate)}) and did not accept {credentials}. "
+        + "If a browser on this machine opens the same URL without asking for a password, retry with "
+        + "Crm:AuthenticationScheme = Ntlm (Kerberos misconfigured for this host name). If the browser asked for a "
+        + "user name and password, this account is not the one CRM authorized: use Crm:Authentication = Explicit.")
 {
     public CrmResponse Response { get; } = response;
 }

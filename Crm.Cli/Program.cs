@@ -14,6 +14,7 @@ public static class Program
     // leave unset. Edit these when even editing a config file on the target host is awkward. NEVER put a password here.
     private const string WebApiBaseUrl = "";                // e.g. "https://crm.example.local/OrgName/api/data/v8.2/"
     private const string Authentication = "Default";        // "Default" (run as service account) or "Explicit"
+    private const string AuthenticationScheme = "Negotiate"; // "Negotiate" or "Ntlm" (when Kerberos is broken for the host)
     private const string UserName = "";
     private const string Domain = "";
     private const string CredentialTarget = "CrmWorkflowExtractor";
@@ -84,6 +85,7 @@ public static class Program
         {
             ["Crm:WebApiBaseUrl"] = WebApiBaseUrl,
             ["Crm:Authentication"] = Authentication,
+            ["Crm:AuthenticationScheme"] = AuthenticationScheme,
             ["Crm:UserName"] = UserName,
             ["Crm:Domain"] = Domain,
             ["Crm:CredentialTarget"] = CredentialTarget,

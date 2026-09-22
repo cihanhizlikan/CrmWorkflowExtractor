@@ -177,3 +177,14 @@ The service document is kept in `reference/crm-service-document-2026-09-22.json`
 organization segment, which may mean an internet-facing (IFD) deployment — open question, settle before the first
 run. BPFs (14) and the North52 rules engine are in use; the latter's logic is invisible in workflow XAML
 (wanted-but-uncertain: whether to inventory `north52_formulas` alongside workflows).
+
+### Authentication on the first real run (2026-09-22)
+- **Observed:** `WhoAmI()` → 401 with `WWW-Authenticate: Negotiate, NTLM`. So the deployment is **on-premises Windows
+  authentication, not IFD** (answers the open question above). The browser on the same machine opened the Web API
+  root; the tool, in Default mode, was refused.
+- **Built (diagnostic, not a fix):** the refusal now names the Windows account and scheme used, and
+  `Crm:AuthenticationScheme = Ntlm` binds the same account to NTLM only — the standard workaround when Kerberos is
+  misconfigured for the host name. **Cause not yet known.**
+- **Do:** (1) note whether the browser asked for a password; (2) re-run and read the account named in the failure;
+  (3) if the account is the authorized one, set `Crm:AuthenticationScheme` to `Ntlm` and re-run.
+- **Capture:** the three answers and the console output.

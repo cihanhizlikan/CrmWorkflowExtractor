@@ -10,6 +10,17 @@ public enum CrmAuthenticationMode
     Explicit
 }
 
+/// <summary>
+/// Which Windows authentication protocol to offer. <see cref="Negotiate"/> lets Windows pick Kerberos and fall back
+/// to NTLM; <see cref="Ntlm"/> skips Kerberos entirely — the standard workaround when Kerberos is misconfigured for
+/// the host name (a missing or wrong SPN), which typically shows as "the browser gets in, the application gets 401".
+/// </summary>
+public enum CrmAuthenticationScheme
+{
+    Negotiate,
+    Ntlm
+}
+
 /// <summary>Connection settings bound from the <c>Crm</c> configuration section.</summary>
 public sealed class CrmConnectionOptions
 {
@@ -20,6 +31,17 @@ public sealed class CrmConnectionOptions
     public string WebApiBaseUrl { get; set; } = "";
 
     public CrmAuthenticationMode Authentication { get; set; } = CrmAuthenticationMode.Default;
+
+    public CrmAuthenticationScheme AuthenticationScheme { get; set; } = CrmAuthenticationScheme.Negotiate;
+
+    /// <summary>Who the server will be asked to accept, in words — for logs and for the failure message when it refuses.</summary>
+    public string DescribeCredentials()
+    {
+        string account = Authentication == CrmAuthenticationMode.Default
+            ? $"the Windows account running this process, {Environment.UserDomainName}\\{Environment.UserName} (Crm:Authentication = Default)"
+            : $"{Domain}\\{UserName} from configuration (Crm:Authentication = Explicit)";
+        return $"{account}, scheme {AuthenticationScheme}";
+    }
 
     public string UserName { get; set; } = "";
 

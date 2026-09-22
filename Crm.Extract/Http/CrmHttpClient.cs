@@ -21,12 +21,14 @@ public sealed class CrmHttpClient : IDisposable
     private readonly Uri _baseUri;
     private readonly RetryPolicy _retry;
     private readonly ILogger _logger;
+    private readonly string _credentials;
 
     internal CrmHttpClient(CrmConnectionOptions options, HttpMessageHandler handler, RetryPolicy retry, ILogger logger)
     {
         _baseUri = options.WebApiBaseUri();
         _retry = retry;
         _logger = logger;
+        _credentials = options.DescribeCredentials();
 #pragma warning disable RS0030 // The one sanctioned HttpClient in the application; see the type's summary.
         _http = new HttpClient(handler, disposeHandler: true)
 #pragma warning restore RS0030
@@ -55,15 +57,33 @@ public sealed class CrmHttpClient : IDisposable
             PreAuthenticate = true,
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
         };
+        ConfigureCredentials(handler, options, password);
+        logger.LogInformation("Authenticating to {Root} as {Credentials}", options.WebApiBaseUri(), options.DescribeCredentials());
+        return new CrmHttpClient(options, handler, RetryPolicy.Standard(options.MaxAttempts, logger), logger);
+    }
+
+    /// <summary>
+    /// Negotiate: the handler's own default behaviour (Kerberos, falling back to NTLM). NTLM: the same account, bound
+    /// to the NTLM scheme only for this server, so a broken Kerberos setup cannot get in the way.
+    /// </summary>
+    internal static void ConfigureCredentials(HttpClientHandler handler, CrmConnectionOptions options, string? password)
+    {
+        NetworkCredential account = options.Authentication == CrmAuthenticationMode.Default
+            ? CredentialCache.DefaultNetworkCredentials
+            : new NetworkCredential(options.UserName, password, options.Domain);
+        if (options.AuthenticationScheme == CrmAuthenticationScheme.Ntlm)
+        {
+            Uri origin = new(options.WebApiBaseUri().GetLeftPart(UriPartial.Authority));
+            handler.UseDefaultCredentials = false;
+            handler.Credentials = new CredentialCache { { origin, "NTLM", account } };
+            return;
+        }
         if (options.Authentication == CrmAuthenticationMode.Default)
         {
             handler.UseDefaultCredentials = true;
+            return;
         }
-        else
-        {
-            handler.Credentials = new NetworkCredential(options.UserName, password, options.Domain);
-        }
-        return new CrmHttpClient(options, handler, RetryPolicy.Standard(options.MaxAttempts, logger), logger);
+        handler.Credentials = account;
     }
 
     /// <summary>
@@ -88,7 +108,7 @@ public sealed class CrmHttpClient : IDisposable
         }
         if (response.StatusCode == HttpStatusCode.Unauthorized && kind == CrmDeploymentKind.OnPremises)
         {
-            throw new CrmAuthenticationException(response);
+            throw new CrmAuthenticationException(response, _credentials);
         }
         if ((int)response.StatusCode is >= 300 and <= 399)
         {
