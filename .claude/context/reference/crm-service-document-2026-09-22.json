@@ -1,0 +1,2350 @@
+{
+  "@odata.context": "https://ahecrm.anadoluhayat.com.tr/api/data/v8.2/$metadata",
+  "value": [
+    {
+      "name": "accountleadscollection",
+      "kind": "EntitySet",
+      "url": "accountleadscollection"
+    },
+    {
+      "name": "accounts",
+      "kind": "EntitySet",
+      "url": "accounts"
+    },
+    {
+      "name": "actioncards",
+      "kind": "EntitySet",
+      "url": "actioncards"
+    },
+    {
+      "name": "actioncarduserstates",
+      "kind": "EntitySet",
+      "url": "actioncarduserstates"
+    },
+    {
+      "name": "activitymimeattachments",
+      "kind": "EntitySet",
+      "url": "activitymimeattachments"
+    },
+    {
+      "name": "activityparties",
+      "kind": "EntitySet",
+      "url": "activityparties"
+    },
+    {
+      "name": "activitypointers",
+      "kind": "EntitySet",
+      "url": "activitypointers"
+    },
+    {
+      "name": "annotations",
+      "kind": "EntitySet",
+      "url": "annotations"
+    },
+    {
+      "name": "annualfiscalcalendars",
+      "kind": "EntitySet",
+      "url": "annualfiscalcalendars"
+    },
+    {
+      "name": "appmodulerolescollection",
+      "kind": "EntitySet",
+      "url": "appmodulerolescollection"
+    },
+    {
+      "name": "appointments",
+      "kind": "EntitySet",
+      "url": "appointments"
+    },
+    {
+      "name": "asyncoperations",
+      "kind": "EntitySet",
+      "url": "asyncoperations"
+    },
+    {
+      "name": "attachments",
+      "kind": "EntitySet",
+      "url": "attachments"
+    },
+    {
+      "name": "bookableresourcebookingheaders",
+      "kind": "EntitySet",
+      "url": "bookableresourcebookingheaders"
+    },
+    {
+      "name": "bookableresourcebookings",
+      "kind": "EntitySet",
+      "url": "bookableresourcebookings"
+    },
+    {
+      "name": "bookableresourcecategories",
+      "kind": "EntitySet",
+      "url": "bookableresourcecategories"
+    },
+    {
+      "name": "bookableresourcecategoryassns",
+      "kind": "EntitySet",
+      "url": "bookableresourcecategoryassns"
+    },
+    {
+      "name": "bookableresourcecharacteristics",
+      "kind": "EntitySet",
+      "url": "bookableresourcecharacteristics"
+    },
+    {
+      "name": "bookableresourcegroups",
+      "kind": "EntitySet",
+      "url": "bookableresourcegroups"
+    },
+    {
+      "name": "bookableresources",
+      "kind": "EntitySet",
+      "url": "bookableresources"
+    },
+    {
+      "name": "bookingstatuses",
+      "kind": "EntitySet",
+      "url": "bookingstatuses"
+    },
+    {
+      "name": "bulkdeletefailures",
+      "kind": "EntitySet",
+      "url": "bulkdeletefailures"
+    },
+    {
+      "name": "bulkdeleteoperations",
+      "kind": "EntitySet",
+      "url": "bulkdeleteoperations"
+    },
+    {
+      "name": "bulkoperationlogs",
+      "kind": "EntitySet",
+      "url": "bulkoperationlogs"
+    },
+    {
+      "name": "bulkoperations",
+      "kind": "EntitySet",
+      "url": "bulkoperations"
+    },
+    {
+      "name": "businessunitnewsarticles",
+      "kind": "EntitySet",
+      "url": "businessunitnewsarticles"
+    },
+    {
+      "name": "businessunits",
+      "kind": "EntitySet",
+      "url": "businessunits"
+    },
+    {
+      "name": "calendarrules",
+      "kind": "EntitySet",
+      "url": "calendarrules"
+    },
+    {
+      "name": "calendars",
+      "kind": "EntitySet",
+      "url": "calendars"
+    },
+    {
+      "name": "campaignactivities",
+      "kind": "EntitySet",
+      "url": "campaignactivities"
+    },
+    {
+      "name": "campaignactivityitems",
+      "kind": "EntitySet",
+      "url": "campaignactivityitems"
+    },
+    {
+      "name": "campaignitems",
+      "kind": "EntitySet",
+      "url": "campaignitems"
+    },
+    {
+      "name": "campaignresponses",
+      "kind": "EntitySet",
+      "url": "campaignresponses"
+    },
+    {
+      "name": "campaigns",
+      "kind": "EntitySet",
+      "url": "campaigns"
+    },
+    {
+      "name": "categories",
+      "kind": "EntitySet",
+      "url": "categories"
+    },
+    {
+      "name": "channelaccessprofileentityaccesslevels",
+      "kind": "EntitySet",
+      "url": "channelaccessprofileentityaccesslevels"
+    },
+    {
+      "name": "characteristics",
+      "kind": "EntitySet",
+      "url": "characteristics"
+    },
+    {
+      "name": "competitoraddresses",
+      "kind": "EntitySet",
+      "url": "competitoraddresses"
+    },
+    {
+      "name": "competitorproducts",
+      "kind": "EntitySet",
+      "url": "competitorproducts"
+    },
+    {
+      "name": "competitors",
+      "kind": "EntitySet",
+      "url": "competitors"
+    },
+    {
+      "name": "competitorsalesliteratures",
+      "kind": "EntitySet",
+      "url": "competitorsalesliteratures"
+    },
+    {
+      "name": "complexcontrols",
+      "kind": "EntitySet",
+      "url": "complexcontrols"
+    },
+    {
+      "name": "connectionroleassociations",
+      "kind": "EntitySet",
+      "url": "connectionroleassociations"
+    },
+    {
+      "name": "connectionroles",
+      "kind": "EntitySet",
+      "url": "connectionroles"
+    },
+    {
+      "name": "connections",
+      "kind": "EntitySet",
+      "url": "connections"
+    },
+    {
+      "name": "constraintbasedgroups",
+      "kind": "EntitySet",
+      "url": "constraintbasedgroups"
+    },
+    {
+      "name": "contactinvoicescollection",
+      "kind": "EntitySet",
+      "url": "contactinvoicescollection"
+    },
+    {
+      "name": "contactleadscollection",
+      "kind": "EntitySet",
+      "url": "contactleadscollection"
+    },
+    {
+      "name": "contactorderscollection",
+      "kind": "EntitySet",
+      "url": "contactorderscollection"
+    },
+    {
+      "name": "contactquotescollection",
+      "kind": "EntitySet",
+      "url": "contactquotescollection"
+    },
+    {
+      "name": "contacts",
+      "kind": "EntitySet",
+      "url": "contacts"
+    },
+    {
+      "name": "contractdetails",
+      "kind": "EntitySet",
+      "url": "contractdetails"
+    },
+    {
+      "name": "contracts",
+      "kind": "EntitySet",
+      "url": "contracts"
+    },
+    {
+      "name": "contracttemplates",
+      "kind": "EntitySet",
+      "url": "contracttemplates"
+    },
+    {
+      "name": "customcontroldefaultconfigs",
+      "kind": "EntitySet",
+      "url": "customcontroldefaultconfigs"
+    },
+    {
+      "name": "customcontrolresources",
+      "kind": "EntitySet",
+      "url": "customcontrolresources"
+    },
+    {
+      "name": "customcontrols",
+      "kind": "EntitySet",
+      "url": "customcontrols"
+    },
+    {
+      "name": "customeraddresses",
+      "kind": "EntitySet",
+      "url": "customeraddresses"
+    },
+    {
+      "name": "dataperformances",
+      "kind": "EntitySet",
+      "url": "dataperformances"
+    },
+    {
+      "name": "dependencies",
+      "kind": "EntitySet",
+      "url": "dependencies"
+    },
+    {
+      "name": "discounts",
+      "kind": "EntitySet",
+      "url": "discounts"
+    },
+    {
+      "name": "discounttypes",
+      "kind": "EntitySet",
+      "url": "discounttypes"
+    },
+    {
+      "name": "documenttemplates",
+      "kind": "EntitySet",
+      "url": "documenttemplates"
+    },
+    {
+      "name": "duplicaterecords",
+      "kind": "EntitySet",
+      "url": "duplicaterecords"
+    },
+    {
+      "name": "duplicateruleconditions",
+      "kind": "EntitySet",
+      "url": "duplicateruleconditions"
+    },
+    {
+      "name": "duplicaterules",
+      "kind": "EntitySet",
+      "url": "duplicaterules"
+    },
+    {
+      "name": "dynamicproperties",
+      "kind": "EntitySet",
+      "url": "dynamicproperties"
+    },
+    {
+      "name": "dynamicpropertyassociations",
+      "kind": "EntitySet",
+      "url": "dynamicpropertyassociations"
+    },
+    {
+      "name": "dynamicpropertyinstances",
+      "kind": "EntitySet",
+      "url": "dynamicpropertyinstances"
+    },
+    {
+      "name": "dynamicpropertyoptionsetitems",
+      "kind": "EntitySet",
+      "url": "dynamicpropertyoptionsetitems"
+    },
+    {
+      "name": "emails",
+      "kind": "EntitySet",
+      "url": "emails"
+    },
+    {
+      "name": "emailserverprofiles",
+      "kind": "EntitySet",
+      "url": "emailserverprofiles"
+    },
+    {
+      "name": "entitlementchannels",
+      "kind": "EntitySet",
+      "url": "entitlementchannels"
+    },
+    {
+      "name": "entitlementcontactscollection",
+      "kind": "EntitySet",
+      "url": "entitlementcontactscollection"
+    },
+    {
+      "name": "entitlementproductscollection",
+      "kind": "EntitySet",
+      "url": "entitlementproductscollection"
+    },
+    {
+      "name": "entitlements",
+      "kind": "EntitySet",
+      "url": "entitlements"
+    },
+    {
+      "name": "entitlementtemplatechannels",
+      "kind": "EntitySet",
+      "url": "entitlementtemplatechannels"
+    },
+    {
+      "name": "entitlementtemplateproductscollection",
+      "kind": "EntitySet",
+      "url": "entitlementtemplateproductscollection"
+    },
+    {
+      "name": "entitlementtemplates",
+      "kind": "EntitySet",
+      "url": "entitlementtemplates"
+    },
+    {
+      "name": "equipments",
+      "kind": "EntitySet",
+      "url": "equipments"
+    },
+    {
+      "name": "exchangesyncidmappings",
+      "kind": "EntitySet",
+      "url": "exchangesyncidmappings"
+    },
+    {
+      "name": "expiredprocesses",
+      "kind": "EntitySet",
+      "url": "expiredprocesses"
+    },
+    {
+      "name": "faxes",
+      "kind": "EntitySet",
+      "url": "faxes"
+    },
+    {
+      "name": "feedback",
+      "kind": "EntitySet",
+      "url": "feedback"
+    },
+    {
+      "name": "fieldpermissions",
+      "kind": "EntitySet",
+      "url": "fieldpermissions"
+    },
+    {
+      "name": "fieldsecurityprofiles",
+      "kind": "EntitySet",
+      "url": "fieldsecurityprofiles"
+    },
+    {
+      "name": "fixedmonthlyfiscalcalendars",
+      "kind": "EntitySet",
+      "url": "fixedmonthlyfiscalcalendars"
+    },
+    {
+      "name": "goalrollupqueries",
+      "kind": "EntitySet",
+      "url": "goalrollupqueries"
+    },
+    {
+      "name": "goals",
+      "kind": "EntitySet",
+      "url": "goals"
+    },
+    {
+      "name": "gsc_formattributeses",
+      "kind": "EntitySet",
+      "url": "gsc_formattributeses"
+    },
+    {
+      "name": "gsc_formentities",
+      "kind": "EntitySet",
+      "url": "gsc_formentities"
+    },
+    {
+      "name": "gsc_formoptionsetmappings",
+      "kind": "EntitySet",
+      "url": "gsc_formoptionsetmappings"
+    },
+    {
+      "name": "gsc_formvalueses",
+      "kind": "EntitySet",
+      "url": "gsc_formvalueses"
+    },
+    {
+      "name": "gsc_formvaluesheaders",
+      "kind": "EntitySet",
+      "url": "gsc_formvaluesheaders"
+    },
+    {
+      "name": "gsc_gridparameters",
+      "kind": "EntitySet",
+      "url": "gsc_gridparameters"
+    },
+    {
+      "name": "gsc_namedefinitions",
+      "kind": "EntitySet",
+      "url": "gsc_namedefinitions"
+    },
+    {
+      "name": "gsc_passwordgeneratorformulas",
+      "kind": "EntitySet",
+      "url": "gsc_passwordgeneratorformulas"
+    },
+    {
+      "name": "gsc_passwordgenerators",
+      "kind": "EntitySet",
+      "url": "gsc_passwordgenerators"
+    },
+    {
+      "name": "importdataset",
+      "kind": "EntitySet",
+      "url": "importdataset"
+    },
+    {
+      "name": "importentitymappings",
+      "kind": "EntitySet",
+      "url": "importentitymappings"
+    },
+    {
+      "name": "importfiles",
+      "kind": "EntitySet",
+      "url": "importfiles"
+    },
+    {
+      "name": "importjobs",
+      "kind": "EntitySet",
+      "url": "importjobs"
+    },
+    {
+      "name": "importlogs",
+      "kind": "EntitySet",
+      "url": "importlogs"
+    },
+    {
+      "name": "importmaps",
+      "kind": "EntitySet",
+      "url": "importmaps"
+    },
+    {
+      "name": "imports",
+      "kind": "EntitySet",
+      "url": "imports"
+    },
+    {
+      "name": "incidentknowledgebaserecords",
+      "kind": "EntitySet",
+      "url": "incidentknowledgebaserecords"
+    },
+    {
+      "name": "incidentresolutions",
+      "kind": "EntitySet",
+      "url": "incidentresolutions"
+    },
+    {
+      "name": "incidents",
+      "kind": "EntitySet",
+      "url": "incidents"
+    },
+    {
+      "name": "interactionforemails",
+      "kind": "EntitySet",
+      "url": "interactionforemails"
+    },
+    {
+      "name": "invaliddependencies",
+      "kind": "EntitySet",
+      "url": "invaliddependencies"
+    },
+    {
+      "name": "invoicedetails",
+      "kind": "EntitySet",
+      "url": "invoicedetails"
+    },
+    {
+      "name": "invoices",
+      "kind": "EntitySet",
+      "url": "invoices"
+    },
+    {
+      "name": "kbarticlecomments",
+      "kind": "EntitySet",
+      "url": "kbarticlecomments"
+    },
+    {
+      "name": "kbarticles",
+      "kind": "EntitySet",
+      "url": "kbarticles"
+    },
+    {
+      "name": "kbarticletemplates",
+      "kind": "EntitySet",
+      "url": "kbarticletemplates"
+    },
+    {
+      "name": "knowledgearticlecategories",
+      "kind": "EntitySet",
+      "url": "knowledgearticlecategories"
+    },
+    {
+      "name": "knowledgearticleincidents",
+      "kind": "EntitySet",
+      "url": "knowledgearticleincidents"
+    },
+    {
+      "name": "knowledgearticles",
+      "kind": "EntitySet",
+      "url": "knowledgearticles"
+    },
+    {
+      "name": "knowledgearticleviews",
+      "kind": "EntitySet",
+      "url": "knowledgearticleviews"
+    },
+    {
+      "name": "knowledgebaserecords",
+      "kind": "EntitySet",
+      "url": "knowledgebaserecords"
+    },
+    {
+      "name": "languagelocale",
+      "kind": "EntitySet",
+      "url": "languagelocale"
+    },
+    {
+      "name": "leadaddresses",
+      "kind": "EntitySet",
+      "url": "leadaddresses"
+    },
+    {
+      "name": "leadcompetitorscollection",
+      "kind": "EntitySet",
+      "url": "leadcompetitorscollection"
+    },
+    {
+      "name": "leadproducts",
+      "kind": "EntitySet",
+      "url": "leadproducts"
+    },
+    {
+      "name": "leads",
+      "kind": "EntitySet",
+      "url": "leads"
+    },
+    {
+      "name": "leadtoopportunitysalesprocesses",
+      "kind": "EntitySet",
+      "url": "leadtoopportunitysalesprocesses"
+    },
+    {
+      "name": "letters",
+      "kind": "EntitySet",
+      "url": "letters"
+    },
+    {
+      "name": "listmembers",
+      "kind": "EntitySet",
+      "url": "listmembers"
+    },
+    {
+      "name": "lists",
+      "kind": "EntitySet",
+      "url": "lists"
+    },
+    {
+      "name": "mailboxes",
+      "kind": "EntitySet",
+      "url": "mailboxes"
+    },
+    {
+      "name": "mailmergetemplates",
+      "kind": "EntitySet",
+      "url": "mailmergetemplates"
+    },
+    {
+      "name": "mbs_pluginprofiles",
+      "kind": "EntitySet",
+      "url": "mbs_pluginprofiles"
+    },
+    {
+      "name": "metrics",
+      "kind": "EntitySet",
+      "url": "metrics"
+    },
+    {
+      "name": "mobileofflineprofileitemassociations",
+      "kind": "EntitySet",
+      "url": "mobileofflineprofileitemassociations"
+    },
+    {
+      "name": "mobileofflineprofileitems",
+      "kind": "EntitySet",
+      "url": "mobileofflineprofileitems"
+    },
+    {
+      "name": "mobileofflineprofiles",
+      "kind": "EntitySet",
+      "url": "mobileofflineprofiles"
+    },
+    {
+      "name": "monthlyfiscalcalendars",
+      "kind": "EntitySet",
+      "url": "monthlyfiscalcalendars"
+    },
+    {
+      "name": "msdyn_bpf_0fc73e8e5fbd4cf3aedeaf4825cdcb5es",
+      "kind": "EntitySet",
+      "url": "msdyn_bpf_0fc73e8e5fbd4cf3aedeaf4825cdcb5es"
+    },
+    {
+      "name": "msdyn_bpf_1047273d288f4f998e55cd01a9562e5ds",
+      "kind": "EntitySet",
+      "url": "msdyn_bpf_1047273d288f4f998e55cd01a9562e5ds"
+    },
+    {
+      "name": "msdyn_bpf_1ca7e318e9f1490a82789f7a1e2e0bb0s",
+      "kind": "EntitySet",
+      "url": "msdyn_bpf_1ca7e318e9f1490a82789f7a1e2e0bb0s"
+    },
+    {
+      "name": "msdyn_bpf_4778ed07ba264026bb58a4d7cdace653s",
+      "kind": "EntitySet",
+      "url": "msdyn_bpf_4778ed07ba264026bb58a4d7cdace653s"
+    },
+    {
+      "name": "msdyn_bpf_4a41b4412daf4d62a258f8e1f98e53b4s",
+      "kind": "EntitySet",
+      "url": "msdyn_bpf_4a41b4412daf4d62a258f8e1f98e53b4s"
+    },
+    {
+      "name": "msdyn_bpf_5869a4efe0d44df0887eb4a3c4d43d1es",
+      "kind": "EntitySet",
+      "url": "msdyn_bpf_5869a4efe0d44df0887eb4a3c4d43d1es"
+    },
+    {
+      "name": "msdyn_bpf_5a9aff31601e43b6bb8f7b9d6148364cs",
+      "kind": "EntitySet",
+      "url": "msdyn_bpf_5a9aff31601e43b6bb8f7b9d6148364cs"
+    },
+    {
+      "name": "msdyn_bpf_9afa9e0f8ea948cbb770831927ec3fd3s",
+      "kind": "EntitySet",
+      "url": "msdyn_bpf_9afa9e0f8ea948cbb770831927ec3fd3s"
+    },
+    {
+      "name": "msdyn_bpf_9ff89a5f30cc4dbd957f5f33d925dc12s",
+      "kind": "EntitySet",
+      "url": "msdyn_bpf_9ff89a5f30cc4dbd957f5f33d925dc12s"
+    },
+    {
+      "name": "msdyn_bpf_cb83a5d523304f79bd9629966b4b8dccs",
+      "kind": "EntitySet",
+      "url": "msdyn_bpf_cb83a5d523304f79bd9629966b4b8dccs"
+    },
+    {
+      "name": "msdyn_bpf_e4e46831e9b9408382236f23073d1dd6s",
+      "kind": "EntitySet",
+      "url": "msdyn_bpf_e4e46831e9b9408382236f23073d1dd6s"
+    },
+    {
+      "name": "msdyn_bpf_ff435fc89b724d61b8adb32a29cb3a6bs",
+      "kind": "EntitySet",
+      "url": "msdyn_bpf_ff435fc89b724d61b8adb32a29cb3a6bs"
+    },
+    {
+      "name": "msdyusd_actioncallworkflows",
+      "kind": "EntitySet",
+      "url": "msdyusd_actioncallworkflows"
+    },
+    {
+      "name": "msdyusd_agentscriptactions",
+      "kind": "EntitySet",
+      "url": "msdyusd_agentscriptactions"
+    },
+    {
+      "name": "msdyusd_agentscripttaskcategories",
+      "kind": "EntitySet",
+      "url": "msdyusd_agentscripttaskcategories"
+    },
+    {
+      "name": "msdyusd_answer_agentscriptactionset",
+      "kind": "EntitySet",
+      "url": "msdyusd_answer_agentscriptactionset"
+    },
+    {
+      "name": "msdyusd_answers",
+      "kind": "EntitySet",
+      "url": "msdyusd_answers"
+    },
+    {
+      "name": "msdyusd_auditanddiagnosticssettings",
+      "kind": "EntitySet",
+      "url": "msdyusd_auditanddiagnosticssettings"
+    },
+    {
+      "name": "msdyusd_auditdiag_tracesourcesettingset",
+      "kind": "EntitySet",
+      "url": "msdyusd_auditdiag_tracesourcesettingset"
+    },
+    {
+      "name": "msdyusd_configuration_actioncallsset",
+      "kind": "EntitySet",
+      "url": "msdyusd_configuration_actioncallsset"
+    },
+    {
+      "name": "msdyusd_configuration_agentscriptset",
+      "kind": "EntitySet",
+      "url": "msdyusd_configuration_agentscriptset"
+    },
+    {
+      "name": "msdyusd_configuration_entitysearchset",
+      "kind": "EntitySet",
+      "url": "msdyusd_configuration_entitysearchset"
+    },
+    {
+      "name": "msdyusd_configuration_eventset",
+      "kind": "EntitySet",
+      "url": "msdyusd_configuration_eventset"
+    },
+    {
+      "name": "msdyusd_configuration_formset",
+      "kind": "EntitySet",
+      "url": "msdyusd_configuration_formset"
+    },
+    {
+      "name": "msdyusd_configuration_hostedcontrolset",
+      "kind": "EntitySet",
+      "url": "msdyusd_configuration_hostedcontrolset"
+    },
+    {
+      "name": "msdyusd_configuration_optionset",
+      "kind": "EntitySet",
+      "url": "msdyusd_configuration_optionset"
+    },
+    {
+      "name": "msdyusd_configuration_scriptletset",
+      "kind": "EntitySet",
+      "url": "msdyusd_configuration_scriptletset"
+    },
+    {
+      "name": "msdyusd_configuration_sessionlinesset",
+      "kind": "EntitySet",
+      "url": "msdyusd_configuration_sessionlinesset"
+    },
+    {
+      "name": "msdyusd_configuration_toolbarset",
+      "kind": "EntitySet",
+      "url": "msdyusd_configuration_toolbarset"
+    },
+    {
+      "name": "msdyusd_configuration_windowrouteset",
+      "kind": "EntitySet",
+      "url": "msdyusd_configuration_windowrouteset"
+    },
+    {
+      "name": "msdyusd_configurations",
+      "kind": "EntitySet",
+      "url": "msdyusd_configurations"
+    },
+    {
+      "name": "msdyusd_customizationfiles_configurationset",
+      "kind": "EntitySet",
+      "url": "msdyusd_customizationfiles_configurationset"
+    },
+    {
+      "name": "msdyusd_customizationfileses",
+      "kind": "EntitySet",
+      "url": "msdyusd_customizationfileses"
+    },
+    {
+      "name": "msdyusd_entityassignments",
+      "kind": "EntitySet",
+      "url": "msdyusd_entityassignments"
+    },
+    {
+      "name": "msdyusd_entitysearchs",
+      "kind": "EntitySet",
+      "url": "msdyusd_entitysearchs"
+    },
+    {
+      "name": "msdyusd_form_hostedapplicationset",
+      "kind": "EntitySet",
+      "url": "msdyusd_form_hostedapplicationset"
+    },
+    {
+      "name": "msdyusd_forms",
+      "kind": "EntitySet",
+      "url": "msdyusd_forms"
+    },
+    {
+      "name": "msdyusd_languagemodules",
+      "kind": "EntitySet",
+      "url": "msdyusd_languagemodules"
+    },
+    {
+      "name": "msdyusd_scriptlets",
+      "kind": "EntitySet",
+      "url": "msdyusd_scriptlets"
+    },
+    {
+      "name": "msdyusd_scripttasktriggers",
+      "kind": "EntitySet",
+      "url": "msdyusd_scripttasktriggers"
+    },
+    {
+      "name": "msdyusd_searchs",
+      "kind": "EntitySet",
+      "url": "msdyusd_searchs"
+    },
+    {
+      "name": "msdyusd_sessioninformations",
+      "kind": "EntitySet",
+      "url": "msdyusd_sessioninformations"
+    },
+    {
+      "name": "msdyusd_sessiontransfers",
+      "kind": "EntitySet",
+      "url": "msdyusd_sessiontransfers"
+    },
+    {
+      "name": "msdyusd_subactioncallsset",
+      "kind": "EntitySet",
+      "url": "msdyusd_subactioncallsset"
+    },
+    {
+      "name": "msdyusd_task_agentscriptactionset",
+      "kind": "EntitySet",
+      "url": "msdyusd_task_agentscriptactionset"
+    },
+    {
+      "name": "msdyusd_task_answerset",
+      "kind": "EntitySet",
+      "url": "msdyusd_task_answerset"
+    },
+    {
+      "name": "msdyusd_tasks",
+      "kind": "EntitySet",
+      "url": "msdyusd_tasks"
+    },
+    {
+      "name": "msdyusd_toolbarbutton_agentscriptactionset",
+      "kind": "EntitySet",
+      "url": "msdyusd_toolbarbutton_agentscriptactionset"
+    },
+    {
+      "name": "msdyusd_toolbarbuttons",
+      "kind": "EntitySet",
+      "url": "msdyusd_toolbarbuttons"
+    },
+    {
+      "name": "msdyusd_toolbarstrip_uii_hostedapplicationset",
+      "kind": "EntitySet",
+      "url": "msdyusd_toolbarstrip_uii_hostedapplicationset"
+    },
+    {
+      "name": "msdyusd_toolbarstrips",
+      "kind": "EntitySet",
+      "url": "msdyusd_toolbarstrips"
+    },
+    {
+      "name": "msdyusd_tracesourcesetting_hostedcontrolset",
+      "kind": "EntitySet",
+      "url": "msdyusd_tracesourcesetting_hostedcontrolset"
+    },
+    {
+      "name": "msdyusd_tracesourcesettings",
+      "kind": "EntitySet",
+      "url": "msdyusd_tracesourcesettings"
+    },
+    {
+      "name": "msdyusd_uiievent_agentscriptactionset",
+      "kind": "EntitySet",
+      "url": "msdyusd_uiievent_agentscriptactionset"
+    },
+    {
+      "name": "msdyusd_uiievents",
+      "kind": "EntitySet",
+      "url": "msdyusd_uiievents"
+    },
+    {
+      "name": "msdyusd_usersettingses",
+      "kind": "EntitySet",
+      "url": "msdyusd_usersettingses"
+    },
+    {
+      "name": "msdyusd_windowroute_agentscriptactionset",
+      "kind": "EntitySet",
+      "url": "msdyusd_windowroute_agentscriptactionset"
+    },
+    {
+      "name": "msdyusd_windowroute_ctisearchset",
+      "kind": "EntitySet",
+      "url": "msdyusd_windowroute_ctisearchset"
+    },
+    {
+      "name": "msdyusd_windowroutes",
+      "kind": "EntitySet",
+      "url": "msdyusd_windowroutes"
+    },
+    {
+      "name": "new_bpf_987a64a7def14bcf9e5ce0b444219963s",
+      "kind": "EntitySet",
+      "url": "new_bpf_987a64a7def14bcf9e5ce0b444219963s"
+    },
+    {
+      "name": "new_bpf_ec48b81fdf554be59076b0fcc252430ds",
+      "kind": "EntitySet",
+      "url": "new_bpf_ec48b81fdf554be59076b0fcc252430ds"
+    },
+    {
+      "name": "newprocesses",
+      "kind": "EntitySet",
+      "url": "newprocesses"
+    },
+    {
+      "name": "north52_commands",
+      "kind": "EntitySet",
+      "url": "north52_commands"
+    },
+    {
+      "name": "north52_configurations",
+      "kind": "EntitySet",
+      "url": "north52_configurations"
+    },
+    {
+      "name": "north52_formulacalculations",
+      "kind": "EntitySet",
+      "url": "north52_formulacalculations"
+    },
+    {
+      "name": "north52_formuladetails",
+      "kind": "EntitySet",
+      "url": "north52_formuladetails"
+    },
+    {
+      "name": "north52_formulas",
+      "kind": "EntitySet",
+      "url": "north52_formulas"
+    },
+    {
+      "name": "north52_schedules",
+      "kind": "EntitySet",
+      "url": "north52_schedules"
+    },
+    {
+      "name": "north52_traces",
+      "kind": "EntitySet",
+      "url": "north52_traces"
+    },
+    {
+      "name": "north52_xcaches",
+      "kind": "EntitySet",
+      "url": "north52_xcaches"
+    },
+    {
+      "name": "officegraphdocuments",
+      "kind": "EntitySet",
+      "url": "officegraphdocuments"
+    },
+    {
+      "name": "opportunities",
+      "kind": "EntitySet",
+      "url": "opportunities"
+    },
+    {
+      "name": "opportunitycloses",
+      "kind": "EntitySet",
+      "url": "opportunitycloses"
+    },
+    {
+      "name": "opportunitycompetitorscollection",
+      "kind": "EntitySet",
+      "url": "opportunitycompetitorscollection"
+    },
+    {
+      "name": "opportunityproducts",
+      "kind": "EntitySet",
+      "url": "opportunityproducts"
+    },
+    {
+      "name": "opportunitysalesprocesses",
+      "kind": "EntitySet",
+      "url": "opportunitysalesprocesses"
+    },
+    {
+      "name": "ordercloses",
+      "kind": "EntitySet",
+      "url": "ordercloses"
+    },
+    {
+      "name": "organizations",
+      "kind": "EntitySet",
+      "url": "organizations"
+    },
+    {
+      "name": "personaldocumenttemplates",
+      "kind": "EntitySet",
+      "url": "personaldocumenttemplates"
+    },
+    {
+      "name": "phonecalls",
+      "kind": "EntitySet",
+      "url": "phonecalls"
+    },
+    {
+      "name": "phonetocaseprocesses",
+      "kind": "EntitySet",
+      "url": "phonetocaseprocesses"
+    },
+    {
+      "name": "pluginassemblies",
+      "kind": "EntitySet",
+      "url": "pluginassemblies"
+    },
+    {
+      "name": "plugintracelogs",
+      "kind": "EntitySet",
+      "url": "plugintracelogs"
+    },
+    {
+      "name": "plugintypes",
+      "kind": "EntitySet",
+      "url": "plugintypes"
+    },
+    {
+      "name": "positions",
+      "kind": "EntitySet",
+      "url": "positions"
+    },
+    {
+      "name": "postcomments",
+      "kind": "EntitySet",
+      "url": "postcomments"
+    },
+    {
+      "name": "postfollows",
+      "kind": "EntitySet",
+      "url": "postfollows"
+    },
+    {
+      "name": "postlikes",
+      "kind": "EntitySet",
+      "url": "postlikes"
+    },
+    {
+      "name": "postregardings",
+      "kind": "EntitySet",
+      "url": "postregardings"
+    },
+    {
+      "name": "posts",
+      "kind": "EntitySet",
+      "url": "posts"
+    },
+    {
+      "name": "pricelevels",
+      "kind": "EntitySet",
+      "url": "pricelevels"
+    },
+    {
+      "name": "principalentitymaps",
+      "kind": "EntitySet",
+      "url": "principalentitymaps"
+    },
+    {
+      "name": "principalobjectaccessset",
+      "kind": "EntitySet",
+      "url": "principalobjectaccessset"
+    },
+    {
+      "name": "privileges",
+      "kind": "EntitySet",
+      "url": "privileges"
+    },
+    {
+      "name": "processstages",
+      "kind": "EntitySet",
+      "url": "processstages"
+    },
+    {
+      "name": "productassociations",
+      "kind": "EntitySet",
+      "url": "productassociations"
+    },
+    {
+      "name": "productpricelevels",
+      "kind": "EntitySet",
+      "url": "productpricelevels"
+    },
+    {
+      "name": "products",
+      "kind": "EntitySet",
+      "url": "products"
+    },
+    {
+      "name": "productsalesliteratures",
+      "kind": "EntitySet",
+      "url": "productsalesliteratures"
+    },
+    {
+      "name": "productsubstitutes",
+      "kind": "EntitySet",
+      "url": "productsubstitutes"
+    },
+    {
+      "name": "ps_activitysubresults",
+      "kind": "EntitySet",
+      "url": "ps_activitysubresults"
+    },
+    {
+      "name": "ps_activitytypes",
+      "kind": "EntitySet",
+      "url": "ps_activitytypes"
+    },
+    {
+      "name": "ps_additionalservices",
+      "kind": "EntitySet",
+      "url": "ps_additionalservices"
+    },
+    {
+      "name": "ps_additionalserviceusages",
+      "kind": "EntitySet",
+      "url": "ps_additionalserviceusages"
+    },
+    {
+      "name": "ps_agencies",
+      "kind": "EntitySet",
+      "url": "ps_agencies"
+    },
+    {
+      "name": "ps_agencysellers",
+      "kind": "EntitySet",
+      "url": "ps_agencysellers"
+    },
+    {
+      "name": "ps_agencyterritories",
+      "kind": "EntitySet",
+      "url": "ps_agencyterritories"
+    },
+    {
+      "name": "ps_anonymizations",
+      "kind": "EntitySet",
+      "url": "ps_anonymizations"
+    },
+    {
+      "name": "ps_as400historybases",
+      "kind": "EntitySet",
+      "url": "ps_as400historybases"
+    },
+    {
+      "name": "ps_bankpersonnels",
+      "kind": "EntitySet",
+      "url": "ps_bankpersonnels"
+    },
+    {
+      "name": "ps_banks",
+      "kind": "EntitySet",
+      "url": "ps_banks"
+    },
+    {
+      "name": "ps_blacklists",
+      "kind": "EntitySet",
+      "url": "ps_blacklists"
+    },
+    {
+      "name": "ps_campaigncodes",
+      "kind": "EntitySet",
+      "url": "ps_campaigncodes"
+    },
+    {
+      "name": "ps_campaigncodesettingses",
+      "kind": "EntitySet",
+      "url": "ps_campaigncodesettingses"
+    },
+    {
+      "name": "ps_campaigncodeusages",
+      "kind": "EntitySet",
+      "url": "ps_campaigncodeusages"
+    },
+    {
+      "name": "ps_campaignresponseresults",
+      "kind": "EntitySet",
+      "url": "ps_campaignresponseresults"
+    },
+    {
+      "name": "ps_casealerts",
+      "kind": "EntitySet",
+      "url": "ps_casealerts"
+    },
+    {
+      "name": "ps_casebeneficiaries",
+      "kind": "EntitySet",
+      "url": "ps_casebeneficiaries"
+    },
+    {
+      "name": "ps_casecategories",
+      "kind": "EntitySet",
+      "url": "ps_casecategories"
+    },
+    {
+      "name": "ps_casecauses",
+      "kind": "EntitySet",
+      "url": "ps_casecauses"
+    },
+    {
+      "name": "ps_casedocumentlists",
+      "kind": "EntitySet",
+      "url": "ps_casedocumentlists"
+    },
+    {
+      "name": "ps_casedocumentrules",
+      "kind": "EntitySet",
+      "url": "ps_casedocumentrules"
+    },
+    {
+      "name": "ps_caseonholdreasons",
+      "kind": "EntitySet",
+      "url": "ps_caseonholdreasons"
+    },
+    {
+      "name": "ps_caseopinionforms",
+      "kind": "EntitySet",
+      "url": "ps_caseopinionforms"
+    },
+    {
+      "name": "ps_caseresults",
+      "kind": "EntitySet",
+      "url": "ps_caseresults"
+    },
+    {
+      "name": "ps_caseslas",
+      "kind": "EntitySet",
+      "url": "ps_caseslas"
+    },
+    {
+      "name": "ps_casesteps",
+      "kind": "EntitySet",
+      "url": "ps_casesteps"
+    },
+    {
+      "name": "ps_casesubcategories",
+      "kind": "EntitySet",
+      "url": "ps_casesubcategories"
+    },
+    {
+      "name": "ps_categorygroups",
+      "kind": "EntitySet",
+      "url": "ps_categorygroups"
+    },
+    {
+      "name": "ps_childdetails",
+      "kind": "EntitySet",
+      "url": "ps_childdetails"
+    },
+    {
+      "name": "ps_cities",
+      "kind": "EntitySet",
+      "url": "ps_cities"
+    },
+    {
+      "name": "ps_codeableconcepts",
+      "kind": "EntitySet",
+      "url": "ps_codeableconcepts"
+    },
+    {
+      "name": "ps_compsegmentapprovals",
+      "kind": "EntitySet",
+      "url": "ps_compsegmentapprovals"
+    },
+    {
+      "name": "ps_contactcenters",
+      "kind": "EntitySet",
+      "url": "ps_contactcenters"
+    },
+    {
+      "name": "ps_contacttypes",
+      "kind": "EntitySet",
+      "url": "ps_contacttypes"
+    },
+    {
+      "name": "ps_counties",
+      "kind": "EntitySet",
+      "url": "ps_counties"
+    },
+    {
+      "name": "ps_countries",
+      "kind": "EntitySet",
+      "url": "ps_countries"
+    },
+    {
+      "name": "ps_customeraddresses",
+      "kind": "EntitySet",
+      "url": "ps_customeraddresses"
+    },
+    {
+      "name": "ps_customercasereasons",
+      "kind": "EntitySet",
+      "url": "ps_customercasereasons"
+    },
+    {
+      "name": "ps_customercontacts",
+      "kind": "EntitySet",
+      "url": "ps_customercontacts"
+    },
+    {
+      "name": "ps_customercreditcards",
+      "kind": "EntitySet",
+      "url": "ps_customercreditcards"
+    },
+    {
+      "name": "ps_customerdiagnoses",
+      "kind": "EntitySet",
+      "url": "ps_customerdiagnoses"
+    },
+    {
+      "name": "ps_customerdocuments",
+      "kind": "EntitySet",
+      "url": "ps_customerdocuments"
+    },
+    {
+      "name": "ps_customeremails",
+      "kind": "EntitySet",
+      "url": "ps_customeremails"
+    },
+    {
+      "name": "ps_customerfundoffers",
+      "kind": "EntitySet",
+      "url": "ps_customerfundoffers"
+    },
+    {
+      "name": "ps_customerphones",
+      "kind": "EntitySet",
+      "url": "ps_customerphones"
+    },
+    {
+      "name": "ps_customersubsequentcalldetails",
+      "kind": "EntitySet",
+      "url": "ps_customersubsequentcalldetails"
+    },
+    {
+      "name": "ps_customersurveysessions",
+      "kind": "EntitySet",
+      "url": "ps_customersurveysessions"
+    },
+    {
+      "name": "ps_diagnosecodes",
+      "kind": "EntitySet",
+      "url": "ps_diagnosecodes"
+    },
+    {
+      "name": "ps_distributionchannels",
+      "kind": "EntitySet",
+      "url": "ps_distributionchannels"
+    },
+    {
+      "name": "ps_distributionresults",
+      "kind": "EntitySet",
+      "url": "ps_distributionresults"
+    },
+    {
+      "name": "ps_documentlists",
+      "kind": "EntitySet",
+      "url": "ps_documentlists"
+    },
+    {
+      "name": "ps_dynamicvalueranges",
+      "kind": "EntitySet",
+      "url": "ps_dynamicvalueranges"
+    },
+    {
+      "name": "ps_ebranchcontacts",
+      "kind": "EntitySet",
+      "url": "ps_ebranchcontacts"
+    },
+    {
+      "name": "ps_egitims",
+      "kind": "EntitySet",
+      "url": "ps_egitims"
+    },
+    {
+      "name": "ps_externalmarketinglistdetails",
+      "kind": "EntitySet",
+      "url": "ps_externalmarketinglistdetails"
+    },
+    {
+      "name": "ps_externalmarketinglists",
+      "kind": "EntitySet",
+      "url": "ps_externalmarketinglists"
+    },
+    {
+      "name": "ps_fundreturnses",
+      "kind": "EntitySet",
+      "url": "ps_fundreturnses"
+    },
+    {
+      "name": "ps_funds",
+      "kind": "EntitySet",
+      "url": "ps_funds"
+    },
+    {
+      "name": "ps_generalparameterses",
+      "kind": "EntitySet",
+      "url": "ps_generalparameterses"
+    },
+    {
+      "name": "ps_groups",
+      "kind": "EntitySet",
+      "url": "ps_groups"
+    },
+    {
+      "name": "ps_indexlogs",
+      "kind": "EntitySet",
+      "url": "ps_indexlogs"
+    },
+    {
+      "name": "ps_leadaddresses",
+      "kind": "EntitySet",
+      "url": "ps_leadaddresses"
+    },
+    {
+      "name": "ps_leadcapturebulkimportlogs",
+      "kind": "EntitySet",
+      "url": "ps_leadcapturebulkimportlogs"
+    },
+    {
+      "name": "ps_leadcaptureses",
+      "kind": "EntitySet",
+      "url": "ps_leadcaptureses"
+    },
+    {
+      "name": "ps_leaddistributionrules",
+      "kind": "EntitySet",
+      "url": "ps_leaddistributionrules"
+    },
+    {
+      "name": "ps_leadfollowups",
+      "kind": "EntitySet",
+      "url": "ps_leadfollowups"
+    },
+    {
+      "name": "ps_leadoldphones",
+      "kind": "EntitySet",
+      "url": "ps_leadoldphones"
+    },
+    {
+      "name": "ps_leadoppresults",
+      "kind": "EntitySet",
+      "url": "ps_leadoppresults"
+    },
+    {
+      "name": "ps_macroenvironmentfactors",
+      "kind": "EntitySet",
+      "url": "ps_macroenvironmentfactors"
+    },
+    {
+      "name": "ps_maincontractresponsibleuserses",
+      "kind": "EntitySet",
+      "url": "ps_maincontractresponsibleuserses"
+    },
+    {
+      "name": "ps_meetingcategories",
+      "kind": "EntitySet",
+      "url": "ps_meetingcategories"
+    },
+    {
+      "name": "ps_meetingnotes",
+      "kind": "EntitySet",
+      "url": "ps_meetingnotes"
+    },
+    {
+      "name": "ps_meetingresults",
+      "kind": "EntitySet",
+      "url": "ps_meetingresults"
+    },
+    {
+      "name": "ps_messageparameters",
+      "kind": "EntitySet",
+      "url": "ps_messageparameters"
+    },
+    {
+      "name": "ps_messagetemplates",
+      "kind": "EntitySet",
+      "url": "ps_messagetemplates"
+    },
+    {
+      "name": "ps_missinginformations",
+      "kind": "EntitySet",
+      "url": "ps_missinginformations"
+    },
+    {
+      "name": "ps_mobilearticles",
+      "kind": "EntitySet",
+      "url": "ps_mobilearticles"
+    },
+    {
+      "name": "ps_offerexclusions",
+      "kind": "EntitySet",
+      "url": "ps_offerexclusions"
+    },
+    {
+      "name": "ps_offeritems",
+      "kind": "EntitySet",
+      "url": "ps_offeritems"
+    },
+    {
+      "name": "ps_offers",
+      "kind": "EntitySet",
+      "url": "ps_offers"
+    },
+    {
+      "name": "ps_operationtypes",
+      "kind": "EntitySet",
+      "url": "ps_operationtypes"
+    },
+    {
+      "name": "ps_operationtypeses",
+      "kind": "EntitySet",
+      "url": "ps_operationtypeses"
+    },
+    {
+      "name": "ps_opiniontypes",
+      "kind": "EntitySet",
+      "url": "ps_opiniontypes"
+    },
+    {
+      "name": "ps_opportunities",
+      "kind": "EntitySet",
+      "url": "ps_opportunities"
+    },
+    {
+      "name": "ps_opportunitydocses",
+      "kind": "EntitySet",
+      "url": "ps_opportunitydocses"
+    },
+    {
+      "name": "ps_opportunityfunds",
+      "kind": "EntitySet",
+      "url": "ps_opportunityfunds"
+    },
+    {
+      "name": "ps_otherpropertyownerships",
+      "kind": "EntitySet",
+      "url": "ps_otherpropertyownerships"
+    },
+    {
+      "name": "ps_partnerses",
+      "kind": "EntitySet",
+      "url": "ps_partnerses"
+    },
+    {
+      "name": "ps_pensionclasses",
+      "kind": "EntitySet",
+      "url": "ps_pensionclasses"
+    },
+    {
+      "name": "ps_pensioncontractdeliveries",
+      "kind": "EntitySet",
+      "url": "ps_pensioncontractdeliveries"
+    },
+    {
+      "name": "ps_pensioncontractparticipantses",
+      "kind": "EntitySet",
+      "url": "ps_pensioncontractparticipantses"
+    },
+    {
+      "name": "ps_pensioncontractpendingtransfers",
+      "kind": "EntitySet",
+      "url": "ps_pensioncontractpendingtransfers"
+    },
+    {
+      "name": "ps_pensioncontracts",
+      "kind": "EntitySet",
+      "url": "ps_pensioncontracts"
+    },
+    {
+      "name": "ps_pensionplanfundpackages",
+      "kind": "EntitySet",
+      "url": "ps_pensionplanfundpackages"
+    },
+    {
+      "name": "ps_pensionplans",
+      "kind": "EntitySet",
+      "url": "ps_pensionplans"
+    },
+    {
+      "name": "ps_personalaccidentrules",
+      "kind": "EntitySet",
+      "url": "ps_personalaccidentrules"
+    },
+    {
+      "name": "ps_policies",
+      "kind": "EntitySet",
+      "url": "ps_policies"
+    },
+    {
+      "name": "ps_policyquotations",
+      "kind": "EntitySet",
+      "url": "ps_policyquotations"
+    },
+    {
+      "name": "ps_privatecustomermanagementtemplateses",
+      "kind": "EntitySet",
+      "url": "ps_privatecustomermanagementtemplateses"
+    },
+    {
+      "name": "ps_productgroups",
+      "kind": "EntitySet",
+      "url": "ps_productgroups"
+    },
+    {
+      "name": "ps_products",
+      "kind": "EntitySet",
+      "url": "ps_products"
+    },
+    {
+      "name": "ps_productscripts",
+      "kind": "EntitySet",
+      "url": "ps_productscripts"
+    },
+    {
+      "name": "ps_productstatuses",
+      "kind": "EntitySet",
+      "url": "ps_productstatuses"
+    },
+    {
+      "name": "ps_professions",
+      "kind": "EntitySet",
+      "url": "ps_professions"
+    },
+    {
+      "name": "ps_ps_casesubcategory_ps_casesubcategoryset",
+      "kind": "EntitySet",
+      "url": "ps_ps_casesubcategory_ps_casesubcategoryset"
+    },
+    {
+      "name": "ps_ps_opportunity_ps_additionalserviceset",
+      "kind": "EntitySet",
+      "url": "ps_ps_opportunity_ps_additionalserviceset"
+    },
+    {
+      "name": "ps_queue_systemuserset",
+      "kind": "EntitySet",
+      "url": "ps_queue_systemuserset"
+    },
+    {
+      "name": "ps_selfservicequotedocuments",
+      "kind": "EntitySet",
+      "url": "ps_selfservicequotedocuments"
+    },
+    {
+      "name": "ps_selfservicequotes",
+      "kind": "EntitySet",
+      "url": "ps_selfservicequotes"
+    },
+    {
+      "name": "ps_sellers",
+      "kind": "EntitySet",
+      "url": "ps_sellers"
+    },
+    {
+      "name": "ps_sellersterritories",
+      "kind": "EntitySet",
+      "url": "ps_sellersterritories"
+    },
+    {
+      "name": "ps_sgkconsultingforms",
+      "kind": "EntitySet",
+      "url": "ps_sgkconsultingforms"
+    },
+    {
+      "name": "ps_sitemap_services",
+      "kind": "EntitySet",
+      "url": "ps_sitemap_services"
+    },
+    {
+      "name": "ps_slabusinessunitses",
+      "kind": "EntitySet",
+      "url": "ps_slabusinessunitses"
+    },
+    {
+      "name": "ps_specialcustomerreps",
+      "kind": "EntitySet",
+      "url": "ps_specialcustomerreps"
+    },
+    {
+      "name": "ps_stepdocumentlists",
+      "kind": "EntitySet",
+      "url": "ps_stepdocumentlists"
+    },
+    {
+      "name": "ps_stepplatformcorrespondings",
+      "kind": "EntitySet",
+      "url": "ps_stepplatformcorrespondings"
+    },
+    {
+      "name": "ps_steps",
+      "kind": "EntitySet",
+      "url": "ps_steps"
+    },
+    {
+      "name": "ps_stepslas",
+      "kind": "EntitySet",
+      "url": "ps_stepslas"
+    },
+    {
+      "name": "ps_stepstartprocesseses",
+      "kind": "EntitySet",
+      "url": "ps_stepstartprocesseses"
+    },
+    {
+      "name": "ps_subsequentcallrules",
+      "kind": "EntitySet",
+      "url": "ps_subsequentcallrules"
+    },
+    {
+      "name": "ps_systemparameters",
+      "kind": "EntitySet",
+      "url": "ps_systemparameters"
+    },
+    {
+      "name": "ps_taxoffices",
+      "kind": "EntitySet",
+      "url": "ps_taxoffices"
+    },
+    {
+      "name": "ps_templateparameterses",
+      "kind": "EntitySet",
+      "url": "ps_templateparameterses"
+    },
+    {
+      "name": "ps_tmpentities",
+      "kind": "EntitySet",
+      "url": "ps_tmpentities"
+    },
+    {
+      "name": "ps_tmpentityinsises",
+      "kind": "EntitySet",
+      "url": "ps_tmpentityinsises"
+    },
+    {
+      "name": "ps_tmpsozlesmevadetarihilistesis",
+      "kind": "EntitySet",
+      "url": "ps_tmpsozlesmevadetarihilistesis"
+    },
+    {
+      "name": "publisheraddresses",
+      "kind": "EntitySet",
+      "url": "publisheraddresses"
+    },
+    {
+      "name": "publishers",
+      "kind": "EntitySet",
+      "url": "publishers"
+    },
+    {
+      "name": "quarterlyfiscalcalendars",
+      "kind": "EntitySet",
+      "url": "quarterlyfiscalcalendars"
+    },
+    {
+      "name": "queueitems",
+      "kind": "EntitySet",
+      "url": "queueitems"
+    },
+    {
+      "name": "queuememberships",
+      "kind": "EntitySet",
+      "url": "queuememberships"
+    },
+    {
+      "name": "queues",
+      "kind": "EntitySet",
+      "url": "queues"
+    },
+    {
+      "name": "quotecloses",
+      "kind": "EntitySet",
+      "url": "quotecloses"
+    },
+    {
+      "name": "quotedetails",
+      "kind": "EntitySet",
+      "url": "quotedetails"
+    },
+    {
+      "name": "quotes",
+      "kind": "EntitySet",
+      "url": "quotes"
+    },
+    {
+      "name": "ratingmodels",
+      "kind": "EntitySet",
+      "url": "ratingmodels"
+    },
+    {
+      "name": "ratingvalues",
+      "kind": "EntitySet",
+      "url": "ratingvalues"
+    },
+    {
+      "name": "recommendeddocuments",
+      "kind": "EntitySet",
+      "url": "recommendeddocuments"
+    },
+    {
+      "name": "recurringappointmentmasters",
+      "kind": "EntitySet",
+      "url": "recurringappointmentmasters"
+    },
+    {
+      "name": "reportcategories",
+      "kind": "EntitySet",
+      "url": "reportcategories"
+    },
+    {
+      "name": "reports",
+      "kind": "EntitySet",
+      "url": "reports"
+    },
+    {
+      "name": "resourcegroups",
+      "kind": "EntitySet",
+      "url": "resourcegroups"
+    },
+    {
+      "name": "resources",
+      "kind": "EntitySet",
+      "url": "resources"
+    },
+    {
+      "name": "resourcespecs",
+      "kind": "EntitySet",
+      "url": "resourcespecs"
+    },
+    {
+      "name": "roleprivilegescollection",
+      "kind": "EntitySet",
+      "url": "roleprivilegescollection"
+    },
+    {
+      "name": "roles",
+      "kind": "EntitySet",
+      "url": "roles"
+    },
+    {
+      "name": "roletemplateprivilegescollection",
+      "kind": "EntitySet",
+      "url": "roletemplateprivilegescollection"
+    },
+    {
+      "name": "roletemplates",
+      "kind": "EntitySet",
+      "url": "roletemplates"
+    },
+    {
+      "name": "salesliteratureitems",
+      "kind": "EntitySet",
+      "url": "salesliteratureitems"
+    },
+    {
+      "name": "salesliteratures",
+      "kind": "EntitySet",
+      "url": "salesliteratures"
+    },
+    {
+      "name": "salesorderdetails",
+      "kind": "EntitySet",
+      "url": "salesorderdetails"
+    },
+    {
+      "name": "salesorders",
+      "kind": "EntitySet",
+      "url": "salesorders"
+    },
+    {
+      "name": "savedqueries",
+      "kind": "EntitySet",
+      "url": "savedqueries"
+    },
+    {
+      "name": "savedqueryvisualizations",
+      "kind": "EntitySet",
+      "url": "savedqueryvisualizations"
+    },
+    {
+      "name": "sdkmessagefilters",
+      "kind": "EntitySet",
+      "url": "sdkmessagefilters"
+    },
+    {
+      "name": "sdkmessageprocessingstepimages",
+      "kind": "EntitySet",
+      "url": "sdkmessageprocessingstepimages"
+    },
+    {
+      "name": "sdkmessageprocessingsteps",
+      "kind": "EntitySet",
+      "url": "sdkmessageprocessingsteps"
+    },
+    {
+      "name": "sdkmessageprocessingstepsecureconfigs",
+      "kind": "EntitySet",
+      "url": "sdkmessageprocessingstepsecureconfigs"
+    },
+    {
+      "name": "sdkmessages",
+      "kind": "EntitySet",
+      "url": "sdkmessages"
+    },
+    {
+      "name": "semiannualfiscalcalendars",
+      "kind": "EntitySet",
+      "url": "semiannualfiscalcalendars"
+    },
+    {
+      "name": "serviceappointments",
+      "kind": "EntitySet",
+      "url": "serviceappointments"
+    },
+    {
+      "name": "servicecontractcontactscollection",
+      "kind": "EntitySet",
+      "url": "servicecontractcontactscollection"
+    },
+    {
+      "name": "serviceendpoints",
+      "kind": "EntitySet",
+      "url": "serviceendpoints"
+    },
+    {
+      "name": "services",
+      "kind": "EntitySet",
+      "url": "services"
+    },
+    {
+      "name": "sharepointdocumentlocations",
+      "kind": "EntitySet",
+      "url": "sharepointdocumentlocations"
+    },
+    {
+      "name": "sharepointsites",
+      "kind": "EntitySet",
+      "url": "sharepointsites"
+    },
+    {
+      "name": "similarityrules",
+      "kind": "EntitySet",
+      "url": "similarityrules"
+    },
+    {
+      "name": "sites",
+      "kind": "EntitySet",
+      "url": "sites"
+    },
+    {
+      "name": "slaitems",
+      "kind": "EntitySet",
+      "url": "slaitems"
+    },
+    {
+      "name": "slakpiinstances",
+      "kind": "EntitySet",
+      "url": "slakpiinstances"
+    },
+    {
+      "name": "slas",
+      "kind": "EntitySet",
+      "url": "slas"
+    },
+    {
+      "name": "socialactivities",
+      "kind": "EntitySet",
+      "url": "socialactivities"
+    },
+    {
+      "name": "socialprofiles",
+      "kind": "EntitySet",
+      "url": "socialprofiles"
+    },
+    {
+      "name": "solutioncomponents",
+      "kind": "EntitySet",
+      "url": "solutioncomponents"
+    },
+    {
+      "name": "solutions",
+      "kind": "EntitySet",
+      "url": "solutions"
+    },
+    {
+      "name": "subjects",
+      "kind": "EntitySet",
+      "url": "subjects"
+    },
+    {
+      "name": "subscriptionmanuallytrackedobjects",
+      "kind": "EntitySet",
+      "url": "subscriptionmanuallytrackedobjects"
+    },
+    {
+      "name": "subscriptionstatisticsofflineset",
+      "kind": "EntitySet",
+      "url": "subscriptionstatisticsofflineset"
+    },
+    {
+      "name": "subscriptionstatisticsoutlookset",
+      "kind": "EntitySet",
+      "url": "subscriptionstatisticsoutlookset"
+    },
+    {
+      "name": "subscriptionsyncentriesoffline",
+      "kind": "EntitySet",
+      "url": "subscriptionsyncentriesoffline"
+    },
+    {
+      "name": "subscriptionsyncentriesoutlook",
+      "kind": "EntitySet",
+      "url": "subscriptionsyncentriesoutlook"
+    },
+    {
+      "name": "syncerrors",
+      "kind": "EntitySet",
+      "url": "syncerrors"
+    },
+    {
+      "name": "systemforms",
+      "kind": "EntitySet",
+      "url": "systemforms"
+    },
+    {
+      "name": "systemuserlicensescollection",
+      "kind": "EntitySet",
+      "url": "systemuserlicensescollection"
+    },
+    {
+      "name": "systemuserprofilescollection",
+      "kind": "EntitySet",
+      "url": "systemuserprofilescollection"
+    },
+    {
+      "name": "systemuserrolescollection",
+      "kind": "EntitySet",
+      "url": "systemuserrolescollection"
+    },
+    {
+      "name": "systemusers",
+      "kind": "EntitySet",
+      "url": "systemusers"
+    },
+    {
+      "name": "systemusersyncmappingprofilescollection",
+      "kind": "EntitySet",
+      "url": "systemusersyncmappingprofilescollection"
+    },
+    {
+      "name": "tasks",
+      "kind": "EntitySet",
+      "url": "tasks"
+    },
+    {
+      "name": "teammemberships",
+      "kind": "EntitySet",
+      "url": "teammemberships"
+    },
+    {
+      "name": "teamprofilescollection",
+      "kind": "EntitySet",
+      "url": "teamprofilescollection"
+    },
+    {
+      "name": "teamrolescollection",
+      "kind": "EntitySet",
+      "url": "teamrolescollection"
+    },
+    {
+      "name": "teams",
+      "kind": "EntitySet",
+      "url": "teams"
+    },
+    {
+      "name": "teamsyncattributemappingprofilescollection",
+      "kind": "EntitySet",
+      "url": "teamsyncattributemappingprofilescollection"
+    },
+    {
+      "name": "teamtemplates",
+      "kind": "EntitySet",
+      "url": "teamtemplates"
+    },
+    {
+      "name": "templates",
+      "kind": "EntitySet",
+      "url": "templates"
+    },
+    {
+      "name": "territories",
+      "kind": "EntitySet",
+      "url": "territories"
+    },
+    {
+      "name": "themes",
+      "kind": "EntitySet",
+      "url": "themes"
+    },
+    {
+      "name": "timestampdatemappings",
+      "kind": "EntitySet",
+      "url": "timestampdatemappings"
+    },
+    {
+      "name": "timezonedefinitions",
+      "kind": "EntitySet",
+      "url": "timezonedefinitions"
+    },
+    {
+      "name": "timezonelocalizednames",
+      "kind": "EntitySet",
+      "url": "timezonelocalizednames"
+    },
+    {
+      "name": "timezonerules",
+      "kind": "EntitySet",
+      "url": "timezonerules"
+    },
+    {
+      "name": "tracelogs",
+      "kind": "EntitySet",
+      "url": "tracelogs"
+    },
+    {
+      "name": "transactioncurrencies",
+      "kind": "EntitySet",
+      "url": "transactioncurrencies"
+    },
+    {
+      "name": "translationprocesses",
+      "kind": "EntitySet",
+      "url": "translationprocesses"
+    },
+    {
+      "name": "uii_actions",
+      "kind": "EntitySet",
+      "url": "uii_actions"
+    },
+    {
+      "name": "uii_audits",
+      "kind": "EntitySet",
+      "url": "uii_audits"
+    },
+    {
+      "name": "uii_contexts",
+      "kind": "EntitySet",
+      "url": "uii_contexts"
+    },
+    {
+      "name": "uii_hostedapplications",
+      "kind": "EntitySet",
+      "url": "uii_hostedapplications"
+    },
+    {
+      "name": "uii_nonhostedapplications",
+      "kind": "EntitySet",
+      "url": "uii_nonhostedapplications"
+    },
+    {
+      "name": "uii_options",
+      "kind": "EntitySet",
+      "url": "uii_options"
+    },
+    {
+      "name": "uii_savedsessions",
+      "kind": "EntitySet",
+      "url": "uii_savedsessions"
+    },
+    {
+      "name": "uii_sessiontransfers",
+      "kind": "EntitySet",
+      "url": "uii_sessiontransfers"
+    },
+    {
+      "name": "uii_workflow_workflowstep_mappings",
+      "kind": "EntitySet",
+      "url": "uii_workflow_workflowstep_mappings"
+    },
+    {
+      "name": "uii_workflows",
+      "kind": "EntitySet",
+      "url": "uii_workflows"
+    },
+    {
+      "name": "uii_workflowsteps",
+      "kind": "EntitySet",
+      "url": "uii_workflowsteps"
+    },
+    {
+      "name": "uoms",
+      "kind": "EntitySet",
+      "url": "uoms"
+    },
+    {
+      "name": "uomschedules",
+      "kind": "EntitySet",
+      "url": "uomschedules"
+    },
+    {
+      "name": "userforms",
+      "kind": "EntitySet",
+      "url": "userforms"
+    },
+    {
+      "name": "userqueries",
+      "kind": "EntitySet",
+      "url": "userqueries"
+    },
+    {
+      "name": "userqueryvisualizations",
+      "kind": "EntitySet",
+      "url": "userqueryvisualizations"
+    },
+    {
+      "name": "usersettingscollection",
+      "kind": "EntitySet",
+      "url": "usersettingscollection"
+    },
+    {
+      "name": "webresourceset",
+      "kind": "EntitySet",
+      "url": "webresourceset"
+    },
+    {
+      "name": "webwizards",
+      "kind": "EntitySet",
+      "url": "webwizards"
+    },
+    {
+      "name": "workflowlogs",
+      "kind": "EntitySet",
+      "url": "workflowlogs"
+    },
+    {
+      "name": "workflows",
+      "kind": "EntitySet",
+      "url": "workflows"
+    },
+    {
+      "name": "EntityDefinitions",
+      "kind": "EntitySet",
+      "url": "EntityDefinitions"
+    },
+    {
+      "name": "GlobalOptionSetDefinitions",
+      "kind": "EntitySet",
+      "url": "GlobalOptionSetDefinitions"
+    },
+    {
+      "name": "ManagedPropertyDefinitions",
+      "kind": "EntitySet",
+      "url": "ManagedPropertyDefinitions"
+    },
+    {
+      "name": "RelationshipDefinitions",
+      "kind": "EntitySet",
+      "url": "RelationshipDefinitions"
+    }
+  ]
+}

@@ -168,3 +168,12 @@ Items only a run on the corporate network can close. Each has a **Do**, a **Pass
   `clusters/clusters.csv` opens in Excel with columns split; one `consolidated/*.bpmn` compared against its
   members' files in `bpmn/` using `reports/consolidation.md`.
 - **Capture:** what looked wrong, with the file names.
+
+## First contact with production (2026-09-22)
+
+The maintainer's account was authorized and read the Web API root `https://ahecrm.anadoluhayat.com.tr/api/data/v8.2/`.
+The service document is kept in `reference/crm-service-document-2026-09-22.json`, with findings beside it in
+`reference/crm-service-document-2026-09-22.md`. In short: every entity set the tool reads exists. The URL has no
+organization segment, which may mean an internet-facing (IFD) deployment — open question, settle before the first
+run. BPFs (14) and the North52 rules engine are in use; the latter's logic is invisible in workflow XAML
+(wanted-but-uncertain: whether to inventory `north52_formulas` alongside workflows).
