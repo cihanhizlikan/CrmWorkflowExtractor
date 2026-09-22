@@ -1,3 +1,7 @@
 # Test fixtures are byte-exact evidence: recorded API payloads and XAML samples whose hashes tests assert.
 # Git must never rewrite their line endings.
 Crm.Tests/Fixtures/** -text
+# The browser export script and the page generated from it: the page embeds the script's SHA-256, so both must be
+# byte-identical on every checkout (a CRLF conversion would make the drift test fail on Windows clones).
+tools/crm-browser-export.js -text
+tools/crm-export.html -text

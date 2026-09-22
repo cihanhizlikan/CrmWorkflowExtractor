@@ -216,3 +216,28 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   it was not opened.
 - `FormService.svc` ("form to CRM service") looks like an integration that writes into CRM from outside — business
   logic that no workflow XAML will show, like North52.
+
+### Browser export instead of the tool's own sign-in (2026-09-22) — DECIDED
+- **DECIDED (maintainer):** option B (AD FS registration) is not practical; the data is read through the maintainer's
+  own signed-in browser session instead, and the tool works offline from the saved file.
+- **Built:** `tools/crm-browser-export.js` (GET-only, paged, same columns and payloads as the tool) and
+  `tools/crm-export.html`, a bookmarklet page generated from it by `node tools/build-export-page.js`.
+  `Run:ImportFile` turns the export into the same `raw/` layout a network run writes; every later stage is unchanged.
+- **Why a bookmarklet, not an HTML page that fetches:** a page on claude.ai or opened from disk is a different
+  origin; the browser blocks it from reading CRM with the user's session (CORS, cookies). Only a script running on a
+  CRM page itself can.
+- **Verified:** the committed script ran in a browser against a local mock of the Web API; its output is the fixture
+  `Crm.Tests/Fixtures/BrowserExport/mock-crm-export.json`, imported end to end by the tests. **Unverified:** the real
+  server (page size behaviour, `$count`, privilege names) — same items as *Acceptance B*.
+- **Provenance is weaker** than a network run: the tool copies the export verbatim to `raw/browser-export.json` and
+  records its hash, but did not make the requests. The manifest carries a warning saying so.
+
+### First look at the real workflow list (2026-09-22, names only)
+- All sampled records are `iscrmuiworkflow = true`: manual review will likely be near-empty.
+- All five categories occur: many **Dialogs (1)** and **Business Rules (2)**, ~25 **BPFs (4)**, a handful of
+  **Actions (3)** (`GetURLAction`, `CrptoEncodeDecode`, `SendSmtpEmailNovaFlag`, …). The parser maps none of Dialogs,
+  Business Rules or BPFs yet — expect them as unmapped in the first real `parse-coverage.md`.
+- **Many names repeat** (`SET NAME`, `Enter Rule Name`, `SERVİS TALEPLERİNİ DAĞIT`, `Admin_Open_SmartMessage`, …): file
+  names must be keyed by workflow id, never by name (the export does this).
+- **Many `DRAFT_*`, `test*`, `Admin*` workflows**: noise for consolidation. Wanted-but-uncertain: whether the
+  architects want those excluded from similarity (by state = Draft, or by a name pattern they choose).

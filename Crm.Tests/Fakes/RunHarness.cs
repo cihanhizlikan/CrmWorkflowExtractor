@@ -22,13 +22,13 @@ internal sealed class TemporaryOutput : IDisposable
 /// <summary>Runs <see cref="ExtractionRun"/> end to end against a fake server.</summary>
 internal static class RunHarness
 {
-    public static async Task<(ExitCode Code, string RunRoot, string Console)> RunAsync(FakeCrmServer server, TemporaryOutput output, bool requirePrivileges = true, string reprocessRunId = "")
+    public static async Task<(ExitCode Code, string RunRoot, string Console)> RunAsync(FakeCrmServer server, TemporaryOutput output, bool requirePrivileges = true, string reprocessRunId = "", string importFile = "")
     {
         CrmConnectionOptions crm = FakeOrganization.Options();
         ExtractorSettings settings = new(
             Options.Create(crm),
             Options.Create(new OutputOptions { Root = output.Root }),
-            Options.Create(new RunOptions { RequireOrganizationReadPrivileges = requirePrivileges, ReprocessRunId = reprocessRunId }));
+            Options.Create(new RunOptions { RequireOrganizationReadPrivileges = requirePrivileges, ReprocessRunId = reprocessRunId, ImportFile = importFile }));
         using StringWriter console = new();
         ExtractionRun run = new(settings, null, (options, _, logger) => FakeOrganization.ClientFor(server, options, logger), TimeProvider.System, console);
 

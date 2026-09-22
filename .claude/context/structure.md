@@ -13,6 +13,7 @@ The stages after retrieval read only the run folder, never the network.
 | `Crm.Consolidation` | combining a family into one workflow (prefix union with Variant splits), provenance reconciliation | no |
 | `Crm.Cli` | `Program.Main`, configuration binding, stage orchestration, reports, exit codes | via `Crm.Extract` |
 | `Crm.Tests` | xUnit v3 over recorded fixtures (`Crm.Tests/Fixtures/`) — never a live server | no |
+| `tools/` | `crm-browser-export.js` (runs on a CRM page in the user's browser, GET only) and the bookmarklet page generated from it | the user's browser |
 
 ## Run output (`out/`, gitignored)
 

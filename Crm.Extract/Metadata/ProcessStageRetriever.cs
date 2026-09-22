@@ -17,15 +17,17 @@ public sealed class ProcessStageRetriever(CrmHttpClient client, int pageSize)
         List<ProcessStage> stages = [];
         await foreach (ODataPage page in pager.GetPagesAsync("processstages?$select=processstageid,stagename,stagecategory,_processid_value,primaryentitytypecode", pageSize, token))
         {
-            foreach (JsonElement row in page.Records)
-            {
-                if (Json.OptionalGuid(row, "processstageid") is Guid id)
-                {
-                    stages.Add(new ProcessStage(id, Json.OptionalGuid(row, "_processid_value"), Json.OptionalString(row, "stagename") ?? "",
-                        Json.OptionalInt(row, "stagecategory"), Json.OptionalString(row, "primaryentitytypecode")));
-                }
-            }
+            stages.AddRange(page.Records.Select(Parse).OfType<ProcessStage>());
         }
         return [.. stages.OrderBy(stage => stage.ProcessId).ThenBy(stage => stage.StageId)];
+    }
+
+    /// <summary>One <c>processstages</c> record, or null when it has no id.</summary>
+    public static ProcessStage? Parse(JsonElement row)
+    {
+        return Json.OptionalGuid(row, "processstageid") is Guid id
+            ? new ProcessStage(id, Json.OptionalGuid(row, "_processid_value"), Json.OptionalString(row, "stagename") ?? "",
+                Json.OptionalInt(row, "stagecategory"), Json.OptionalString(row, "primaryentitytypecode"))
+            : null;
     }
 }

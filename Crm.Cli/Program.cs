@@ -24,6 +24,7 @@ public static class Program
     private const string OutputRoot = "out";
     private const string RequireOrganizationReadPrivileges = "true";
     private const string ReprocessRunId = "";               // e.g. "20260915-101500": rebuild from that run's raw/, no network
+    private const string ImportFile = "";                   // e.g. "D:/exports/crm-export-20260922-150000.json" (tools/crm-export.html)
     // -----------------------------------------------------------------------------------------------------------
 
     public static async Task<int> Main()
@@ -32,9 +33,9 @@ public static class Program
 
         IConfigurationRoot configuration = ExtractorSettings.BuildConfiguration(Fallback(), AppContext.BaseDirectory);
         ExtractorSettings settings = ExtractorSettings.Bind(configuration);
-        if (settings.Run.Value.ReprocessRunId.Trim().Length > 0)
+        if (settings.Run.Value.ReprocessRunId.Trim().Length > 0 || settings.Run.Value.ImportFile.Trim().Length > 0)
         {
-            // Reprocessing reads an earlier run's evidence and never contacts the server, so no connection settings are needed.
+            // Reprocessing and importing read files and never contact the server, so no connection settings are needed.
             return await RunAsync(settings, null);
         }
 
@@ -94,7 +95,8 @@ public static class Program
             ["Crm:RequestTimeoutSeconds"] = RequestTimeoutSeconds,
             ["Output:Root"] = OutputRoot,
             ["Run:RequireOrganizationReadPrivileges"] = RequireOrganizationReadPrivileges,
-            ["Run:ReprocessRunId"] = ReprocessRunId
+            ["Run:ReprocessRunId"] = ReprocessRunId,
+            ["Run:ImportFile"] = ImportFile
         };
     }
 }

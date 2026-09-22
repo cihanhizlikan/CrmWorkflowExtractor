@@ -39,10 +39,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
             logger.LogInformation("Run {RunId} started by tool {Version}", state.RunId, state.ToolVersion);
             try
             {
-                string reprocess = settings.Run.Value.ReprocessRunId.Trim();
-                records = reprocess.Length > 0
-                    ? await Reprocessing.LoadAsync(folder, state, settings.Output.Value.ResolvedRoot(), reprocess, logger, token)
-                    : await ExecuteStagesAsync(folder, state, logger, token);
+                records = await LoadSourceAsync(folder, state, logger, token);
                 if (state.Failures.Count == 0 && state.StagesRun.Contains("xaml"))
                 {
                     await OfflineStages.RunAsync(folder, state, settings, started, logger, token);
@@ -92,6 +89,22 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
         return state.ExitCode;
     }
 
+    /// <summary>Where the evidence comes from: an earlier run (reprocess), a browser export (import), or the Web API.</summary>
+    private async Task<IReadOnlyList<WorkflowInventoryRecord>> LoadSourceAsync(RunFolder folder, RunState state, ILogger logger, CancellationToken token)
+    {
+        string reprocess = settings.Run.Value.ReprocessRunId.Trim();
+        if (reprocess.Length > 0)
+        {
+            return await Reprocessing.LoadAsync(folder, state, settings.Output.Value.ResolvedRoot(), reprocess, logger, token);
+        }
+        string import = settings.Run.Value.ImportFile.Trim();
+        if (import.Length > 0)
+        {
+            return await BrowserExportImport.LoadAsync(folder, state, settings.Run.Value.RequireOrganizationReadPrivileges, import, logger, token);
+        }
+        return await ExecuteStagesAsync(folder, state, logger, token);
+    }
+
     private async Task<IReadOnlyList<WorkflowInventoryRecord>> ExecuteStagesAsync(RunFolder folder, RunState state, ILogger logger, CancellationToken token)
     {
         CrmConnectionOptions crm = settings.Crm.Value;
@@ -112,7 +125,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
 
         state.Privileges = await PrivilegeCheck.RunAsync(client, state.Identity.UserId, token);
         state.StagesRun.Add("privileges");
-        ApplyPrivilegeVerdicts(state);
+        ApplyPrivilegeVerdicts(state, settings.Run.Value.RequireOrganizationReadPrivileges);
 
         (IReadOnlyList<string> available, IReadOnlyList<string> missing) = await WorkflowColumns.ResolveAsync(client, token);
         state.ColumnsSelected = available;
@@ -151,7 +164,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
         return pass.Records;
     }
 
-    private void ApplyPrivilegeVerdicts(RunState state)
+    internal static void ApplyPrivilegeVerdicts(RunState state, bool requireOrganizationRead)
     {
         foreach (PrivilegeFinding finding in state.Privileges)
         {
@@ -159,7 +172,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
             if (finding.Verdict is PrivilegeVerdict.Missing or PrivilegeVerdict.Insufficient)
             {
                 string message = $"{subject} is held at depth '{finding.Depth}', not organization level. Reads of this table return only part of the data (§2.4).";
-                if (settings.Run.Value.RequireOrganizationReadPrivileges)
+                if (requireOrganizationRead)
                 {
                     state.Fail(ExitCode.RunFailed, message);
                 }

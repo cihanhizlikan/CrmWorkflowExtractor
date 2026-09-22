@@ -33,6 +33,13 @@ public sealed class RunOptions
     /// away from the company network.
     /// </summary>
     public string ReprocessRunId { get; set; } = "";
+
+    /// <summary>
+    /// Path to a <c>crm-export-*.json</c> file saved by <c>tools/crm-browser-export.js</c>. When set, nothing is fetched: the
+    /// export becomes this run's raw/ evidence and every stage after retrieval runs over it. A relative path resolves
+    /// against the executable's folder.
+    /// </summary>
+    public string ImportFile { get; set; } = "";
 }
 
 /// <summary>The bound, validated configuration for one run.</summary>
