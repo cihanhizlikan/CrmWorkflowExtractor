@@ -24,7 +24,7 @@ public sealed class ReconciliationTests
         ReconciliationResult result = InventoryReconciliation.Evaluate(5, [Definition(0, owner: 1), Definition(2, owner: 2)]);
 
         Assert.False(result.Passed);
-        Assert.Contains(result.Failures, failure => failure.Contains("reported 5 workflows but 2 were retrieved", StringComparison.Ordinal));
+        Assert.Contains(result.Failures, failure => failure.Contains("$count 5 iş akışı bildirdi, 2 kayıt alındı", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public sealed class ReconciliationTests
         ReconciliationResult result = InventoryReconciliation.Evaluate(-1, [Definition(0, owner: 1), Definition(2, owner: 2)]);
 
         Assert.True(result.Passed);
-        Assert.Contains(result.Warnings, warning => warning.StartsWith("The server gave no independent count (it answered -1)", StringComparison.Ordinal));
+        Assert.Contains(result.Warnings, warning => warning.StartsWith("Sunucu bağımsız bir sayım vermedi (-1 yanıtladı)", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class ReconciliationTests
         ReconciliationResult result = InventoryReconciliation.Evaluate(2, [Definition(0, owner: 1), Definition(0, owner: 2)]);
 
         Assert.False(result.Passed);
-        Assert.Contains(result.Failures, failure => failure.Contains("duplicates", StringComparison.Ordinal));
+        Assert.Contains(result.Failures, failure => failure.Contains("yinelenen kayıt", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class ReconciliationTests
 
         ReconciliationResult result = InventoryReconciliation.Evaluate(InventoryReconciliation.CountCap, records);
 
-        Assert.Contains(result.Failures, failure => failure.Contains("cap", StringComparison.Ordinal));
+        Assert.Contains(result.Failures, failure => failure.Contains("üst sınırı", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public sealed class ReconciliationTests
         ReconciliationResult result = InventoryReconciliation.Evaluate(2, [Definition(0, owner: 7), Definition(2, owner: 7)]);
 
         Assert.True(result.Passed);
-        Assert.Contains(result.Warnings, warning => warning.StartsWith("ONLY ONE DISTINCT OWNER", StringComparison.Ordinal));
+        Assert.Contains(result.Warnings, warning => warning.StartsWith("BÜTÜN İŞ AKIŞLARINDA YALNIZCA TEK BİR SAHİP", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed class ReconciliationTests
     {
         ReconciliationResult result = InventoryReconciliation.Evaluate(2, [Definition(0, owner: 1), Activation(1, parent: 40, owner: 2)]);
 
-        Assert.Contains(result.Warnings, warning => warning.Contains("activation record(s) point at no retrieved definition", StringComparison.Ordinal));
+        Assert.Contains(result.Warnings, warning => warning.Contains("alınmış hiçbir tanımı göstermiyor", StringComparison.Ordinal));
     }
 
     private static WorkflowInventoryRecord Definition(int index, int owner)

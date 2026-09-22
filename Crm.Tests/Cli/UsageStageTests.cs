@@ -28,25 +28,25 @@ public sealed class UsageStageTests
             importFile: Fixture("mock-crm-export.json"), usageFile: Fixture("mock-usage-export.json"));
 
         Assert.True(code == ExitCode.Success, console);
-        Assert.Equal(File.ReadAllBytes(Fixture("mock-usage-export.json")), File.ReadAllBytes(Path.Combine(runRoot, "raw", "usage-export.json")));
-        Assert.Contains("1 failed lookup(s)", console, StringComparison.Ordinal);
+        Assert.Equal(File.ReadAllBytes(Fixture("mock-usage-export.json")), File.ReadAllBytes(Path.Combine(runRoot, "ham", "kullanim-disa-aktarim.json")));
+        Assert.Contains("1 sorgu başarısız oldu", console, StringComparison.Ordinal);
 
-        string usage = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "reports", "usage.csv")));
+        string usage = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "kullanim.csv")));
         string ran = Assert.Single(usage.Split("\r\n"), line => line.Contains(DefinitionThatRan.ToString("D"), StringComparison.Ordinal));
         Assert.Contains("2026-09-20", ran, StringComparison.Ordinal);
-        Assert.Contains("Used: last logged run 2026-09-20 (system job)", ran, StringComparison.Ordinal);
-        Assert.Contains("No logged run; the oldest run seen anywhere is 2026-09-20: NOT proof of non-use", usage, StringComparison.Ordinal);
-        Assert.Contains("Draft: cannot start new runs", usage, StringComparison.Ordinal);
+        Assert.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20 (sistem işi)", ran, StringComparison.Ordinal);
+        Assert.Contains("Kayıtlı çalışma yok; görülen en eski çalışma 2026-09-20: kullanılmadığının KANITI DEĞİLDİR", usage, StringComparison.Ordinal);
+        Assert.Contains("Taslak: yeni çalıştırma başlatamaz", usage, StringComparison.Ordinal);
 
         // 44 drafts in the fixture, one without XAML (the simulated failure), so 43 IR documents: listed on their own, absent from clusters.csv, and the count chain still balances.
-        string drafts = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "clusters", "drafts.csv")));
+        string drafts = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "aileler", "taslaklar.csv")));
         Assert.Equal(1 + 43, drafts.Split("\r\n", StringSplitOptions.RemoveEmptyEntries).Length);
-        string clusters = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "clusters", "clusters.csv")));
+        string clusters = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "aileler", "aileler.csv")));
         Assert.DoesNotContain("Hasar Onay", clusters, StringComparison.Ordinal);
         Assert.Contains("2026-09-20", clusters, StringComparison.Ordinal);
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
-        Assert.All(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— ok", link.GetString(), StringComparison.Ordinal));
-        Assert.Contains(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => link.GetString()!.Contains("workflows placed in a cluster + drafts held apart", StringComparison.Ordinal));
+        Assert.All(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— uygun", link.GetString(), StringComparison.Ordinal));
+        Assert.Contains(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => link.GetString()!.Contains("aileye yerleşen + ayrı tutulan taslak", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class UsageStageTests
         (ExitCode code, string second, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, reprocessRunId: Path.GetFileName(first));
 
         Assert.True(code == ExitCode.Success, console);
-        Assert.Contains("Used: last logged run 2026-09-20", File.ReadAllText(Path.Combine(second, "reports", "usage.csv")), StringComparison.Ordinal);
+        Assert.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20", File.ReadAllText(Path.Combine(second, "raporlar", "kullanim.csv")), StringComparison.Ordinal);
     }
 
     /// <summary>Asking the server for the oldest record of all sorts the whole System Job table; production leaves it pending.</summary>
@@ -103,11 +103,11 @@ public sealed class UsageStageTests
     {
         UsageEvidence usage = new(DateTimeOffset.Parse("2026-06-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), null, "", new Dictionary<Guid, WorkflowUsage>());
 
-        Assert.StartsWith("Unknowable", UsageStage.Verdict(Identity("Business Rule", "Background", "Activated"), usage), StringComparison.Ordinal);
-        Assert.StartsWith("No failure logged", UsageStage.Verdict(Identity("Workflow", "Real-time", "Activated"), usage), StringComparison.Ordinal);
-        Assert.Contains("NOT proof of non-use", UsageStage.Verdict(Identity("Workflow", "Background", "Activated"), usage), StringComparison.Ordinal);
-        Assert.Contains("NOT proof of non-use", UsageStage.Verdict(Identity("Dialog", "Background", "Activated"), usage), StringComparison.Ordinal);
-        Assert.StartsWith("Draft", UsageStage.Verdict(Identity("Workflow", "Background", "Draft"), usage), StringComparison.Ordinal);
+        Assert.StartsWith("Bilinemez", UsageStage.Verdict(Identity("İş Kuralı", "Arka plan", "Activated"), usage), StringComparison.Ordinal);
+        Assert.StartsWith("Hata kaydı yok", UsageStage.Verdict(Identity("İş Akışı", "Gerçek zamanlı", "Etkin"), usage), StringComparison.Ordinal);
+        Assert.Contains("KANITI DEĞİLDİR", UsageStage.Verdict(Identity("İş Akışı", "Arka plan", "Etkin"), usage), StringComparison.Ordinal);
+        Assert.Contains("KANITI DEĞİLDİR", UsageStage.Verdict(Identity("Diyalog", "Arka plan", "Etkin"), usage), StringComparison.Ordinal);
+        Assert.StartsWith("Taslak", UsageStage.Verdict(Identity("İş Akışı", "Arka plan", "Taslak"), usage), StringComparison.Ordinal);
     }
 
     private static WorkflowIdentity Identity(string category, string mode, string state)

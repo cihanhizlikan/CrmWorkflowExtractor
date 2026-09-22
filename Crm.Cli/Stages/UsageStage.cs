@@ -23,9 +23,13 @@ public sealed record UsageEvidence(DateTimeOffset? OldestWorkflowJob, DateTimeOf
 /// </summary>
 public static partial class UsageStage
 {
-    public const string EvidenceFile = "raw/usage-export.json";
+    public const string EvidenceFile = RunPaths.RawUsageExport;
     public const string Format = "crm-usage-export/1";
-    public const string DraftState = "Draft";
+    public const string DraftState = ProcessLabels.StateDraft;
+
+    /// <summary>What kind of record proved a run; also the wording the reports print.</summary>
+    public const string SourceSystemJob = "sistem işi";
+    public const string SourceDialogSession = "diyalog oturumu";
 
     /// <summary>
     /// Copies <c>Run:UsageFile</c> into the run as evidence when set; then reads the run's evidence copy, which a
@@ -39,7 +43,7 @@ public static partial class UsageStage
             string file = Path.IsPathRooted(path) ? path : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, path));
             if (!File.Exists(file))
             {
-                throw new InvalidOperationException($"Run:UsageFile '{file}' does not exist.");
+                throw new InvalidOperationException($"Run:UsageFile '{file}' bulunamadı.");
             }
             await folder.CopyVerbatimAsync(file, EvidenceFile, token);
         }
@@ -49,13 +53,13 @@ public static partial class UsageStage
             return null;
         }
         UsageEvidence usage = Parse(await File.ReadAllTextAsync(evidence, token));
-        state.StagesRun.Add("usage");
+        state.StagesRun.Add(RunStages.Usage);
         state.Counts["usage.definitions"] = usage.Workflows.Count;
         state.Counts["usage.withLoggedRun"] = usage.Workflows.Values.Count(entry => entry.LastLoggedRun is not null);
         int failed = usage.Workflows.Values.Sum(entry => entry.FailedLookups);
         if (failed > 0)
         {
-            state.Warnings.Add($"The usage export has {failed} failed lookup(s); those workflows show no logged run for that reason, not because none exists.");
+            state.Warnings.Add($"Kullanım dışa aktarımında {failed} sorgu başarısız oldu; o iş akışlarında kayıtlı çalışma görünmemesinin nedeni budur, kayıt olmaması değil.");
         }
         logger.LogInformation("Usage evidence exported {At}: {Definitions} definitions, {Logged} with a logged run", usage.ExportedAtUtc, usage.Workflows.Count, state.Counts["usage.withLoggedRun"]);
         return usage;
@@ -67,7 +71,7 @@ public static partial class UsageStage
         JsonElement root = document.RootElement;
         if (!root.TryGetProperty("format", out JsonElement format) || format.GetString() != Format)
         {
-            throw new InvalidDataException($"The usage file is not a {Format} file (tools/crm-usage-export.js).");
+            throw new InvalidDataException($"Kullanım dosyası bir {Format} dosyası değil (tools/crm-usage-export.js).");
         }
         Dictionary<Guid, WorkflowUsage> workflows = [];
         List<DateTimeOffset> jobRuns = [];
@@ -76,7 +80,7 @@ public static partial class UsageStage
         {
             List<(DateTimeOffset At, string Source)> runs = [];
             int failed = 0;
-            foreach ((string list, string source) in new[] { ("jobs", "system job"), ("sessions", "dialog session") })
+            foreach ((string list, string source) in new[] { ("jobs", SourceSystemJob), ("sessions", SourceDialogSession) })
             {
                 foreach (JsonElement lookup in entry.Value.GetProperty(list).EnumerateArray())
                 {
@@ -87,7 +91,7 @@ public static partial class UsageStage
                     else if (CreatedOn(lookup) is DateTimeOffset at)
                     {
                         runs.Add((at, source));
-                        (source == "system job" ? jobRuns : sessionRuns).Add(at);
+                        (source == SourceSystemJob ? jobRuns : sessionRuns).Add(at);
                     }
                 }
             }
@@ -122,7 +126,7 @@ public static partial class UsageStage
     {
         if (identity.State == DraftState)
         {
-            return "Draft: cannot start new runs";
+            return "Taslak: yeni çalıştırma başlatamaz";
         }
         if (usage is null)
         {
@@ -130,25 +134,25 @@ public static partial class UsageStage
         }
         if (usage.Workflows.GetValueOrDefault(identity.WorkflowId) is { LastLoggedRun: DateTimeOffset last } found)
         {
-            return $"Used: last logged run {Day(last)} ({found.Source})";
+            return $"Kullanılıyor: son kayıtlı çalışma {Day(last)} ({found.Source})";
         }
-        if (identity.Category == "Business Rule")
+        if (identity.Category == ProcessLabels.CategoryBusinessRule)
         {
-            return "Unknowable: business rules run in the browser and are never logged";
+            return "Bilinemez: iş kuralları tarayıcıda çalışır ve hiç kayıt bırakmaz";
         }
-        if (identity.Mode == "Real-time")
+        if (identity.Mode == ProcessLabels.ModeRealTime)
         {
-            return "No failure logged: real-time workflows log only failures, so this says nothing about use";
+            return "Hata kaydı yok: gerçek zamanlı akışlar yalnızca hatayı kaydeder, bu bilgi kullanım hakkında bir şey söylemez";
         }
-        DateTimeOffset? horizon = identity.Category == "Dialog" ? usage.OldestDialogSession : usage.OldestWorkflowJob;
+        DateTimeOffset? horizon = identity.Category == ProcessLabels.CategoryDialog ? usage.OldestDialogSession : usage.OldestWorkflowJob;
         return horizon is DateTimeOffset since
-            ? $"No logged run; the oldest run seen anywhere is {Day(since)}: NOT proof of non-use (jobs are deleted routinely)"
-            : "No logged run, and no log at all to compare with: NOT proof of non-use";
+            ? $"Kayıtlı çalışma yok; görülen en eski çalışma {Day(since)}: kullanılmadığının KANITI DEĞİLDİR (sistem işleri düzenli olarak silinir)"
+            : "Kayıtlı çalışma yok ve karşılaştırılacak hiç kayıt bulunamadı: kullanılmadığının KANITI DEĞİLDİR";
     }
 
     public static async Task WriteReportAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage, CancellationToken token)
     {
-        ExcelCsv csv = new("workflow_name", "bpmn_file", "workflow_id", "category", "mode", "state", "name_suggests_test", "last_logged_run", "evidence", "verdict");
+        ExcelCsv csv = new("is_akisi", "bpmn_dosyasi", "is_akisi_id", "kategori", "mod", "durum", "adi_deneme_gibi", "son_kayitli_calisma", "kanit", "hukum");
         foreach (WorkflowIr document in documents.OrderBy(document => document.Identity.Name, StringComparer.Ordinal))
         {
             WorkflowIdentity identity = document.Identity;
@@ -157,36 +161,36 @@ public static partial class UsageStage
             csv.Row(identity.Name, bpmn, identity.WorkflowId, identity.Category, identity.Mode, identity.State, NameSuggestsTest(identity.Name),
                 found?.LastLoggedRun is DateTimeOffset last ? Day(last) : "", found?.Source ?? "", Verdict(identity, usage));
         }
-        await folder.WriteBytesAsync("reports/usage.csv", csv.ToBytes(), token);
+        await folder.WriteBytesAsync(RunPaths.UsageCsv, csv.ToBytes(), token);
 
         List<WorkflowIr> drafts = [.. documents.Where(document => document.Identity.State == DraftState)];
         List<WorkflowIr> testNamedActive = [.. documents.Where(document => document.Identity.State != DraftState && NameSuggestsTest(document.Identity.Name))];
         StringBuilder text = new();
-        text.AppendLine("# Usage").AppendLine();
-        text.AppendLine("Only two things are certain: a **Draft** definition cannot start a run (runs already waiting from before it was deactivated can still finish), and a **logged run** proves the workflow ran. No logged run proves nothing: System Jobs are deleted routinely, real-time workflows log only failures, and business rules are never logged.").AppendLine();
+        text.AppendLine("# Kullanım").AppendLine();
+        text.AppendLine("Yalnızca iki şey kesindir: **Taslak** bir tanım yeni çalıştırma başlatamaz (devre dışı bırakılmadan önce beklemeye girmiş çalıştırmalar tamamlanabilir) ve **kayıtlı bir çalışma** o akışın çalıştığını kanıtlar. Kaydın bulunmaması hiçbir şeyi kanıtlamaz: sistem işleri düzenli olarak silinir, gerçek zamanlı akışlar yalnızca hatayı kaydeder, iş kuralları ise hiç kayıt bırakmaz.").AppendLine();
         if (usage is null)
         {
-            text.AppendLine("No usage evidence in this run. Export it with `tools/crm-usage.html` and set `Run:UsageFile`.").AppendLine();
+            text.AppendLine("Bu çalıştırmada kullanım kanıtı yok. `tools/crm-usage.html` ile dışa aktarıp `Run:UsageFile` ayarını verin.").AppendLine();
         }
         else
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"Evidence exported {usage.ExportedAtUtc}. Oldest System Job seen: **{(usage.OldestWorkflowJob is DateTimeOffset job ? Day(job) : "none")}**; oldest dialog session seen: **{(usage.OldestDialogSession is DateTimeOffset session ? Day(session) : "none")}**. These are the oldest runs found, so they are a floor on how far the logs reach, not the retention setting.").AppendLine();
+            text.AppendLine(CultureInfo.InvariantCulture, $"Kanıt {usage.ExportedAtUtc} tarihinde alındı. Görülen en eski sistem işi: **{(usage.OldestWorkflowJob is DateTimeOffset job ? Day(job) : "yok")}**; görülen en eski diyalog oturumu: **{(usage.OldestDialogSession is DateTimeOffset session ? Day(session) : "yok")}**. Bunlar bulunan en eski çalışmalardır; kayıtların ne kadar geriye gittiğinin alt sınırını verir, saklama ayarını değil.").AppendLine();
         }
-        text.AppendLine("| Verdict | Definitions |").AppendLine("|---|---:|");
+        text.AppendLine("| Hüküm | Tanım |").AppendLine("|---|---:|");
         foreach (IGrouping<string, string> group in documents.Select(document => VerdictKind(Verdict(document.Identity, usage))).GroupBy(kind => kind).OrderBy(group => group.Key, StringComparer.Ordinal))
         {
             text.AppendLine(CultureInfo.InvariantCulture, $"| {group.Key} | {group.Count()} |");
         }
         text.AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"**Draft definitions ({drafts.Count})** are held apart from similarity grouping and combining; each still has its IR and BPMN, and they are listed in `clusters/drafts.csv`.").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"## Activated, with a name that reads like a draft or test ({testNamedActive.Count})").AppendLine();
-        text.AppendLine("These can run in production, so they stay in the grouping. Read the verdict before treating any as unused.").AppendLine();
-        text.AppendLine("| Workflow | Category | Mode | Verdict |").AppendLine("|---|---|---|---|");
+        text.AppendLine(CultureInfo.InvariantCulture, $"**Taslak tanımlar ({drafts.Count})** benzerlik gruplamasının ve birleştirmenin dışında tutulur; her birinin ara modeli ve BPMN dosyası yine üretilir, listeleri `{Crm.Extract.Runs.RunPaths.DraftsCsv}` dosyasındadır.").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"## Adı taslak veya deneme gibi okunan etkin akışlar ({testNamedActive.Count})").AppendLine();
+        text.AppendLine("Bunlar üretimde çalışabilir, bu yüzden gruplamada kalırlar. Herhangi birini kullanılmıyor saymadan önce hükmü okuyun.").AppendLine();
+        text.AppendLine("| İş akışı | Kategori | Mod | Hüküm |").AppendLine("|---|---|---|---|");
         foreach (WorkflowIr document in testNamedActive.OrderBy(document => document.Identity.Name, StringComparer.Ordinal))
         {
             text.AppendLine(CultureInfo.InvariantCulture, $"| {document.Identity.Name} | {document.Identity.Category} | {document.Identity.Mode} | {Verdict(document.Identity, usage)} |");
         }
-        await folder.WriteTextAsync("reports/usage.md", text.ToString(), token);
+        await folder.WriteTextAsync(RunPaths.Usage, text.ToString(), token);
         state.Counts["usage.drafts"] = drafts.Count;
         state.Counts["usage.testNamedActive"] = testNamedActive.Count;
     }
@@ -194,7 +198,7 @@ public static partial class UsageStage
     private static string VerdictKind(string verdict)
     {
         int colon = verdict.IndexOf(':', StringComparison.Ordinal);
-        return verdict.Length == 0 ? "No evidence file" : colon < 0 ? verdict : verdict[..colon];
+        return verdict.Length == 0 ? "Kanıt dosyası yok" : colon < 0 ? verdict : verdict[..colon];
     }
 
     private static string Day(DateTimeOffset at)

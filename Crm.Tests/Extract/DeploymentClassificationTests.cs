@@ -71,6 +71,6 @@ public sealed class DeploymentClassificationTests
         Assert.Single(server.Requests);
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
         Assert.Equal("failed", manifest.RootElement.GetProperty("status").GetString());
-        Assert.DoesNotContain("inventory", manifest.RootElement.GetProperty("stagesRun").EnumerateArray().Select(stage => stage.GetString()));
+        Assert.DoesNotContain("envanter", manifest.RootElement.GetProperty("stagesRun").EnumerateArray().Select(stage => stage.GetString()));
     }
 }

@@ -13,6 +13,25 @@ namespace Crm.Cli.Stages;
 /// </summary>
 public static class Reprocessing
 {
+    /// <summary>
+    /// The source run's evidence, copied into this one. A run made before the output was Turkish keeps its evidence
+    /// under <c>raw/</c>; it is read from there and written under <c>ham/</c>, so an older run still reprocesses.
+    /// </summary>
+    private static async Task CopyEvidenceAsync(RunFolder folder, string source, CancellationToken token)
+    {
+        string raw = Path.Combine(source, RunPaths.Raw);
+        if (!Directory.Exists(raw))
+        {
+            raw = Path.Combine(source, RunPaths.RawEnglish);
+        }
+        foreach (string file in Directory.EnumerateFiles(raw, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        {
+            string relative = RunPaths.Raw + "/" + Path.GetRelativePath(raw, file).Replace(Path.DirectorySeparatorChar, '/')
+                .Replace("xaml/index.json", "xaml/dizin.json", StringComparison.Ordinal);
+            await folder.CopyVerbatimAsync(file, relative, token);
+        }
+    }
+
     private static CrmIdentity? UserOf(JsonElement manifest)
     {
         if (!manifest.TryGetProperty("authenticatedUser", out JsonElement user) || user.ValueKind != JsonValueKind.Object
@@ -43,15 +62,10 @@ public static class Reprocessing
         string manifestPath = Path.Combine(source, RunFolder.ManifestFileName);
         if (!File.Exists(manifestPath))
         {
-            throw new InvalidOperationException($"Run:ReprocessRunId '{runId}' is not a sealed run under {Path.Combine(outputRoot, "runs")}.");
+            throw new InvalidOperationException($"Run:ReprocessRunId '{runId}', {Path.Combine(outputRoot, "runs")} altında mühürlenmiş bir çalıştırma değil.");
         }
 
-        string raw = Path.Combine(source, "raw");
-        foreach (string file in Directory.EnumerateFiles(raw, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
-        {
-            string relative = "raw/" + Path.GetRelativePath(raw, file).Replace(Path.DirectorySeparatorChar, '/');
-            await folder.CopyVerbatimAsync(file, relative, token);
-        }
+        await CopyEvidenceAsync(folder, source, token);
 
         using JsonDocument manifest = JsonDocument.Parse(await File.ReadAllTextAsync(manifestPath, token));
         JsonElement root = manifest.RootElement;
@@ -78,8 +92,8 @@ public static class Reprocessing
         state.Reconciliation = InventoryReconciliation.Evaluate(apiCount, records);
         state.Warnings.AddRange(state.Reconciliation.Warnings);
         state.Records = records;
-        state.StagesRun.Add("reprocess:" + runId);
-        state.StagesRun.Add("xaml");
+        state.StagesRun.Add(RunStages.Reprocess(runId));
+        state.StagesRun.Add(RunStages.Xaml);
 
         await RetrievalStages.RouteAndDriftAsync(folder, state, XamlEntry.ReadIndex(folder.Root), token);
         logger.LogInformation("Reprocessing run {Source}: {Records} inventory records, no network access", runId, records.Count);

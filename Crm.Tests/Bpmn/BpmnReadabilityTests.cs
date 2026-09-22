@@ -47,8 +47,8 @@ public sealed class BpmnReadabilityTests
         XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(ir), "test");
         List<string> names = [.. xml.Descendants(BpmnSerializer.Model + "serviceTask").Select(task => task.Attribute("name")!.Value)];
 
-        Assert.Equal("Update: new_policy · new_status, new_reason", names[0]);
-        Assert.Equal("Update: Poliçeyi askıya al", names[1]);
+        Assert.Equal("Kayıt güncelle: new_policy · new_status, new_reason", names[0]);
+        Assert.Equal("Kayıt güncelle: Poliçeyi askıya al", names[1]);
         // The internal id is evidence, so it stays in the documentation.
         Assert.Contains(xml.Descendants(BpmnSerializer.Model + "documentation"), text => text.Value.Contains("UpdateStep3", StringComparison.Ordinal));
     }
@@ -61,7 +61,7 @@ public sealed class BpmnReadabilityTests
 
         XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(ir, new Dictionary<Guid, string> { [child] = "İptal Bildirimi" }), "test");
 
-        Assert.Equal("Start child workflow: İptal Bildirimi", xml.Descendants(BpmnSerializer.Model + "callActivity").Single().Attribute("name")!.Value);
+        Assert.Equal("Alt iş akışı başlat: İptal Bildirimi", xml.Descendants(BpmnSerializer.Model + "callActivity").Single().Attribute("name")!.Value);
     }
 
     /// <summary>Without label bounds a viewer paints a gateway's text across the diamond itself. This is that guarantee.</summary>
@@ -147,12 +147,12 @@ public sealed class BpmnReadabilityTests
     {
         List<StepNode> paths = [.. steps.Select((step, index) => step with { Path = index.ToString(System.Globalization.CultureInfo.InvariantCulture) })];
         return new WorkflowIr(
-            new WorkflowIdentity(Guid.Parse("55555555-5555-5555-5555-555555555555"), "Poliçe İptal", null, "Workflow", "Definition", "new_policy", "Background", "Organization", "Activated", false, false, null, null, null, 1, true),
+            new WorkflowIdentity(Guid.Parse("55555555-5555-5555-5555-555555555555"), "Poliçe İptal", null, "İş Akışı", "Tanım", "new_policy", "Arka plan", "Kuruluş", "Etkin", false, false, null, null, null, 1, true),
             new WorkflowTrigger(true, false, [], null, null, null, "Owner", false),
             paths,
             new WorkflowDependencies([], []),
             new DataTouched([], [], [], []),
             [],
-            new IrProvenance("raw/xaml/x.xaml", "abc", "2026-09-23T00:00:00Z", "test"));
+            new IrProvenance("ham/xaml/x.xaml", "abc", "2026-09-23T00:00:00Z", "test"));
     }
 }

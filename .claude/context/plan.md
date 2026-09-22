@@ -402,3 +402,16 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   Case") appear there, and the company's own Turkish-named flows do NOT. **Capture:** the row count and whether
   that holds. **If the file is empty**, this server keeps those processes unmanaged and the flag cannot do the
   job — then ask the CRM team which solution they belong to.
+
+### Turkish output (2026-09-23) — committed
+- **Maintainer:** every output file, in name and in content, is Turkish; anything that comes from CRM stays as it is.
+- **Built:** `RunPaths` (folders and files: `ham/`, `ara-model/`, `aileler/`, `birlesik/`, `elle-inceleme/`,
+  `raporlar/`, `gunlukler/`; `rapor.md`, `tasima-plani.csv`, `kullanim.md`, `cagri-agaci.md`, `veri-ayak-izi.md`,
+  `ayristirma-kapsami.md`, `hassas-degerler.md`, `sapma.md`, `birlestirme.md`, `aileler.csv`, `taslaklar.csv`,
+  `urunle-gelenler.csv`, `dizin.csv`), `RunStages` (stage names) and `ProcessLabels` (category, mode and state
+  labels, which the usage verdicts, the priority bands and the Draft split branch on — `OptionLabelTests` pins them
+  to the §3.1 tables). Every report, CSV header, BPMN label and documentation line, the console summary and every
+  warning and failure is Turkish.
+- **Left in English on purpose:** configuration messages (they name `appsettings.json` keys), `manifest.json` keys
+  and the IR JSON schema (machine-read), `ILogger` diagnostics, and the code itself.
+- **Compatibility:** a run from before this still reprocesses — its `raw/` is read and copied forward as `ham/`.

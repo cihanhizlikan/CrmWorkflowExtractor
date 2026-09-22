@@ -17,11 +17,11 @@ public static partial class SensitiveLiteralScanner
 {
     private static readonly (string Category, Regex Pattern)[] Rules =
     [
-        ("credential in URL", CredentialUrl()),
-        ("password or secret", Secret()),
-        ("connection string", ConnectionString()),
-        ("user name", UserName()),
-        ("hardcoded URL", Url())
+        ("adres içinde kimlik bilgisi", CredentialUrl()),
+        ("parola veya gizli anahtar", Secret()),
+        ("bağlantı dizesi", ConnectionString()),
+        ("kullanıcı adı", UserName()),
+        ("gömülü adres", Url())
     ];
 
     public static IReadOnlyList<SensitiveFinding> Scan(Guid workflowId, string workflowName, string sourceFile, IReadOnlyList<XamlLiteral> literals)
@@ -37,7 +37,7 @@ public static partial class SensitiveLiteralScanner
             {
                 if (pattern.IsMatch(literal.Text))
                 {
-                    findings.Add(new SensitiveFinding(workflowId, workflowName, sourceFile, literal.Path.Length == 0 ? "root" : literal.Path, category));
+                    findings.Add(new SensitiveFinding(workflowId, workflowName, sourceFile, literal.Path.Length == 0 ? "kök" : literal.Path, category));
                     break;
                 }
             }
@@ -48,11 +48,11 @@ public static partial class SensitiveLiteralScanner
     public static string Markdown(IReadOnlyList<SensitiveFinding> findings)
     {
         StringBuilder text = new();
-        text.AppendLine("# Sensitive literals — RESTRICTED").AppendLine();
-        text.AppendLine("For the security team. Values are redacted by design; open the source XAML named here to see one. "
-            + "Do not circulate this file.").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"Findings: **{findings.Count}** in **{findings.Select(finding => finding.WorkflowId).Distinct().Count()}** workflow(s).").AppendLine();
-        text.AppendLine("| Category | Workflow | Step path | Source file |").AppendLine("|---|---|---|---|");
+        text.AppendLine("# Hassas değerler — KISITLI").AppendLine();
+        text.AppendLine("Bilgi güvenliği ekibi içindir. Değerler bilerek yazılmamıştır; görmek için burada adı geçen kaynak XAML dosyasını açın. "
+            + "Bu dosyayı dağıtmayın.").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"Bulgu: **{findings.Count}**; **{findings.Select(finding => finding.WorkflowId).Distinct().Count()}** iş akışında.").AppendLine();
+        text.AppendLine("| Tür | İş akışı | Adım yolu | Kaynak dosya |").AppendLine("|---|---|---|---|");
         foreach (SensitiveFinding finding in findings
             .OrderBy(finding => finding.Category, StringComparer.Ordinal)
             .ThenBy(finding => finding.WorkflowName, StringComparer.Ordinal)

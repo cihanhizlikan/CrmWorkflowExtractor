@@ -11,9 +11,9 @@ namespace Crm.Cli.Reports;
 /// </summary>
 public sealed class CallGraph
 {
-    public const string EntryPoint = "entry point";
-    public const string BuildingBlock = "building block";
-    public const string Both = "entry point + building block";
+    public const string EntryPoint = "giriş noktası";
+    public const string BuildingBlock = "yapı taşı";
+    public const string Both = "giriş noktası + yapı taşı";
 
     private CallGraph(IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> calls, IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> calledBy,
         IReadOnlyDictionary<Guid, string> names, IReadOnlyList<Guid> missing)
@@ -94,26 +94,26 @@ public sealed class CallGraph
         List<Guid> roots = [.. Calls.Keys.Where(id => CalledBy.GetValueOrDefault(id, []).Count == 0 && Calls[id].Count > 0)
             .OrderBy(id => Names[id], StringComparer.Ordinal)];
         StringBuilder text = new();
-        text.AppendLine("# Call graph").AppendLine();
-        text.AppendLine("A workflow nobody calls is a process of its own; one that others call is a building block shared between processes. A parent and everything under it is **one** migration unit.").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"- {Calls.Count} workflows · {CalledBy.Count} called by at least one other · {roots.Count} entry points that call children");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- {Calls.Values.Sum(children => children.Count)} child-workflow calls in total");
+        text.AppendLine("# Çağrı ağacı").AppendLine();
+        text.AppendLine("Kimsenin çağırmadığı bir iş akışı başlı başına bir süreçtir; başkalarının çağırdığı ise süreçler arasında paylaşılan bir yapı taşıdır. Bir üst akış ve altındaki her şey **tek** bir taşıma kalemidir.").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"- {Calls.Count} iş akışı · en az bir akışça çağrılan {CalledBy.Count} · alt akış çağıran {roots.Count} giriş noktası");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- toplam {Calls.Values.Sum(children => children.Count)} alt iş akışı çağrısı");
         if (MissingTargets.Count > 0)
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"- **{MissingTargets.Count} calls point at a workflow that is not in this run** (deleted, or not parsed). They are listed at the end.");
+            text.AppendLine(CultureInfo.InvariantCulture, $"- **{MissingTargets.Count} çağrı, bu çalıştırmada bulunmayan bir iş akışını hedefliyor** (silinmiş ya da ayrıştırılmamış). Listesi sonda.");
         }
         text.AppendLine();
 
-        text.AppendLine("## Building blocks, most used first").AppendLine();
-        text.AppendLine("| Workflow | Called by | Callers |").AppendLine("|---|---:|---|");
+        text.AppendLine("## En çok kullanılan yapı taşları").AppendLine();
+        text.AppendLine("| İş akışı | Çağrı sayısı | Çağıranlar |").AppendLine("|---|---:|---|");
         foreach ((Guid id, IReadOnlyList<Guid> parents) in CalledBy.OrderByDescending(entry => entry.Value.Count).ThenBy(entry => Names[entry.Key], StringComparer.Ordinal).Take(40))
         {
             text.AppendLine(CultureInfo.InvariantCulture, $"| {Names[id]} | {parents.Count} | {string.Join(", ", parents.Take(6).Select(parent => Names[parent]))}{(parents.Count > 6 ? ", …" : "")} |");
         }
         text.AppendLine();
 
-        text.AppendLine("## Process trees").AppendLine();
-        text.AppendLine("Each tree is one migration unit. Indentation is the call depth.").AppendLine();
+        text.AppendLine("## Süreç ağaçları").AppendLine();
+        text.AppendLine("Her ağaç tek bir taşıma kalemidir. Girinti, çağrı derinliğini gösterir.").AppendLine();
         foreach (Guid root in roots)
         {
             text.AppendLine("```");
@@ -125,7 +125,7 @@ public sealed class CallGraph
         }
         if (MissingTargets.Count > 0)
         {
-            text.AppendLine().AppendLine("## Calls to workflows not in this run").AppendLine();
+            text.AppendLine().AppendLine("## Bu çalıştırmada bulunmayan iş akışlarına yapılan çağrılar").AppendLine();
             foreach (Guid id in MissingTargets)
             {
                 text.AppendLine(CultureInfo.InvariantCulture, $"- `{id:D}`");
@@ -136,7 +136,7 @@ public sealed class CallGraph
 
     public byte[] Csv()
     {
-        ExcelCsv csv = new("workflow_name", "workflow_id", "role", "calls", "called_by", "children", "callers");
+        ExcelCsv csv = new("is_akisi", "is_akisi_id", "rol", "cagirdigi", "cagiran", "alt_akislar", "cagiranlar");
         foreach ((Guid id, IReadOnlyList<Guid> children) in Calls.OrderBy(entry => Names[entry.Key], StringComparer.Ordinal))
         {
             IReadOnlyList<Guid> parents = CalledBy.GetValueOrDefault(id, []);

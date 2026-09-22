@@ -33,19 +33,19 @@ public static class OfflineStages
 
         // Last, because it gathers what every stage before it learned into the one sheet the analysts work from.
         CallGraph calls = CallGraph.Build(documents);
-        await folder.WriteTextAsync("reports/call-graph.md", calls.Markdown(), token);
-        await folder.WriteBytesAsync("reports/call-graph.csv", calls.Csv(), token);
-        await folder.WriteTextAsync("reports/data-footprint.md", DataFootprint.Markdown(documents), token);
-        await folder.WriteBytesAsync("reports/data-footprint.csv", DataFootprint.Csv(documents), token);
-        await folder.WriteBytesAsync("reports/data-cascades.csv", DataFootprint.CascadeCsv(documents), token);
-        await folder.WriteBytesAsync("reports/migration.csv", MigrationPlan.Csv(state, documents, families, usage), token);
-        await folder.WriteTextAsync("reports/migration.md", MigrationPlan.Markdown(state, documents, families), token);
+        await folder.WriteTextAsync(RunPaths.CallGraph, calls.Markdown(), token);
+        await folder.WriteBytesAsync(RunPaths.CallGraphCsv, calls.Csv(), token);
+        await folder.WriteTextAsync(RunPaths.DataFootprint, DataFootprint.Markdown(documents), token);
+        await folder.WriteBytesAsync(RunPaths.DataFootprintCsv, DataFootprint.Csv(documents), token);
+        await folder.WriteBytesAsync(RunPaths.DataCascadesCsv, DataFootprint.CascadeCsv(documents), token);
+        await folder.WriteBytesAsync(RunPaths.MigrationPlanCsv, MigrationPlan.Csv(state, documents, families, usage), token);
+        await folder.WriteTextAsync(RunPaths.MigrationPlan, MigrationPlan.Markdown(state, documents, families), token);
         state.Counts["callGraph.entryPoints"] = documents.Count(document => calls.RoleOf(document.Identity.WorkflowId) == CallGraph.EntryPoint);
         state.Counts["callGraph.buildingBlocks"] = calls.CalledBy.Count;
         state.Counts["data.sharedFields"] = DataFootprint.Fields(documents).Count(use => use.Writers.Count > 1);
         IReadOnlyList<Cascade> allCascades = DataFootprint.Cascades(documents);
         state.Counts["data.cascades"] = allCascades.Count;
         state.Counts["data.cascadePairs"] = allCascades.Select(cascade => (cascade.Source, cascade.Target)).Distinct().Count();
-        state.StagesRun.Add("migration");
+        state.StagesRun.Add(RunStages.MigrationPlan);
     }
 }

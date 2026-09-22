@@ -9,14 +9,14 @@ namespace Crm.Extract.Xaml;
 /// </summary>
 public sealed record XamlEntry(Guid WorkflowId, string Kind, long? VersionNumber, string File, long Bytes, string Sha256, string Source)
 {
-    public const string IndexFile = "raw/xaml/index.json";
+    public const string IndexFile = Runs.RunPaths.RawXaml + "/dizin.json";
     public const string KindDefinition = "definition";
     public const string KindActivation = "activation";
     public const string SourceFetched = "fetched";
 
     public static string FileFor(Guid workflowId)
     {
-        return $"raw/xaml/{workflowId:D}.xaml";
+        return $"{Runs.RunPaths.RawXaml}/{workflowId:D}.xaml";
     }
 
     public static IReadOnlyList<XamlEntry> ReadIndex(string runRoot)

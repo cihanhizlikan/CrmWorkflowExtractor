@@ -26,12 +26,12 @@ public sealed class MigrationPlanTests
 
         Assert.True(code == ExitCode.Success, console);
         string bpmn = Path.Combine(runRoot, "bpmn");
-        Assert.True(File.Exists(Path.Combine(bpmn, "workflow", "new-policy", "police-iptal-sureci-0.bpmn")));
-        Assert.True(File.Exists(Path.Combine(bpmn, "workflow", "new-claim", "hasar-onay-10.bpmn")));
+        Assert.True(File.Exists(Path.Combine(bpmn, "is-akisi", "new-policy", "police-iptal-sureci-0.bpmn")));
+        Assert.True(File.Exists(Path.Combine(bpmn, "is-akisi", "new-claim", "hasar-onay-10.bpmn")));
         Assert.Empty(Directory.GetFiles(bpmn, "*.bpmn", SearchOption.TopDirectoryOnly));
 
-        string index = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(bpmn, "index.csv")));
-        Assert.Contains("workflow/new-policy/police-iptal-sureci-0.bpmn;Poliçe İptal Süreci 0;", index, StringComparison.Ordinal);
+        string index = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(bpmn, "dizin.csv")));
+        Assert.Contains("is-akisi/new-policy/police-iptal-sureci-0.bpmn;Poliçe İptal Süreci 0;", index, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -42,16 +42,16 @@ public sealed class MigrationPlanTests
         (_, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output,
             importFile: Fixture("mock-crm-export.json"), usageFile: Fixture("mock-usage-export.json"));
 
-        string[] lines = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "reports", "migration.csv")))
+        string[] lines = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "tasima-plani.csv")))
             .Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(1 + 46, lines.Length);
-        Assert.StartsWith("priority;workflow_name;bpmn_file;", lines[0].TrimStart('﻿'), StringComparison.Ordinal);
+        Assert.StartsWith("öncelik;is_akisi;bpmn_dosyasi;", lines[0].TrimStart('﻿'), StringComparison.Ordinal);
         // Priority 1 is a live process; the 44 drafts (43 with XAML) sort last.
         Assert.StartsWith("1;", lines[1], StringComparison.Ordinal);
         Assert.StartsWith("4;", lines[^1], StringComparison.Ordinal);
-        Assert.Contains(lines, line => line.Contains("Used: last logged run 2026-09-20", StringComparison.Ordinal));
-        Assert.Contains(lines, line => line.Contains("workflow/new-policy/police-iptal-sureci-0.bpmn", StringComparison.Ordinal));
-        Assert.True(File.Exists(Path.Combine(runRoot, "reports", "migration.md")), console);
+        Assert.Contains(lines, line => line.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("is-akisi/new-policy/police-iptal-sureci-0.bpmn", StringComparison.Ordinal));
+        Assert.True(File.Exists(Path.Combine(runRoot, "raporlar", "tasima-plani.md")), console);
     }
 
     [Fact]
@@ -65,11 +65,11 @@ public sealed class MigrationPlanTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.True(code == ExitCode.Success, console);
-        string graph = File.ReadAllText(Path.Combine(runRoot, "reports", "call-graph.md"));
-        Assert.Contains("child-workflow calls in total", graph, StringComparison.Ordinal);
-        Assert.Contains("not in this run", graph, StringComparison.Ordinal);
-        string csv = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "reports", "call-graph.csv")));
-        Assert.Contains("entry point", csv, StringComparison.Ordinal);
+        string graph = File.ReadAllText(Path.Combine(runRoot, "raporlar", "cagri-agaci.md"));
+        Assert.Contains("alt iş akışı çağrısı", graph, StringComparison.Ordinal);
+        Assert.Contains("bu çalıştırmada bulunmayan", graph, StringComparison.Ordinal);
+        string csv = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "cagri-agaci.csv")));
+        Assert.Contains("giriş noktası", csv, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -85,18 +85,18 @@ public sealed class MigrationPlanTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.True(code == ExitCode.Success, console);
-        string supplied = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "clusters", "supplied-with-the-product.csv")));
+        string supplied = Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "aileler", "urunle-gelenler.csv")));
         Assert.Contains("Poliçe İptal Süreci 6", supplied, StringComparison.Ordinal);
-        Assert.DoesNotContain("Poliçe İptal Süreci 6", Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "clusters", "clusters.csv"))), StringComparison.Ordinal);
+        Assert.DoesNotContain("Poliçe İptal Süreci 6", Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "aileler", "aileler.csv"))), StringComparison.Ordinal);
 
         // It keeps its diagram and its row, marked, so nothing disappears silently.
-        Assert.Contains("5;Poliçe İptal Süreci 6;", Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "reports", "migration.csv"))), StringComparison.Ordinal);
-        Assert.True(File.Exists(Path.Combine(runRoot, "bpmn", "workflow", "new-policy", "police-iptal-sureci-6.bpmn")));
+        Assert.Contains("5;Poliçe İptal Süreci 6;", Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "tasima-plani.csv"))), StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(runRoot, "bpmn", "is-akisi", "new-policy", "police-iptal-sureci-6.bpmn")));
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
-        Assert.All(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— ok", link.GetString(), StringComparison.Ordinal));
+        Assert.All(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— uygun", link.GetString(), StringComparison.Ordinal));
         Assert.Contains(manifest.RootElement.GetProperty("countChain").EnumerateArray(),
-            link => link.GetString()!.Contains("supplied with the product", StringComparison.Ordinal));
+            link => link.GetString()!.Contains("ürünle gelen", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -107,9 +107,9 @@ public sealed class MigrationPlanTests
         XElement note = Assert.Single(xml.Descendants(BpmnSerializer.Model + "textAnnotation"));
         string text = note.Element(BpmnSerializer.Model + "text")!.Value;
         Assert.Contains("Poliçe İptal", text, StringComparison.Ordinal);
-        Assert.Contains("Workflow · Background · Activated · entity: new_policy", text, StringComparison.Ordinal);
-        Assert.Contains("Starts when:", text, StringComparison.Ordinal);
-        Assert.Contains("Not executable", text, StringComparison.Ordinal);
+        Assert.Contains("İş Akışı · Arka plan · Etkin · varlık: new_policy", text, StringComparison.Ordinal);
+        Assert.Contains("Şununla başlar:", text, StringComparison.Ordinal);
+        Assert.Contains("Çalıştırılabilir değildir", text, StringComparison.Ordinal);
         Assert.Single(xml.Descendants(BpmnSerializer.Model + "association"));
 
         // The note is drawn above everything else, so no shape sits on it.
@@ -130,11 +130,11 @@ public sealed class MigrationPlanTests
     public void A_Draft_Says_So_On_Its_Diagram()
     {
         Crm.Ir.Model.WorkflowIr ir = BpmnEmissionTests.IrFor("condition-update-stop.xaml");
-        Crm.Ir.Model.WorkflowIr draft = ir with { Identity = ir.Identity with { State = "Draft" } };
+        Crm.Ir.Model.WorkflowIr draft = ir with { Identity = ir.Identity with { State = "Taslak" } };
 
         XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(draft), "test");
 
-        Assert.Contains("DRAFT in CRM: this cannot start new runs.",
+        Assert.Contains("CRM'de TASLAK: yeni çalıştırma başlatamaz.",
             xml.Descendants(BpmnSerializer.Model + "text").Single().Value, StringComparison.Ordinal);
     }
 }

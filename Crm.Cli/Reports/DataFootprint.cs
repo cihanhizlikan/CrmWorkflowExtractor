@@ -21,8 +21,8 @@ public sealed record Cascade(Guid Source, Guid Target, string Through, string Ki
 /// </summary>
 public static class DataFootprint
 {
-    public const string CascadeOnUpdate = "field update";
-    public const string CascadeOnCreate = "record created";
+    public const string CascadeOnUpdate = "alan güncellendi";
+    public const string CascadeOnCreate = "kayıt oluşturuldu";
 
     public static IReadOnlyList<FieldUse> Fields(IReadOnlyList<WorkflowIr> documents)
     {
@@ -102,8 +102,8 @@ public static class DataFootprint
     public static byte[] Csv(IReadOnlyList<WorkflowIr> documents)
     {
         Dictionary<Guid, string> names = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity.Name);
-        ExcelCsv csv = new("entity", "field", "writers", "readers", "workflows_started_by_this_field",
-            "shared_write", "starts_a_workflow", "writer_names", "reader_names", "started_workflow_names");
+        ExcelCsv csv = new("varlik", "alan", "yazan", "okuyan", "bu_alanin_baslattigi",
+            "paylasilan_yazma", "is_akisi_baslatir", "yazanlar", "okuyanlar", "baslattiklari");
         foreach (FieldUse use in Fields(documents).OrderByDescending(use => use.Writers.Count).ThenBy(use => use.Entity, StringComparer.Ordinal).ThenBy(use => use.Field, StringComparer.Ordinal))
         {
             csv.Row(use.Entity, use.Field, use.Writers.Count, use.Readers.Count, use.TriggeredBy.Count,
@@ -116,7 +116,7 @@ public static class DataFootprint
     public static byte[] CascadeCsv(IReadOnlyList<WorkflowIr> documents)
     {
         Dictionary<Guid, WorkflowIdentity> byId = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity);
-        ExcelCsv csv = new("source_workflow", "starts", "target_workflow", "through", "source_mode", "target_mode", "self");
+        ExcelCsv csv = new("baslatan", "nasil", "baslayan", "hangi_veri", "baslatan_modu", "baslayan_modu", "kendini_baslatiyor");
         foreach (Cascade cascade in Cascades(documents)
             .OrderBy(cascade => byId[cascade.Source].Name, StringComparer.Ordinal)
             .ThenBy(cascade => byId[cascade.Target].Name, StringComparer.Ordinal))
@@ -135,14 +135,14 @@ public static class DataFootprint
         IReadOnlyList<Cascade> cascades = Cascades(documents);
 
         StringBuilder text = new();
-        text.AppendLine("# Data footprint").AppendLine();
-        text.AppendLine("Which workflows touch which data. Two things no single diagram shows: a field several workflows write, and a write that starts another workflow.").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"- {fields.Count} field(s) written, read or triggering across {documents.Count} workflows");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- **{shared.Count} field(s) are written by more than one workflow.** CRM never guaranteed the order they ran in; the new product has to decide one");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- **{cascades.Count} cascade(s)** between {cascades.Select(cascade => (cascade.Source, cascade.Target)).Distinct().Count()} pairs of workflows: one workflow's write starts another. {cascades.Count(cascade => cascade.Source == cascade.Target)} of them start themselves").AppendLine();
+        text.AppendLine("# Veri ayak izi").AppendLine();
+        text.AppendLine("Hangi iş akışının hangi veriye dokunduğu. Tek bir diyagramın gösteremediği iki şey: birden fazla akışın yazdığı bir alan ve başka bir akışı başlatan bir yazma.").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"- {documents.Count} iş akışı genelinde yazılan, okunan veya tetikleyen {fields.Count} alan");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- **{shared.Count} alana birden fazla iş akışı yazıyor.** CRM bunların hangi sırayla çalışacağını hiçbir zaman garanti etmedi; yeni üründe bir sıra kararlaştırılmalı");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- {cascades.Select(cascade => (cascade.Source, cascade.Target)).Distinct().Count()} iş akışı çifti arasında **{cascades.Count} tetikleme zinciri**: bir akışın yazması diğerini başlatıyor. Bunların {cascades.Count(cascade => cascade.Source == cascade.Target)} tanesi kendini başlatıyor").AppendLine();
 
-        text.AppendLine("## Entities, most written first").AppendLine();
-        text.AppendLine("| Entity | Fields written | Workflows writing | Workflows reading |").AppendLine("|---|---:|---:|---:|");
+        text.AppendLine("## En çok yazılan varlıklar").AppendLine();
+        text.AppendLine("| Varlık | Yazılan alan | Yazan iş akışı | Okuyan iş akışı |").AppendLine("|---|---:|---:|---:|");
         foreach (IGrouping<string, FieldUse> entity in fields.Where(use => use.Entity.Length > 0)
             .GroupBy(use => use.Entity, StringComparer.OrdinalIgnoreCase)
             .OrderByDescending(group => group.Sum(use => use.Writers.Count))
@@ -153,9 +153,9 @@ public static class DataFootprint
         }
         text.AppendLine();
 
-        text.AppendLine("## Fields several workflows write").AppendLine();
-        text.AppendLine("Decide an order for each of these, or merge the writers. A row mixing Real-time and Background is the least predictable in CRM today.").AppendLine();
-        text.AppendLine("| Field | Writers | Modes | Workflows |").AppendLine("|---|---:|---|---|");
+        text.AppendLine("## Birden fazla iş akışının yazdığı alanlar").AppendLine();
+        text.AppendLine("Bunların her biri için bir sıra kararlaştırın ya da yazan akışları birleştirin. Gerçek zamanlı ile arka planı bir arada barındıran satırlar, bugün CRM'de en öngörülemeyen olanlardır.").AppendLine();
+        text.AppendLine("| Alan | Yazan | Mod | İş akışları |").AppendLine("|---|---:|---|---|");
         foreach (FieldUse use in shared.Take(50))
         {
             IReadOnlyList<string> modes = [.. use.Writers.Select(writer => byId[writer].Mode).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
@@ -164,12 +164,12 @@ public static class DataFootprint
         }
         text.AppendLine();
 
-        text.AppendLine("## Cascades: a write that starts another workflow").AppendLine();
-        text.AppendLine("These chains are invisible in the diagrams — CRM starts the second workflow because the first one wrote a field it watches, or created a record. In the new product they have to be made explicit or rebuilt as one process. Every cascade is in `data-cascades.csv`; this page rolls them up, because the list itself is too long to read.").AppendLine();
+        text.AppendLine("## Tetikleme zincirleri: başka bir iş akışını başlatan yazmalar").AppendLine();
+        text.AppendLine("Bu zincirler diyagramlarda görünmez — ilk akış, ikincinin izlediği bir alana yazdığı ya da bir kayıt oluşturduğu için CRM ikinciyi başlatır. Yeni üründe bu bağ ya açıkça kurulmalı ya da iki akış tek süreç olarak yeniden yazılmalıdır. Zincirlerin tamamı `veri-zincirleri.csv` dosyasındadır; liste okunamayacak kadar uzun olduğu için bu sayfa özetler.").AppendLine();
 
-        text.AppendLine(CultureInfo.InvariantCulture, $"### The fields that set off the most work ({fields.Count(use => use.Writers.Count > 0 && use.TriggeredBy.Count > 0)} fields start something)").AppendLine();
-        text.AppendLine("Each of these is written by several workflows and watched by several others, so one write fans out. Fix these first: decide who owns the field.").AppendLine();
-        text.AppendLine("| Field | Written by | Starts | Cascades |").AppendLine("|---|---:|---:|---:|");
+        text.AppendLine(CultureInfo.InvariantCulture, $"### En çok işi tetikleyen alanlar (bir şey başlatan {fields.Count(use => use.Writers.Count > 0 && use.TriggeredBy.Count > 0)} alan)").AppendLine();
+        text.AppendLine("Bu alanların her birine birden çok akış yazar, birden çok akış da onu izler; dolayısıyla tek bir yazma dallanarak yayılır. Önce bunları ele alın: alanın sahibinin kim olduğuna karar verin.").AppendLine();
+        text.AppendLine("| Alan | Yazan | Başlattığı | Zincir |").AppendLine("|---|---:|---:|---:|");
         foreach (FieldUse use in fields.Where(use => use.Writers.Count > 0 && use.TriggeredBy.Count > 0)
             .OrderByDescending(use => use.Writers.Count * use.TriggeredBy.Count)
             .ThenBy(use => use.Field, StringComparer.Ordinal)
@@ -180,14 +180,14 @@ public static class DataFootprint
         text.AppendLine();
 
         List<IGrouping<(Guid Source, Guid Target), Cascade>> pairs = [.. cascades.GroupBy(cascade => (cascade.Source, cascade.Target))];
-        text.AppendLine(CultureInfo.InvariantCulture, $"### Workflow pairs ({pairs.Count} pairs, {pairs.Count(pair => pair.Key.Source == pair.Key.Target)} of them a workflow starting itself)").AppendLine();
-        text.AppendLine("| Starts | Then runs | Through | Modes |").AppendLine("|---|---|---|---|");
+        text.AppendLine(CultureInfo.InvariantCulture, $"### İş akışı çiftleri ({pairs.Count} çift; {pairs.Count(pair => pair.Key.Source == pair.Key.Target)} tanesi kendini başlatan akış)").AppendLine();
+        text.AppendLine("| Başlatan | Sonra çalışan | Hangi veri üzerinden | Mod |").AppendLine("|---|---|---|---|");
         foreach (IGrouping<(Guid Source, Guid Target), Cascade> pair in pairs
             .OrderByDescending(pair => pair.Count())
             .ThenBy(pair => byId[pair.Key.Source].Name, StringComparer.Ordinal)
             .Take(60))
         {
-            string self = pair.Key.Source == pair.Key.Target ? " **(itself)**" : "";
+            string self = pair.Key.Source == pair.Key.Target ? " **(kendisi)**" : "";
             IReadOnlyList<string> through = [.. pair.Select(cascade => cascade.Through).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal)];
             string shown = string.Join(", ", through.Take(3)) + (through.Count > 3 ? $", …({through.Count})" : "");
             text.AppendLine(CultureInfo.InvariantCulture,
@@ -195,7 +195,7 @@ public static class DataFootprint
         }
         if (pairs.Count > 60)
         {
-            text.AppendLine().AppendLine(CultureInfo.InvariantCulture, $"…and {pairs.Count - 60} more pairs in `data-cascades.csv`.");
+            text.AppendLine().AppendLine(CultureInfo.InvariantCulture, $"…ve `veri-zincirleri.csv` dosyasındaki {pairs.Count - 60} çift daha.");
         }
         return text.ToString();
     }

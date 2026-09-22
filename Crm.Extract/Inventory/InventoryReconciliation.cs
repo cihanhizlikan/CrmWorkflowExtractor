@@ -51,36 +51,36 @@ public static class InventoryReconciliation
         {
             // Observed on the production 8.2 server, 2026-09-22: workflows/$count answers -1, Dynamics' "no count
             // available". That is not a number to compare, and failing on it would fail every run on that server.
-            warnings.Add(Invariant($"The server gave no independent count (it answered {apiCount}), so the {records.Count} records retrieved could not be checked against one. Compare with an administrator's count before trusting completeness."));
+            warnings.Add(Invariant($"Sunucu bağımsız bir sayım vermedi ({apiCount} yanıtladı); alınan {records.Count} kayıt bir sayımla karşılaştırılamadı. Envanterin eksiksizliğine güvenmeden önce bir yöneticinin sayımıyla karşılaştırın."));
         }
         else if (apiCount >= CountCap)
         {
-            failures.Add(Invariant($"$count returned {apiCount}, at or above the Web API cap of {CountCap}: it is not a trustworthy count."));
+            failures.Add(Invariant($"$count {apiCount} döndürdü; bu, Web API üst sınırı {CountCap} değerinde veya üzerindedir: güvenilir bir sayım değildir."));
         }
         else if (apiCount != records.Count)
         {
-            failures.Add(Invariant($"$count reported {apiCount} workflows but {records.Count} were retrieved."));
+            failures.Add(Invariant($"$count {apiCount} iş akışı bildirdi, {records.Count} kayıt alındı."));
         }
         if (distinctIds != records.Count)
         {
-            failures.Add(Invariant($"{records.Count} records were retrieved but only {distinctIds} distinct workflowid values: paging returned duplicates."));
+            failures.Add(Invariant($"{records.Count} kayıt alındı ama yalnızca {distinctIds} farklı workflowid değeri var: sayfalama yinelenen kayıt döndürdü."));
         }
         if (other > 0)
         {
-            warnings.Add(Invariant($"{other} record(s) have a type outside Definition/Activation/Template."));
+            warnings.Add(Invariant($"{other} kaydın türü Tanım/Etkinleştirme/Şablon dışındadır."));
         }
         if (records.Count > 0 && distinctOwners == 1)
         {
-            warnings.Add("ONLY ONE DISTINCT OWNER across every workflow. This is the signature of user-level read privilege (§2.4): "
-                + "the account may be seeing only its own workflows. Do not trust this run until an administrator's count matches.");
+            warnings.Add("BÜTÜN İŞ AKIŞLARINDA YALNIZCA TEK BİR SAHİP var. Bu, kullanıcı düzeyinde okuma yetkisinin işaretidir (§2.4): "
+                + "hesap yalnızca kendi iş akışlarını görüyor olabilir. Bir yöneticinin sayımı tutmadan bu çalıştırmaya güvenmeyin.");
         }
         if (records.Count > 0 && distinctOwners == 0)
         {
-            warnings.Add("No record carries _ownerid_value, so the owner-count check could not run.");
+            warnings.Add("Hiçbir kayıt _ownerid_value taşımıyor; sahip sayısı kontrolü yapılamadı.");
         }
         if (records.Count == 0)
         {
-            warnings.Add("The organization returned zero workflows.");
+            warnings.Add("Kuruluş hiç iş akışı döndürmedi.");
         }
 
         HashSet<Guid> definitionIds = [.. definitions.Select(record => record.WorkflowId)];
@@ -88,12 +88,12 @@ public static class InventoryReconciliation
         int orphanActivations = activations.Count(record => record.ParentWorkflowId is not Guid parent || !definitionIds.Contains(parent));
         if (orphanActivations > 0)
         {
-            warnings.Add(Invariant($"{orphanActivations} activation record(s) point at no retrieved definition through _parentworkflowid_value."));
+            warnings.Add(Invariant($"{orphanActivations} etkinleştirme kaydı, _parentworkflowid_value üzerinden alınmış hiçbir tanımı göstermiyor."));
         }
         int danglingActive = definitions.Count(record => record.ActiveWorkflowId is Guid active && !activationIds.Contains(active));
         if (danglingActive > 0)
         {
-            warnings.Add(Invariant($"{danglingActive} definition(s) point at an activation through _activeworkflowid_value that was not retrieved."));
+            warnings.Add(Invariant($"{danglingActive} tanım, _activeworkflowid_value üzerinden alınmamış bir etkinleştirmeyi gösteriyor."));
         }
 
         foreach (IGrouping<string, ObservedOption> unknown in records
@@ -102,7 +102,7 @@ public static class InventoryReconciliation
             .GroupBy(option => Invariant($"{option.Column}={option.Raw} (server label '{option.ServerLabel ?? "none"}')"), StringComparer.Ordinal)
             .OrderBy(group => group.Key, StringComparer.Ordinal))
         {
-            warnings.Add(Invariant($"Option value outside the §3.1 table: {unknown.Key}, on {unknown.Count()} record(s)."));
+            warnings.Add(Invariant($"§3.1 tablosunda bulunmayan seçenek değeri: {unknown.Key}, {unknown.Count()} kayıtta."));
         }
 
         return new ReconciliationResult(counts, failures, warnings);

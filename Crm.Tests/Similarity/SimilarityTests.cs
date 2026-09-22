@@ -113,7 +113,7 @@ public sealed class SimilarityTests
     {
         Guid id = new(Math.Abs(name.GetHashCode(StringComparison.Ordinal)), 0, 0, [0, 0, 0, 0, 0, 0, 0, (byte)(name.Length % 255)]);
         return new WorkflowIr(
-            new WorkflowIdentity(id, name, null, "Workflow", "Definition", "new_policy", "Background", "Organization", "Activated", false, false, null, null, null, 1, true),
+            new WorkflowIdentity(id, name, null, "İş Akışı", "Tanım", "new_policy", "Arka plan", "Kuruluş", "Etkin", false, false, null, null, null, 1, true),
             new WorkflowTrigger(true, false, [], null, null, null, "Owner", false),
             [.. steps.Select((step, index) => step with { Path = index.ToString(CultureInfo.InvariantCulture) })],
             new WorkflowDependencies([], []), new DataTouched([], [], [], []), [], new IrProvenance("", "", "", ""));

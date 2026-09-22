@@ -22,9 +22,9 @@ public sealed class EndToEndTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.True(code == ExitCode.Success, console);
-        foreach (string file in new[] { "manifest.json", "raw/workflows.jsonl", "raw/xaml/index.json", "reports/report.md", "reports/parse-coverage.md",
-            "reports/drift.md", "reports/consolidation.md", "reports/sensitive-literals.md", "reports/inventory.md", "clusters/clusters.csv",
-            "clusters/pairs.csv", "clusters/clusters.json", "manual-review/index.md", "logs/run.log" })
+        foreach (string file in new[] { "manifest.json", "ham/is-akislari.jsonl", "ham/xaml/dizin.json", "raporlar/rapor.md", "raporlar/ayristirma-kapsami.md",
+            "raporlar/sapma.md", "raporlar/birlestirme.md", "raporlar/hassas-degerler.md", "raporlar/envanter.md", "aileler/aileler.csv",
+            "aileler/ciftler.csv", "aileler/aileler.json", "elle-inceleme/dizin.md", "gunlukler/calistirma.log" })
         {
             Assert.True(File.Exists(Path.Combine(runRoot, file)), file + " is missing");
         }
@@ -32,10 +32,10 @@ public sealed class EndToEndTests
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
         List<string> chain = [.. manifest.RootElement.GetProperty("countChain").EnumerateArray().Select(link => link.GetString()!)];
-        Assert.Equal(["records", "classified", "xaml", "ir", "bpmn", "clusters"], chain.Select(link => link[..link.IndexOf(':', StringComparison.Ordinal)]));
-        Assert.All(chain, link => Assert.EndsWith("— ok", link, StringComparison.Ordinal));
-        Assert.Contains("Count chain (§8):", console, StringComparison.Ordinal);
-        Assert.Contains("ir: definition xaml files 6 = ir documents + manual review + parse failures + orphaned xaml 6 — ok", console, StringComparison.Ordinal);
+        Assert.Equal(["kayıtlar", "sınıflandırma", "xaml", "ara model", "bpmn", "aileler"], chain.Select(link => link[..link.IndexOf(':', StringComparison.Ordinal)]));
+        Assert.All(chain, link => Assert.EndsWith("— uygun", link, StringComparison.Ordinal));
+        Assert.Contains("Sayım zinciri (§8):", console, StringComparison.Ordinal);
+        Assert.Contains("ara model: tanım xaml dosyası 6 = ara model + elle inceleme + ayrıştırma hatası + karşılıksız xaml 6 — uygun", console, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public sealed class EndToEndTests
         CountLink bpmn = Assert.Single(CountChain.Evaluate(state), link => link.Name == "bpmn");
 
         Assert.False(bpmn.Holds);
-        Assert.EndsWith("GAP of 1", bpmn.ToString(), StringComparison.Ordinal);
+        Assert.EndsWith("EKSİK: 1", bpmn.ToString(), StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -69,10 +69,10 @@ public sealed class EndToEndTests
         Assert.Empty(silent.Requests);
         Assert.NotEqual(firstRoot, secondRoot);
         Assert.Equal(Directory.GetFiles(Path.Combine(firstRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Select(Path.GetFileName), Directory.GetFiles(Path.Combine(secondRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Select(Path.GetFileName));
-        Assert.Equal(File.ReadAllBytes(Path.Combine(firstRoot, "raw", "workflows.jsonl")), File.ReadAllBytes(Path.Combine(secondRoot, "raw", "workflows.jsonl")));
+        Assert.Equal(File.ReadAllBytes(Path.Combine(firstRoot, "ham", "is-akislari.jsonl")), File.ReadAllBytes(Path.Combine(secondRoot, "ham", "is-akislari.jsonl")));
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(secondRoot, RunFolder.ManifestFileName)));
-        Assert.Contains("reprocess:" + Path.GetFileName(firstRoot), manifest.RootElement.GetProperty("stagesRun").EnumerateArray().Select(stage => stage.GetString()));
-        Assert.All(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— ok", link.GetString(), StringComparison.Ordinal));
+        Assert.Contains("yeniden işleme:" + Path.GetFileName(firstRoot), manifest.RootElement.GetProperty("stagesRun").EnumerateArray().Select(stage => stage.GetString()));
+        Assert.All(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— uygun", link.GetString(), StringComparison.Ordinal));
     }
 
     [Fact]
@@ -83,6 +83,6 @@ public sealed class EndToEndTests
         (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, reprocessRunId: "19990101-000000");
 
         Assert.Equal(ExitCode.RunFailed, code);
-        Assert.Contains("is not a sealed run", console, StringComparison.Ordinal);
+        Assert.Contains("mühürlenmiş bir çalıştırma değil", console, StringComparison.Ordinal);
     }
 }

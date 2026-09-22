@@ -221,11 +221,11 @@ public sealed class XamlWorkflowParserTests
     {
         ParseResult result = new XamlWorkflowParser(OptionLabels.Empty).Parse(Id, Fixture("child-and-custom.xaml"));
 
-        IReadOnlyList<SensitiveFinding> findings = SensitiveLiteralScanner.Scan(Id, "Poliçe", "raw/xaml/x.xaml", result.Literals);
+        IReadOnlyList<SensitiveFinding> findings = SensitiveLiteralScanner.Scan(Id, "Poliçe", "ham/xaml/x.xaml", result.Literals);
         string report = SensitiveLiteralScanner.Markdown(findings);
 
-        Assert.Contains(findings, finding => finding.Category == "hardcoded URL");
-        Assert.Contains(findings, finding => finding.Category == "password or secret");
+        Assert.Contains(findings, finding => finding.Category == "gömülü adres");
+        Assert.Contains(findings, finding => finding.Category == "parola veya gizli anahtar");
         Assert.DoesNotContain("NotARealSecret1", report, StringComparison.Ordinal);
         Assert.DoesNotContain("servis.ornek.local", report, StringComparison.Ordinal);
     }

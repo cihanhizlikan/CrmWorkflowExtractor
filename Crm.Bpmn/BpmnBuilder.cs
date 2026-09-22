@@ -63,7 +63,7 @@ public sealed partial class BpmnBuilder
         List<Block> parts = [new NodeBlock(start), body];
         if (body.IsEmpty || body.Exit is not null)
         {
-            parts.Add(new NodeBlock(builder._graph.Add(new FlowNode(builder.Id("end"), FlowNodeType.EndEvent, "End"))));
+            parts.Add(new NodeBlock(builder._graph.Add(new FlowNode(builder.Id("end"), FlowNodeType.EndEvent, "Bitiş"))));
         }
         SequenceBlock process = new(builder._graph, parts);
         process.Connect();
@@ -74,8 +74,8 @@ public sealed partial class BpmnBuilder
         // Clear of the note, with room for a branch caption above the first row of shapes.
         process.Place(40, 40 + noteHeight + 120);
 
-        string documentation = $"Source workflow: {ir.Identity.Name} ({ir.Identity.WorkflowId:D}). Category {ir.Identity.Category}, "
-            + $"entity {ir.Identity.PrimaryEntity ?? "none"}, {ir.Identity.Mode}, state {ir.Identity.State}. Descriptive model generated from CRM XAML; not executable.";
+        string documentation = $"Kaynak iş akışı: {ir.Identity.Name} ({ir.Identity.WorkflowId:D}). Kategori {ir.Identity.Category}, "
+            + $"varlık {ir.Identity.PrimaryEntity ?? "yok"}, {ir.Identity.Mode}, durum {ir.Identity.State}. CRM XAML dosyasından üretilmiş açıklayıcı modeldir; çalıştırılabilir değildir.";
         return new BpmnProcess(processId, name, documentation, builder._graph, sources)
         {
             Note = note,
@@ -96,7 +96,7 @@ public sealed partial class BpmnBuilder
         return step.Kind switch
         {
             StepKind.Sequence => Sequence([.. step.Branches.SelectMany(branch => branch.Steps)]),
-            StepKind.Condition => Split(step, FlowNodeType.ExclusiveGateway, "Otherwise"),
+            StepKind.Condition => Split(step, FlowNodeType.ExclusiveGateway, "Aksi hâlde"),
             StepKind.Variant => Split(step, FlowNodeType.ExclusiveGateway, null),
             StepKind.WaitCondition => Wait(step),
             _ => new NodeBlock(_graph.Add(Task(step)))
@@ -138,13 +138,13 @@ public sealed partial class BpmnBuilder
         foreach (Branch branch in step.Branches)
         {
             bool isDefault = defaultLabel is not null && branch.Predicate is null && branch.Label == defaultLabel;
-            string label = step.Kind == StepKind.Variant ? "Variant: " + branch.Label : branch.Label;
+            string label = step.Kind == StepKind.Variant ? "Çeşitleme: " + branch.Label : branch.Label;
             paths.Add(new SplitPath(Truncate(label, 60), label, isDefault, Sequence(branch.Steps)));
         }
         if (step.Kind == StepKind.Condition && !step.Branches.Any(branch => branch.Predicate is null && branch.Label == defaultLabel))
         {
             // A condition with no otherwise-branch continues when no branch holds: an explicit, labelled bypass.
-            paths.Add(new SplitPath("(no condition met)", null, true, new SequenceBlock(_graph, [])));
+            paths.Add(new SplitPath("(hiçbir koşul sağlanmazsa)", null, true, new SequenceBlock(_graph, [])));
         }
         return new SplitBlock(_graph, split, join, paths);
     }
@@ -165,7 +165,7 @@ public sealed partial class BpmnBuilder
         {
             return $"{entity}.{attribute}?";
         }
-        return step.Kind == StepKind.Variant ? "Members differ" : "Condition";
+        return step.Kind == StepKind.Variant ? "Üyeler ayrışıyor" : "Koşul";
     }
 
     /// <summary>A single wait is one conditional catch event; a wait with several outcomes (e.g. a timeout) is an event-based gateway.</summary>
@@ -174,10 +174,10 @@ public sealed partial class BpmnBuilder
         if (step.Branches.Count <= 1)
         {
             Branch? only = step.Branches.FirstOrDefault();
-            FlowNode waitEvent = _graph.Add(new FlowNode(Id(step.Path), FlowNodeType.ConditionalCatchEvent, Truncate("Wait: " + (only?.Label ?? step.DisplayName), 60))
+            FlowNode waitEvent = _graph.Add(new FlowNode(Id(step.Path), FlowNodeType.ConditionalCatchEvent, Truncate("Bekle: " + (only?.Label ?? step.DisplayName), 60))
             {
                 Documentation = StepDocumentation(step),
-                Expression = only?.Predicate?.Text ?? only?.Label ?? "condition",
+                Expression = only?.Predicate?.Text ?? only?.Label ?? "koşul",
                 Sources = step.Sources
             });
             List<Block> blocks = [new NodeBlock(waitEvent)];
@@ -225,47 +225,73 @@ public sealed partial class BpmnBuilder
         StringBuilder text = new();
         if (step.Kind == StepKind.Unmapped)
         {
-            text.Append("UNMAPPED: the construct '").Append(step.Construct).Append("' was not understood by the parser; see parse-coverage.md. ");
+            text.Append("OKUNAMADI: '").Append(step.Construct).Append("' yapısını ayrıştırıcı anlamadı; bkz. ayristirma-kapsami.md. ");
         }
-        text.Append(step.Kind).Append(": ").Append(step.DisplayName.Length == 0 ? "(unnamed)" : step.DisplayName).Append('.');
+        text.Append(Kind(step.Kind)).Append(": ").Append(step.DisplayName.Length == 0 ? "(adsız)" : step.DisplayName).Append('.');
         if (step.Entity is not null)
         {
-            text.Append(" Entity ").Append(step.Entity).Append('.');
+            text.Append(" Varlık: ").Append(step.Entity).Append('.');
         }
         foreach (FieldWrite field in step.Fields)
         {
-            text.Append(" Sets ").Append(field.Field).Append(" = ")
+            text.Append(" Yazar: ").Append(field.Field).Append(" = ")
                 .Append(string.Join(" | ", field.Values.Select(value => value.Resolved is null ? value.Raw : $"{value.Resolved} ({value.Raw})"))).Append('.');
         }
         if (step.Detail is not null)
         {
-            text.Append(" Detail: ").Append(step.Detail).Append('.');
+            text.Append(" Ayrıntı: ").Append(step.Detail).Append('.');
         }
         foreach (NamedArgument argument in step.Arguments)
         {
-            text.Append(" Argument ").Append(argument.Name).Append(" = ").Append(argument.Value).Append('.');
+            text.Append(" Bağımsız değişken: ").Append(argument.Name).Append(" = ").Append(argument.Value).Append('.');
         }
-        text.Append(" Source: ").Append(string.Join("; ", step.Sources.Select(source => $"{_memberNames.GetValueOrDefault(source.WorkflowId, _workflowName)} ({source.WorkflowId:D}) step {source.Path}"))).Append('.');
+        text.Append(" Kaynak: ").Append(string.Join("; ", step.Sources.Select(source => $"{_memberNames.GetValueOrDefault(source.WorkflowId, _workflowName)} ({source.WorkflowId:D}) adım {source.Path}"))).Append('.');
         return text.ToString();
+    }
+
+    /// <summary>The step kinds as the documentation names them.</summary>
+    private static string Kind(StepKind kind)
+    {
+        return kind switch
+        {
+            StepKind.Sequence => "Sıra",
+            StepKind.Condition => "Koşul",
+            StepKind.WaitCondition => "Bekleme koşulu",
+            StepKind.Timeout => "Bekleme",
+            StepKind.CreateRecord => "Kayıt oluşturma",
+            StepKind.UpdateRecord => "Kayıt güncelleme",
+            StepKind.AssignRecord => "Sahip değiştirme",
+            StepKind.ChangeStatus => "Durum değiştirme",
+            StepKind.SendEmail => "E-posta gönderme",
+            StepKind.StartChildWorkflow => "Alt iş akışı başlatma",
+            StepKind.CustomActivity => "Özel etkinlik",
+            StepKind.StopWorkflow => "Durdurma",
+            StepKind.Stage => "Aşama",
+            StepKind.UserInteraction => "Diyalog sayfası",
+            StepKind.DataQuery => "Veri sorgulama",
+            StepKind.FormAction => "Form eylemi",
+            StepKind.Variant => "Çeşitleme",
+            _ => "Okunamayan yapı"
+        };
     }
 
     private string TaskName(StepNode step)
     {
         string verb = step.Kind switch
         {
-            StepKind.CreateRecord => "Create",
-            StepKind.UpdateRecord => "Update",
-            StepKind.AssignRecord => "Assign",
-            StepKind.ChangeStatus => "Change status",
-            StepKind.SendEmail => "Send email",
-            StepKind.StartChildWorkflow => "Start child workflow",
-            StepKind.CustomActivity => "Custom activity",
-            StepKind.StopWorkflow => "Stop",
-            StepKind.Timeout => "Timeout",
-            StepKind.UserInteraction => "Dialog page",
-            StepKind.DataQuery => "Query data",
-            StepKind.FormAction => step.Detail ?? "Form action",
-            StepKind.Unmapped => "UNMAPPED " + step.Construct,
+            StepKind.CreateRecord => "Kayıt oluştur",
+            StepKind.UpdateRecord => "Kayıt güncelle",
+            StepKind.AssignRecord => "Sahibini değiştir",
+            StepKind.ChangeStatus => "Durum değiştir",
+            StepKind.SendEmail => "E-posta gönder",
+            StepKind.StartChildWorkflow => "Alt iş akışı başlat",
+            StepKind.CustomActivity => "Özel etkinlik",
+            StepKind.StopWorkflow => "Durdur",
+            StepKind.Timeout => "Bekle",
+            StepKind.UserInteraction => "Diyalog sayfası",
+            StepKind.DataQuery => "Veri sorgula",
+            StepKind.FormAction => step.Detail ?? "Form eylemi",
+            StepKind.Unmapped => "OKUNAMADI " + step.Construct,
             _ => step.Kind.ToString()
         };
         string subject = Subject(step);
@@ -316,21 +342,21 @@ public sealed partial class BpmnBuilder
         List<string> parts = [];
         if (trigger.OnCreate)
         {
-            parts.Add("create");
+            parts.Add("kayıt oluşturulunca");
         }
         if (trigger.OnUpdateFields.Count > 0)
         {
-            parts.Add("update");
+            parts.Add("alan güncellenince");
         }
         if (trigger.OnDelete)
         {
-            parts.Add("delete");
+            parts.Add("kayıt silinince");
         }
         if (trigger.OnDemand)
         {
-            parts.Add("on demand");
+            parts.Add("istek üzerine");
         }
-        return parts.Count == 0 ? "Start" : "On " + string.Join(" / ", parts);
+        return parts.Count == 0 ? "Başlangıç" : string.Join(" / ", parts);
     }
 
     private static string? TriggerCondition(WorkflowTrigger trigger)
@@ -343,15 +369,15 @@ public sealed partial class BpmnBuilder
         List<string> parts = [];
         if (trigger.OnCreate)
         {
-            parts.Add("record created" + (trigger.CreateStage is null ? "" : $" ({trigger.CreateStage})"));
+            parts.Add("kayıt oluşturuldu" + (trigger.CreateStage is null ? "" : $" ({trigger.CreateStage})"));
         }
         if (trigger.OnUpdateFields.Count > 0)
         {
-            parts.Add($"fields updated: {string.Join(", ", trigger.OnUpdateFields)}" + (trigger.UpdateStage is null ? "" : $" ({trigger.UpdateStage})"));
+            parts.Add($"güncellenen alanlar: {string.Join(", ", trigger.OnUpdateFields)}" + (trigger.UpdateStage is null ? "" : $" ({trigger.UpdateStage})"));
         }
         if (trigger.OnDelete)
         {
-            parts.Add("record deleted" + (trigger.DeleteStage is null ? "" : $" ({trigger.DeleteStage})"));
+            parts.Add("kayıt silindi" + (trigger.DeleteStage is null ? "" : $" ({trigger.DeleteStage})"));
         }
         return string.Join("; ", parts);
     }
@@ -368,17 +394,17 @@ public sealed partial class BpmnBuilder
         List<string> lines =
         [
             name,
-            $"{identity.Category} · {identity.Mode} · {identity.State} · entity: {identity.PrimaryEntity ?? "none"}",
-            "Starts when: " + (ir.Trigger.OnCreate || ir.Trigger.OnDelete || ir.Trigger.OnUpdateFields.Count > 0
+            $"{identity.Category} · {identity.Mode} · {identity.State} · varlık: {identity.PrimaryEntity ?? "yok"}",
+            "Şununla başlar: " + (ir.Trigger.OnCreate || ir.Trigger.OnDelete || ir.Trigger.OnUpdateFields.Count > 0
                 ? TriggerText(ir.Trigger)
-                : ir.Trigger.OnDemand ? "a user starts it (on demand)" : "another workflow calls it"),
-            $"{steps} step(s)" + (unmapped > 0 ? $", {unmapped} the parser could not read — marked UNMAPPED below" : ""),
-            $"CRM workflow {identity.WorkflowId:D}",
-            "Descriptive model generated from CRM XAML. Not executable; check against CRM before relying on it."
+                : ir.Trigger.OnDemand ? "bir kullanıcı başlatır (istek üzerine)" : "başka bir iş akışı çağırır"),
+            $"{steps} adım" + (unmapped > 0 ? $"; {unmapped} tanesini ayrıştırıcı okuyamadı — aşağıda OKUNAMADI olarak işaretli" : ""),
+            $"CRM iş akışı {identity.WorkflowId:D}",
+            "CRM XAML dosyasından üretilmiş açıklayıcı modeldir. Çalıştırılabilir değildir; güvenmeden önce CRM ile karşılaştırın."
         ];
-        if (identity.State == "Draft")
+        if (identity.State == ProcessLabels.StateDraft)
         {
-            lines.Insert(2, "DRAFT in CRM: this cannot start new runs.");
+            lines.Insert(2, "CRM'de TASLAK: yeni çalıştırma başlatamaz.");
         }
         return string.Join("\n", lines);
     }
@@ -397,10 +423,10 @@ public sealed partial class BpmnBuilder
     {
         string entity = ir.Identity.PrimaryEntity ?? "none";
         string automatic = ir.Trigger.OnCreate || ir.Trigger.OnDelete || ir.Trigger.OnUpdateFields.Count > 0
-            ? $"Triggered on {entity} when {TriggerText(ir.Trigger)}."
-            : "No automatic trigger.";
-        string onDemand = ir.Trigger.OnDemand ? " Can be started by a user (on demand)." : "";
-        return $"{automatic}{onDemand} Runs as {ir.Trigger.RunAs}.";
+            ? $"{entity} üzerinde şu durumda tetiklenir: {TriggerText(ir.Trigger)}."
+            : "Otomatik tetikleyici yok.";
+        string onDemand = ir.Trigger.OnDemand ? " Bir kullanıcı tarafından başlatılabilir (istek üzerine)." : "";
+        return $"{automatic}{onDemand} Çalıştıran: {ir.Trigger.RunAs}.";
     }
 
     /// <summary>CRM's own step id when the author gave the step no name: <c>UpdateStep3</c>, <c>ConditionBranchStep12</c>.</summary>

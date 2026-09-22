@@ -135,7 +135,7 @@ public static class WorkflowCombiner
                     : MemberLabel(memberIds, names);
                 branches.Add(new Branch(label, null, Merge(rest, Child(path, branches.Count), names), memberIds));
             }
-            result.Add(new StepNode(path, StepKind.Variant, "Members differ here", null, [], branches, null, [], "Variant", []));
+            result.Add(new StepNode(path, StepKind.Variant, "Üyeler burada ayrışıyor", null, [], branches, null, [], "Variant", []));
             return result;
         }
     }

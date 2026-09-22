@@ -35,7 +35,7 @@ public sealed class ExcelCsv
         {
             null => "",
             double number => number.ToString("0.####", Turkish),
-            bool flag => flag ? "yes" : "no",
+            bool flag => flag ? "evet" : "hayır",
             IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
             _ => value.ToString() ?? ""
         };
