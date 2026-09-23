@@ -30,6 +30,8 @@ public static class RunReport
         AppendUsage(text, state);
 
         text.AppendLine("## Çalışma kitapları").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture,
+            $"Sistem analisti `{Name(RunPaths.AnalystGuide)}` dosyasından başlar: dosyaların hangi sırayla açılacağını ve bir iş akışının adım adım nasıl çözümleneceğini anlatır.");
         text.AppendLine("Her kitabın ilk sayfası **Nasıl okunur**: sütunlar, uyarılar ve bu çalıştırmanın sayıları oradadır.").AppendLine();
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.PlanWorkbook)}` — **işin kendisi.** Sayfalar: {SheetNames.Plan} (taşınacak her iş akışı için bir satır) · {SheetNames.CallGraph} · {SheetNames.Trees} · {SheetNames.Unmapped} ({Count(state, "ir.workflowsWithUnmapped")} iş akışı) · {SheetNames.Drift} (çalışan kopyası farklı {Count(state, "drift.structureDiffers")} tanım).");
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.OutOfScopeWorkbook)}` — **planın dışında kalanlar:** {Count(state, "plan.excluded")} iş akışı ({Count(state, "usage.drafts")} taslak, {Count(state, "clusters.suppliedHeldApart")} ürünle gelen, kalanı adı deneme gibi olup hiç çalışmamış olanlar). Plan sayfasını süzmeye gerek yok.");

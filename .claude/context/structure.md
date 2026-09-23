@@ -21,7 +21,7 @@ The stages after retrieval read only the run folder, never the network.
 out/runs/<yyyyMMdd-HHmmss>/   manifest.json (written LAST — its presence seals the run)
   ham/  ara-model/  aileler/  birlesik/  elle-inceleme/  raporlar/  gunlukler/
   bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn
-  raporlar/  rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · kapsam-disi.xlsx · aileler.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx
+  raporlar/  nasil-kullanilir.pdf · rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · kapsam-disi.xlsx · aileler.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx
 out/cache/metadata/           shared across runs, copied into each run's ham/ust-veri/
 ```
 
@@ -30,6 +30,13 @@ has: `tasima-plani.xlsx` (what the work is), `kapsam-disi.xlsx` (what is NOT the
 never-run test names, so the plan itself needs no filtering), `aileler.xlsx` (which of these are the same),
 `veri-analizi.xlsx` (what touches what), `dis-sistemler.xlsx` (what reaches outside CRM). Each opens with a **Nasıl okunur** sheet
 carrying the columns, the caveats and that run's numbers, so a reader who has the file needs nothing beside it.
+**The package opens with a PDF.** `nasil-kullanilir.pdf` is the one document an analyst who has never seen this
+CRM reads first: what the package is, which file to open in which order, and how to work a single workflow from
+its plan row to a drawn process — demonstrated on a real live workflow picked from that run. `PdfDocument` writes
+it by hand, as `ExcelWorkbook` writes .xlsx, and embeds an installed TrueType font because the PDF base encodings
+have no ğ, ı or ş. No font on the machine that covers them and allows embedding means no PDF and a warning, never
+a misspelled one.
+
 Only two Markdown pages remain: `rapor.md` (the entry point) and `hassas-degerler.md` (restricted, kept separate so
 it is easy to leave out of a delivery). `ExcelWorkbook` writes .xlsx by hand — a zip of XML, so no dependency.
 

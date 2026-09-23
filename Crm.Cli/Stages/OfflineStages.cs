@@ -88,6 +88,16 @@ public static class OfflineStages
         state.Sheets[SheetNames.Guide] = Guides.External(Count(state, "external.activities"), Count(state, "external.addresses"));
         await WriteWorkbookAsync(folder, state, RunPaths.ExternalSystemsWorkbook,
             [SheetNames.Guide, SheetNames.ExternalDependencies, SheetNames.Addresses], token);
+
+        // Written last of all: it quotes the numbers and names a real workflow from everything above it.
+        if (AnalystGuide.Build(state, documents, usage) is byte[] guide)
+        {
+            await folder.WriteBytesAsync(RunPaths.AnalystGuide, guide, token);
+        }
+        else
+        {
+            state.Warnings.Add($"{RunPaths.AnalystGuide} yazılamadı: bu makinede Türkçe harfleri taşıyan ve gömülmesine izin veren bir yazı tipi bulunamadı.");
+        }
         state.StagesRun.Add(RunStages.MigrationPlan);
     }
 

@@ -471,3 +471,22 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   .xlsx hides rows without saying so. A second file cannot be misread as the work.
 - **Count chain:** clustering now excludes the never-run test names too, so the `aileler` link gained a fourth
   term (`clusters.testNamedHeldApart`); the chain still has to balance or the run fails.
+### The guide an analyst opens first (2026-09-23) — committed, awaiting merge
+- **Maintainer:** one PDF, step by step, in what order the files are used; it must get a System Analyst who knows
+  nothing about the subject working as fast as possible, with no confusing detail but clear answers to the
+  questions the job actually raises; give them a working procedure on a real active workflow; use the corporate
+  green and blue, and make it look like the company's site.
+- **Built:** `raporlar/nasil-kullanilir.pdf`, 5 pages: what the package is · five minutes of background (what a CRM
+  workflow is, the five kinds, mode and state, what the tool did) · the seven files in the order they are opened ·
+  a ten-step walkthrough demonstrated on a live workflow chosen from that run · the seven traps · a nine-item
+  finishing checklist · a ten-term glossary.
+- **Why by hand:** `PdfDocument` writes the file itself, as `ExcelWorkbook` writes .xlsx — a PDF is numbered objects
+  and an offset table. The alternative, a dependency, was not worth it for one document.
+- **Why a font is embedded:** the PDF base fonts are WinAnsi, which has ö and ü but no ğ, ı or ş. `TrueTypeFont`
+  reads an installed font's cmap, metrics and embedding permission (OS/2 fsType) and the file travels inside the
+  PDF, with a ToUnicode map so the text still copies and searches. No usable font means no PDF and a warning.
+- **Colours:** read off the company's own site — the blue it uses for headings and bands, the green it keeps for
+  the one button it wants pressed, white cards with a pale rule on near-white. The code names them by role, not
+  after the company.
+- **Checked by eye:** rendered through pdf.js and read page by page; the text extracts back correctly, which is
+  what proves the glyph mapping.
