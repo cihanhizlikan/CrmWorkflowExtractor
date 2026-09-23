@@ -120,6 +120,31 @@ public static partial class UsageStage
         return TestWord().IsMatch(TurkishFold.Fold(name));
     }
 
+    /// <summary>
+    /// The same finding as <see cref="Verdict"/> in a few words, for a cell and for a diagram's header. Whoever
+    /// shows it is responsible for saying once, nearby, that an absent record proves nothing.
+    /// </summary>
+    public static string ShortVerdict(WorkflowIdentity identity, UsageEvidence? usage)
+    {
+        if (identity.State == DraftState)
+        {
+            return "taslak, çalışamaz";
+        }
+        if (usage is null)
+        {
+            return "";
+        }
+        if (usage.Workflows.GetValueOrDefault(identity.WorkflowId) is { LastLoggedRun: DateTimeOffset last })
+        {
+            return "çalışıyor · " + Day(last);
+        }
+        if (identity.Category == ProcessLabels.CategoryBusinessRule)
+        {
+            return "bilinemez (iş kuralı iz bırakmaz)";
+        }
+        return identity.Mode == ProcessLabels.ModeRealTime ? "bilinemez (gerçek zamanlı)" : "kayıtlı çalışma yok";
+    }
+
     public static string Verdict(WorkflowIdentity identity, UsageEvidence? usage)
     {
         if (identity.State == DraftState)

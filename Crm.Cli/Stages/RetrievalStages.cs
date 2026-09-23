@@ -51,7 +51,7 @@ public static class RetrievalStages
         await RouteManualReviewAsync(folder, state, entries, token);
 
         DriftReport drift = DriftAnalyzer.Analyze(state.Records, entries, folder.ReadText);
-        state.Sheets[Reports.SheetNames.Drift] = Reports.QualitySheets.Drift(drift);
+        state.Drift = drift;
         state.StagesRun.Add(RunStages.Drift);
         state.Counts["drift.pairsCompared"] = drift.PairsCompared;
         state.Counts["drift.structureDiffers"] = drift.Drifted.Count(finding => finding.StructureDiffers);

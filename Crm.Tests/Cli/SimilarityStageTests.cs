@@ -19,7 +19,7 @@ public sealed class SimilarityStageTests
 
         Assert.Equal(ExitCode.Success, code);
         Workbook families = Workbook.Open(Path.Combine(runRoot, "raporlar", "aileler.xlsx"));
-        Assert.Equal(["Nasıl okunur", "Aileler", "Birleştirme", "Çiftler"], families.Names);
+        Assert.Equal(["Nasıl okunur", "Aileler", "Birleştirme", "Yakın çiftler"], families.Names);
         // A family is named after the workflow an analyst opens first; the cluster id is not a name a reader can use.
         Assert.Equal(
             ["aile", "aile_buyuklugu", "is_akisi", "aile_rolu", "baslangica_benzerlik", "zayif_tutarlilik",

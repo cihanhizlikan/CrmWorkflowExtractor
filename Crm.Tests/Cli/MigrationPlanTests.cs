@@ -31,8 +31,10 @@ public sealed class MigrationPlanTests
 
         // The plan carries the file beside the workflow, so no second index sheet has to be kept in step with it.
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        Assert.Contains(plan.Rows("Taşıma planı"), row => row.Count > 1 && row[1] == "Poliçe İptal Süreci 0"
+        Assert.Contains(plan.Rows("Taşıma planı"), row => row.Count > 1 && row[0] == "Poliçe İptal Süreci 0"
             && row.Contains("is-akisi/new-policy/police-iptal-sureci-0.bpmn"));
+        // Every written diagram says what calls it, which is only known after the whole run has been read.
+        Assert.Contains("Rol: ", File.ReadAllText(Path.Combine(bpmn, "is-akisi", "new-policy", "police-iptal-sureci-0.bpmn")), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -44,17 +46,20 @@ public sealed class MigrationPlanTests
             importFile: Fixture("mock-crm-export.json"), usageFile: Fixture("mock-usage-export.json"));
 
         Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        Assert.Equal(["Nasıl okunur", "Taşıma planı", "Çağrı ağacı", "Süreç ağaçları", "Okunamayan yapılar", "Sapma"], workbook.Names);
+        // The sheets are in the order the guide walks them.
+        Assert.Equal(["Nasıl okunur", "Taşıma planı", "Çağrı ağacı", "Süreç ağaçları", "Sapma", "Okunamayan yapılar"], workbook.Names);
         // The guide travels inside the workbook, so a reader who has the file has the column meanings too.
         Assert.Contains(workbook.Rows("Nasıl okunur"), row => row.Count > 1 && row[0] == "Bu kitap ne işe yarar");
         IReadOnlyList<IReadOnlyList<string>> rows = workbook.Rows("Taşıma planı");
-        Assert.Equal(["öncelik", "is_akisi", "kategori"], rows[0].Take(3));
+        Assert.Equal(["is_akisi", "kategori", "birincil_varlik"], rows[0].Take(3));
         // The plan is the work itself: nothing in it is a draft, and nobody has to filter it to find the real rows.
         Assert.DoesNotContain(rows.Skip(1), row => row.Contains("Taslak"));
-        Assert.Equal("1", rows[1][0]);
-        Assert.True(workbook.IsNumeric("Taşıma planı", 1, 0));
+        // Every column is one an analyst acts on: a count they can sort, a flag they can filter, a file they open.
+        Assert.Contains("bekleme_var", rows[0]);
+        Assert.DoesNotContain("durum", rows[0]);
+        Assert.True(workbook.IsNumeric("Taşıma planı", 1, rows[0].ToList().IndexOf("adim")));
         Assert.True(workbook.HasFrozenHeaderAndFilter("Taşıma planı"));
-        Assert.Contains(rows, row => row.Any(cell => cell.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20", StringComparison.Ordinal)));
+        Assert.Contains(rows, row => row.Contains("çalışıyor · 2026-09-20"));
         Assert.Contains(rows, row => row.Any(cell => cell.Contains("is-akisi/new-policy/police-iptal-sureci-0.bpmn", StringComparison.Ordinal)));
         Assert.False(File.Exists(Path.Combine(runRoot, "raporlar", "tasima-plani.md")), "Kitaba taşınan sayfa ayrıca dosya olarak üretilmemeli.");
     }
@@ -70,10 +75,13 @@ public sealed class MigrationPlanTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.True(code == ExitCode.Success, console);
+        // Only the workflows that are part of a call: a page whose every row says "calls nothing" is a page a
+        // reader has to scroll past, and the plan's own rol column already says it.
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        Assert.Contains(plan.Rows("Çağrı ağacı"), row => row.Contains("giriş noktası"));
-        // A process tree is one migration unit: the root, then what it calls, by depth.
-        Assert.Contains(plan.Rows("Süreç ağaçları"), row => row.Count > 1 && row[1] == "0");
+        IReadOnlyList<IReadOnlyList<string>> calls = plan.Rows("Çağrı ağacı");
+        Assert.All(calls.Skip(1), row => Assert.True(row.Count > 3 && (row[2].Length > 0 || row[3].Length > 0)));
+        // The fixture's child workflow is not in the inventory, and the page says so rather than printing an id.
+        Assert.Contains(calls, row => row.Contains("(envanterde bulunamadı)"));
     }
 
     /// <summary>
@@ -133,6 +141,34 @@ public sealed class MigrationPlanTests
             double top = double.Parse(shape.Element(BpmnSerializer.Dc + "Bounds")!.Attribute("y")!.Value, System.Globalization.CultureInfo.InvariantCulture);
             Assert.True(top > noteBottom, "A shape overlaps the header note.");
         }
+    }
+
+    /// <summary>
+    /// The diagram is what an analyst opens most, so what the rest of the run learned about a workflow is on its
+    /// face: whether anything else calls it, whether it is one of many like it, whether it is known to run, and
+    /// whether what runs in CRM is actually what is drawn.
+    /// </summary>
+    [Fact]
+    public void The_Header_Note_Carries_What_The_Rest_Of_The_Run_Knows()
+    {
+        Crm.Ir.Model.WorkflowIr ir = BpmnEmissionTests.IrFor("condition-update-stop.xaml");
+        DiagramFacts facts = new("yapı taşı — 3 iş akışı bunu çağırıyor, tek başına taşınmaz",
+            "\"Poliçe İptal\" ailesinden 4 benzer akıştan biri — hepsini birlikte ele alın (aileler.xlsx)",
+            "Kullanılıyor: son kayıtlı çalışma 2026-09-20 (sistem işi)", RunningCopyDiffers: true);
+
+        XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(ir, null, facts), "test");
+
+        string note = xml.Descendants(BpmnSerializer.Model + "textAnnotation").Single().Element(BpmnSerializer.Model + "text")!.Value;
+        Assert.Contains("Rol: yapı taşı — 3 iş akışı bunu çağırıyor", note, StringComparison.Ordinal);
+        Assert.Contains("Aile: \"Poliçe İptal\" ailesinden 4 benzer akıştan biri", note, StringComparison.Ordinal);
+        Assert.Contains("Kullanım: Kullanılıyor: son kayıtlı çalışma 2026-09-20", note, StringComparison.Ordinal);
+        Assert.Contains("UYARI: CRM'de çalışan kopya bu tanımdan farklı", note, StringComparison.Ordinal);
+
+        // The box has to be tall enough for the lines a reader will see, not only for the newlines in the text.
+        double height = double.Parse(xml.Descendants(BpmnSerializer.Di + "BPMNShape")
+            .Single(shape => shape.Attribute("bpmnElement")!.Value.StartsWith("note_", StringComparison.Ordinal))
+            .Element(BpmnSerializer.Dc + "Bounds")!.Attribute("height")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+        Assert.True(height >= note.Split('\n').Sum(line => Math.Max(1, (int)Math.Ceiling(line.Length / 80.0))) * 15);
     }
 
     [Fact]

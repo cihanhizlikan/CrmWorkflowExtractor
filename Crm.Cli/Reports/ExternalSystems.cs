@@ -8,8 +8,8 @@ namespace Crm.Cli.Reports;
 /// <summary>One custom activity and every workflow that calls it.</summary>
 public sealed record ExternalDependency(string Activity, string Assembly, IReadOnlyList<string> Workflows);
 
-/// <summary>One address written into a workflow's definition, and where in it the address was found.</summary>
-public sealed record ExternalAddress(string Host, string Address, string Workflow, string Path);
+/// <summary>One address written into a workflow's definition, and the workflow that carries it.</summary>
+public sealed record ExternalAddress(string Host, string Address, string Workflow);
 
 /// <summary>
 /// What the workflows reach outside CRM. A CRM workflow cannot call a service by itself: the only way is a custom
@@ -70,10 +70,10 @@ public static partial class ExternalSystems
             foreach (Match match in Address().Matches(literal.Text))
             {
                 string address = Mask(match.Value);
-                found.Add(new ExternalAddress(HostOf(address), address, workflow, literal.Path.Length == 0 ? "kök" : literal.Path));
+                found.Add(new ExternalAddress(HostOf(address), address, workflow));
             }
         }
-        return [.. found.DistinctBy(address => (address.Address, address.Path))];
+        return [.. found.DistinctBy(address => address.Address)];
     }
 
     public static Sheet BuildDependencies(IReadOnlyList<WorkflowIr> documents)
@@ -89,13 +89,13 @@ public static partial class ExternalSystems
     /// <summary>The server first, so that sorting the sheet answers "which outside systems do we touch" at a glance.</summary>
     public static Sheet BuildAddresses(IReadOnlyList<ExternalAddress> addresses)
     {
-        Sheet sheet = new(SheetNames.Addresses, "sunucu", "adres", "is_akisi", "adim_yolu");
+        Sheet sheet = new(SheetNames.Addresses, "sunucu", "adres", "is_akisi");
         foreach (ExternalAddress address in addresses
             .OrderBy(address => address.Host, StringComparer.OrdinalIgnoreCase)
             .ThenBy(address => address.Address, StringComparer.OrdinalIgnoreCase)
             .ThenBy(address => address.Workflow, StringComparer.Ordinal))
         {
-            sheet.Row(address.Host, address.Address, address.Workflow, address.Path);
+            sheet.Row(address.Host, address.Address, address.Workflow);
         }
         return sheet;
     }

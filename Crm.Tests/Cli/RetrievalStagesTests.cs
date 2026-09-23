@@ -83,8 +83,10 @@ public sealed class RetrievalStagesTests
         Assert.Equal(3, counts["drift.pairsCompared"]);
         Assert.Equal(1, counts["drift.structureDiffers"]);
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        Assert.Contains(plan.Rows("Sapma"), row => row.Count > 3
-            && row[2] == "evet" && row[3] == FakeOrganization.WorkflowId(2).ToString("D"));
+        // Only the workflows whose running copy really differs, and only those the plan carries: every row is a
+        // thing to go and check in CRM.
+        IReadOnlyList<string> drifted = Assert.Single(plan.Rows("Sapma").Skip(1));
+        Assert.Equal(FakeOrganization.WorkflowId(2).ToString("D"), drifted[1]);
     }
 
     [Fact]

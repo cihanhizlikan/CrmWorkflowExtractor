@@ -107,12 +107,19 @@ public sealed class PdfDocument(TrueTypeFont font, string title)
 
     public void Bullet(string text)
     {
+        Bullet(text, 0);
+    }
+
+    /// <summary>An indented bullet hangs under the step above it, which is how a book's sheets sit under the book.</summary>
+    public void Bullet(string text, double indent)
+    {
         Break(30);
         double top = _y;
+        double size = indent > 0 ? 10 : 10.5;
         // On the middle of the first line, not on its top: the dot is a mark beside the text, not a character in it.
-        Circle(Green, Left + 4, _y - (10.5 * Leading) + 3, 2.6);
+        Circle(Green, Left + indent + 4, _y - (size * Leading) + 3, 2.4);
         _y = top;
-        Write(text, 10.5, Ink, bold: false, Width - 18, Left + 18);
+        Write(text, size, Ink, bold: false, Width - indent - 18, Left + indent + 18);
         _y -= 3;
     }
 

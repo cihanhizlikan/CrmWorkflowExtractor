@@ -6,6 +6,13 @@ using Crm.Ir.Model;
 
 namespace Crm.Bpmn;
 
+/// <summary>
+/// What the rest of the run knows about a workflow and the diagram cannot work out for itself: what calls it,
+/// which family it belongs to, whether it is known to run, and whether CRM's running copy differs from this
+/// definition. Each is a finished sentence for the header note — how to say it is the caller's business.
+/// </summary>
+public sealed record DiagramFacts(string? Role, string? Family, string? Usage, bool RunningCopyDiffers);
+
 /// <summary>A laid-out process ready to serialize.</summary>
 public sealed record BpmnProcess(string ProcessId, string Name, string Documentation, FlowGraph Graph, IReadOnlyList<StepSource> Sources)
 {
@@ -41,9 +48,9 @@ public sealed partial class BpmnBuilder
         return "wf_" + workflowId.ToString("N");
     }
 
-    public static BpmnProcess Build(WorkflowIr ir, IReadOnlyDictionary<Guid, string>? workflowNames = null)
+    public static BpmnProcess Build(WorkflowIr ir, IReadOnlyDictionary<Guid, string>? workflowNames = null, DiagramFacts? facts = null)
     {
-        return Build(ProcessIdFor(ir.Identity.WorkflowId), ir.Identity.Name, ir, [new StepSource(ir.Identity.WorkflowId, "")], null, workflowNames);
+        return Build(ProcessIdFor(ir.Identity.WorkflowId), ir.Identity.Name, ir, [new StepSource(ir.Identity.WorkflowId, "")], null, workflowNames, facts);
     }
 
     /// <summary>
@@ -51,7 +58,7 @@ public sealed partial class BpmnBuilder
     /// <paramref name="memberNames"/> names each source workflow in the documentation.
     /// </summary>
     public static BpmnProcess Build(string processId, string name, WorkflowIr ir, IReadOnlyList<StepSource> sources,
-        IReadOnlyDictionary<Guid, string>? memberNames = null, IReadOnlyDictionary<Guid, string>? workflowNames = null)
+        IReadOnlyDictionary<Guid, string>? memberNames = null, IReadOnlyDictionary<Guid, string>? workflowNames = null, DiagramFacts? facts = null)
     {
         BpmnBuilder builder = new(processId[(processId.IndexOf('_', StringComparison.Ordinal) + 1)..], name, memberNames, workflowNames);
         FlowNode start = builder._graph.Add(new FlowNode(builder.Id("start"), FlowNodeType.StartEvent, StartName(ir.Trigger))
@@ -69,8 +76,11 @@ public sealed partial class BpmnBuilder
         process.Connect();
 
         // The note is a shape like any other, so the diagram starts below it and nothing is drawn over it.
-        string note = HeaderNote(ir, name);
-        double noteHeight = (note.Split('\n').Length * 15) + 16;
+        string note = HeaderNote(ir, name, facts);
+        // A long line wraps inside the annotation, so the box is sized by the lines a reader will SEE, not by the
+        // newlines in the text: underestimating would let the note spill out of its own border.
+        int visualLines = note.Split('\n').Sum(line => Math.Max(1, (int)Math.Ceiling(line.Length / 80.0)));
+        double noteHeight = (visualLines * 15) + 16;
         // Clear of the note, with room for a branch caption above the first row of shapes.
         process.Place(40, 40 + noteHeight + 120);
 
@@ -295,7 +305,27 @@ public sealed partial class BpmnBuilder
             _ => step.Kind.ToString()
         };
         string subject = Subject(step);
-        return Truncate(subject.Length == 0 ? verb : $"{verb}: {subject}", 80);
+        return Truncate(subject.Length == 0 ? verb : $"{verb}: {subject}", 80) + Target(step, subject);
+    }
+
+    /// <summary>
+    /// Where the step hands over to: the workflow a call activity starts, or the registered code a custom activity
+    /// runs. The author's own label rarely names either, and both are what a reader needs to follow the thread.
+    /// </summary>
+    private string Target(StepNode step, string subject)
+    {
+        if (step.Kind == StepKind.StartChildWorkflow && Guid.TryParse(step.Detail, out Guid child)
+            && _workflowNames.GetValueOrDefault(child) is string target && !subject.Contains(target, StringComparison.Ordinal))
+        {
+            return " → " + Truncate(target, 60);
+        }
+        if (step.Kind == StepKind.CustomActivity && step.Detail is string type)
+        {
+            string name = type.Split(',')[0].Trim();
+            name = name[(name.LastIndexOf('.') + 1)..];
+            return name.Length == 0 || subject.Contains(name, StringComparison.Ordinal) ? "" : $" ({name})";
+        }
+        return "";
     }
 
     /// <summary>
@@ -386,7 +416,12 @@ public sealed partial class BpmnBuilder
     /// What a reader needs before reading the diagram: which CRM workflow this is, whether it can run at all, what
     /// starts it, how big it is, and how much of it the parser could not read. Kept short enough to take in at once.
     /// </summary>
-    private static string HeaderNote(WorkflowIr ir, string name)
+    /// <summary>
+    /// What a reader has to know before they trust the picture, on the picture itself. Everything here answers a
+    /// question an analyst would otherwise have to leave the file to answer: is this one of many like it, does
+    /// anything else call it, is it alive, and is what runs in CRM actually what is drawn here.
+    /// </summary>
+    private static string HeaderNote(WorkflowIr ir, string name, DiagramFacts? facts)
     {
         WorkflowIdentity identity = ir.Identity;
         int steps = CountSteps(ir.Steps);
@@ -398,10 +433,30 @@ public sealed partial class BpmnBuilder
             "Şununla başlar: " + (ir.Trigger.OnCreate || ir.Trigger.OnDelete || ir.Trigger.OnUpdateFields.Count > 0
                 ? TriggerText(ir.Trigger)
                 : ir.Trigger.OnDemand ? "bir kullanıcı başlatır (istek üzerine)" : "başka bir iş akışı çağırır"),
-            $"{steps} adım" + (unmapped > 0 ? $"; {unmapped} tanesini ayrıştırıcı okuyamadı — aşağıda OKUNAMADI olarak işaretli" : ""),
-            $"CRM iş akışı {identity.WorkflowId:D}",
-            "CRM XAML dosyasından üretilmiş açıklayıcı modeldir. Çalıştırılabilir değildir; güvenmeden önce CRM ile karşılaştırın."
+            $"{steps} adım" + (unmapped > 0 ? $"; {unmapped} tanesini ayrıştırıcı okuyamadı — aşağıda OKUNAMADI olarak işaretli" : "")
         ];
+        if (facts?.Role is string role)
+        {
+            lines.Add("Rol: " + role);
+        }
+        if (facts?.Family is string family)
+        {
+            lines.Add("Aile: " + family);
+        }
+        if (facts?.Usage is string usage)
+        {
+            lines.Add("Kullanım: " + usage);
+        }
+        if (facts?.RunningCopyDiffers == true)
+        {
+            lines.Add("UYARI: CRM'de çalışan kopya bu tanımdan farklı. Üretimde çalışan, burada çizilen olmayabilir.");
+        }
+        if (identity.IsManaged == true)
+        {
+            lines.Add("Ürünle gelmiş (yönetilen çözüm): yeni üründe bunu sizin kurmanız gerekmez.");
+        }
+        lines.Add($"CRM iş akışı {identity.WorkflowId:D}");
+        lines.Add("CRM XAML dosyasından üretilmiş açıklayıcı modeldir. Çalıştırılabilir değildir; güvenmeden önce CRM ile karşılaştırın.");
         if (identity.State == ProcessLabels.StateDraft)
         {
             lines.Insert(2, "CRM'de TASLAK: yeni çalıştırma başlatamaz.");

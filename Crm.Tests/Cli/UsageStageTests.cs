@@ -35,8 +35,10 @@ public sealed class UsageStageTests
         IReadOnlyList<IReadOnlyList<string>> work = plan.Rows("Taşıma planı");
         IReadOnlyList<string> ran = Assert.Single(work, row => row.Contains(DefinitionThatRan.ToString("D")));
         Assert.Contains("2026-09-20", ran);
-        Assert.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20 (sistem işi)", ran);
-        Assert.Contains(work, row => row.Any(cell => cell.StartsWith("Kayıtlı çalışma yok; görülen en eski çalışma 2026-09-20", StringComparison.Ordinal)));
+        Assert.Contains("çalışıyor · 2026-09-20", ran);
+        Assert.Contains(work, row => row.Contains("kayıtlı çalışma yok"));
+        // The short cell is only honest because the caveat is said in full where the columns are explained.
+        Assert.Contains(plan.Rows("Nasıl okunur"), row => row.Any(cell => cell.Contains("KANITLAMAZ", StringComparison.Ordinal)));
 
         // 44 drafts in the fixture, one without XAML (the simulated failure), so 43 IR documents: out of the plan and
         // into its counterpart book with the reason beside them, absent from the families, and the count chain still balances.
@@ -64,7 +66,7 @@ public sealed class UsageStageTests
 
         Assert.True(code == ExitCode.Success, console);
         Workbook plan = Workbook.Open(Path.Combine(second, "raporlar", "tasima-plani.xlsx"));
-        Assert.Contains(plan.Rows("Taşıma planı"), row => row.Any(cell => cell.StartsWith("Kullanılıyor: son kayıtlı çalışma 2026-09-20", StringComparison.Ordinal)));
+        Assert.Contains(plan.Rows("Taşıma planı"), row => row.Contains("çalışıyor · 2026-09-20"));
     }
 
     /// <summary>Asking the server for the oldest record of all sorts the whole System Job table; production leaves it pending.</summary>

@@ -34,6 +34,12 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>IR documents produced by the offline stages.</summary>
     public IReadOnlyList<Crm.Ir.Model.WorkflowIr> Documents { get; set; } = [];
 
+    /// <summary>What the parser read and could not read. The sheet is built later, beside the diagram file names.</summary>
+    public IReadOnlyList<Crm.Ir.Reports.WorkflowCoverage> Coverage { get; set; } = [];
+
+    /// <summary>Definition/activation comparison. The sheet is built later, where it is known what is in the plan.</summary>
+    public Crm.Extract.Xaml.DriftReport? Drift { get; set; }
+
     /// <summary>Every address found in the definitions, from anywhere in the XAML — not only the captured arguments.</summary>
     public IReadOnlyList<Crm.Cli.Reports.ExternalAddress> Addresses { get; set; } = [];
 

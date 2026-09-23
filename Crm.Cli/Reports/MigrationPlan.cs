@@ -21,12 +21,13 @@ public static class MigrationPlan
     public static Sheet Build(RunState state, IReadOnlyList<WorkflowIr> documents, SimilarityResult? similarity, UsageEvidence? usage)
     {
         Rows rows = new(state, documents, similarity, usage);
-        // Column order is the order an analyst asks the questions in: what is it, what starts it, how big, does it
-        // stand alone, is it a duplicate, is it alive, how much of it can I trust, what does it drag along.
-        Sheet sheet = new(SheetNames.Plan, "öncelik", "is_akisi", "kategori", "birincil_varlik", "tetikleyici", "adim", "rol",
-            "aile", "aile_rolu", "aile_buyuklugu", "kullanim_hukmu", "son_kayitli_calisma", "okunamayan_adim",
-            "ozel_etkinlikler", "baslattigi_is_akisi", "paylasilan_alan", "yazdigi_varliklar", "yazdigi_alanlar",
-            "mod", "durum", "hassas_deger_var", "bpmn_dosyasi", "birlesik_dosya", "is_akisi_id");
+        // Column order is the order an analyst asks the questions in while redrawing a process: what is it, what
+        // starts it, how big is it, does it span time, does it stand alone, is it a duplicate, is it alive, how much
+        // of the drawing can I trust, what does it drag along with it.
+        Sheet sheet = new(SheetNames.Plan, "is_akisi", "kategori", "birincil_varlik", "tetikleyici", "adim", "bekleme_var",
+            "rol", "aile", "aile_rolu", "kullanim", "son_kayitli_calisma", "okunamayan_adim",
+            "ozel_etkinlikler", "baslattigi_is_akisi", "paylasilan_alan", "yazdigi_varliklar",
+            "mod", "hassas_deger_var", "bpmn_dosyasi", "birlesik_dosya", "is_akisi_id");
         foreach (WorkflowIr document in InScope(documents, usage).OrderBy(Priority).ThenBy(document => document.Identity.Name, StringComparer.Ordinal))
         {
             rows.Plan(sheet, document);
@@ -100,6 +101,15 @@ public static class MigrationPlan
             : "";
     }
 
+    /// <summary>
+    /// Whether the process pauses: a timer or a wait-for-a-condition. It is one cell and it changes the whole shape
+    /// of the redesign — a process that stays open for days is not the same object as one that runs to the end.
+    /// </summary>
+    private static bool Waits(IReadOnlyList<StepNode> steps)
+    {
+        return steps.Any(step => step.Kind is StepKind.Timeout or StepKind.WaitCondition || step.Branches.Any(branch => Waits(branch.Steps)));
+    }
+
     private static int CountSteps(IReadOnlyList<StepNode> steps)
     {
         return steps.Sum(step => 1 + step.Branches.Sum(branch => CountSteps(branch.Steps)));
@@ -168,26 +178,23 @@ public static class MigrationPlan
             WorkflowCluster? family = _familyOf.GetValueOrDefault(identity.WorkflowId);
             bool inFamily = family is not null && family.Members.Count > 1;
             sheet.Row(
-                Priority(document),
                 identity.Name,
                 identity.Category,
                 identity.PrimaryEntity,
                 Trigger(document.Trigger),
                 CountSteps(document.Steps),
+                Waits(document.Steps),
                 _calls.RoleOf(identity.WorkflowId),
                 inFamily ? _names.GetValueOrDefault(family!.Medoid, family.ClusterId) : "",
                 inFamily ? family!.Medoid == identity.WorkflowId ? "başlangıç noktası" : "üye" : "",
-                inFamily ? family!.Members.Count : null,
-                UsageStage.Verdict(identity, _usage),
+                UsageStage.ShortVerdict(identity, _usage),
                 LastRun(_usage, identity),
                 _state.UnmappedSteps.GetValueOrDefault(identity.WorkflowId),
                 string.Join(" | ", document.Dependencies.CustomActivities.Select(ShortType)),
                 _starts.GetValueOrDefault(identity.WorkflowId),
                 _sharedFields.GetValueOrDefault(identity.WorkflowId),
                 string.Join(" | ", document.DataTouched.EntitiesWritten),
-                string.Join(" | ", document.DataTouched.FieldsWritten.Take(12)),
                 identity.Mode,
-                identity.State,
                 _state.SensitiveWorkflows.Contains(identity.WorkflowId),
                 _state.BpmnFiles.TryGetValue(identity.WorkflowId, out string? file) ? file + ".bpmn" : "",
                 inFamily && _state.CombinedFiles.TryGetValue(family!.ClusterId, out string? combined) ? combined + ".bpmn" : "",

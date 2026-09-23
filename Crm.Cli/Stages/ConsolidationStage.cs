@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Xml.Linq;
 using Crm.Bpmn;
 using Crm.Cli.Reports;
@@ -70,20 +69,17 @@ public static class ConsolidationStage
     private static Sheet BuildSheet(IReadOnlyList<CombineOutcome> outcomes, IReadOnlyDictionary<Guid, WorkflowIr> documents,
         IReadOnlyDictionary<string, string> familyNames, IReadOnlyDictionary<string, string> fileNames, IReadOnlyDictionary<Guid, string> bpmnFiles)
     {
-        Sheet sheet = new(SheetNames.Consolidation, "aile", "durum", "uye", "cesitleme_sayisi", "mutabakat", "tetikleyici", "birlesik_dosya", "uye_bpmn");
+        Sheet sheet = new(SheetNames.Consolidation, "aile", "durum", "uye", "cesitleme_sayisi", "tetikleyici", "birlesik_dosya", "uye_bpmn");
         foreach (CombineOutcome outcome in outcomes)
         {
             string combinedFile = fileNames.TryGetValue(outcome.ClusterId, out string? stem) ? $"{RunPaths.Combined}/{stem}.bpmn" : "";
             int variants = outcome.Combined is WorkflowIr combined ? CountVariants(combined.Steps) : 0;
             string state = outcome.Combined is null ? "birleştirilmedi: " + outcome.SkippedBecause : "birleştirildi";
-            string reconciliation = outcome.ReconciliationErrors.Count == 0
-                ? "her üye adımının hesabı verildi"
-                : string.Create(CultureInfo.InvariantCulture, $"{outcome.ReconciliationErrors.Count} mutabakat hatası");
             foreach (Guid member in outcome.Members)
             {
                 WorkflowIr document = documents[member];
                 sheet.Row(familyNames.GetValueOrDefault(outcome.ClusterId, outcome.ClusterId), state, document.Identity.Name,
-                    variants, reconciliation, TriggerText(document.Trigger), combinedFile,
+                    variants, TriggerText(document.Trigger), combinedFile,
                     $"{RunPaths.Bpmn}/{bpmnFiles.GetValueOrDefault(member, member.ToString("D"))}.bpmn");
             }
         }

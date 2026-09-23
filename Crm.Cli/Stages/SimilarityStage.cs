@@ -13,6 +13,9 @@ public static class SimilarityStage
     private const double RebuiltStructural = 0.95;
     private const double RebuiltLexical = 0.5;
 
+    /// <summary>How far below the clustering threshold a pair still counts as one a human should look at.</summary>
+    private const double NearMiss = 0.1;
+
     public static async Task<SimilarityResult> RunAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents,
         UsageEvidence? usage, SimilarityOptions options, ILogger logger, CancellationToken token)
     {
@@ -36,11 +39,17 @@ public static class SimilarityStage
         }
         state.Sheets[SheetNames.Families] = clusters;
 
-        Sheet pairs = new(SheetNames.Pairs, "sol_ad", "sag_ad", "bilesik", "yapisal", "sozcuksel", "ayni_aile", "baska_adla_yeniden_yazilmis");
-        foreach (PairScore pair in result.Pairs)
+        // Every pair above the floor is tens of thousands of rows and no decision. What is a decision: two
+        // workflows that did NOT become a family although they nearly scored one, and two that are structurally the
+        // same under different names — a copy someone renamed. Those are the rows a reader can do something about.
+        Sheet pairs = new(SheetNames.Pairs, "sol_ad", "sag_ad", "neden_burada", "bilesik", "yapisal", "sozcuksel");
+        foreach (PairScore pair in result.Pairs.Where(pair => clusterOf[pair.Left] != clusterOf[pair.Right])
+            .Where(pair => pair.Combined >= options.ClusterThreshold - NearMiss || Rewritten(pair))
+            .OrderByDescending(pair => pair.Combined))
         {
-            pairs.Row(names[pair.Left], names[pair.Right], pair.Combined, pair.Structural, pair.Lexical,
-                clusterOf[pair.Left] == clusterOf[pair.Right], pair.Structural >= RebuiltStructural && pair.Lexical < RebuiltLexical);
+            pairs.Row(names[pair.Left], names[pair.Right],
+                Rewritten(pair) ? "aynı yapı, farklı ad: yeniden yazılmış kopya olabilir" : "eşiğe yakın, aile olmadı",
+                pair.Combined, pair.Structural, pair.Lexical);
         }
         state.Sheets[SheetNames.Pairs] = pairs;
 
@@ -54,6 +63,11 @@ public static class SimilarityStage
         logger.LogInformation("Similarity: {Families} families of 2+, {Clusters} clusters in total, {Pairs} pairs above the floor",
             state.Counts["clusters.families"], result.Clusters.Count, result.Pairs.Count);
         return result;
+    }
+
+    private static bool Rewritten(PairScore pair)
+    {
+        return pair.Structural >= RebuiltStructural && pair.Lexical < RebuiltLexical;
     }
 
     private static string LastLoggedRun(UsageEvidence? usage, Guid workflowId)

@@ -65,7 +65,7 @@ public sealed class ExternalSystemsTests
         // The XAML's own schema namespaces are not addresses.
         Assert.Equal(3, found.Count);
         Assert.All(found, address => Assert.Equal("Poliçe İptal", address.Workflow));
-        Assert.Contains(found, address => address.Host == "nova.local" && address.Path == "Sequence/Assign");
+        Assert.Contains(found, address => address.Host == "nova.local");
         Assert.Contains(found, address => address.Host == "dosya01");
         // The page is delivered; a password written into an address is not.
         ExternalAddress ftp = Assert.Single(found, address => address.Host == "ftp.local");
@@ -96,7 +96,7 @@ public sealed class ExternalSystemsTests
         Assert.Equal(["etkinlik", "cagiran_is_akisi_sayisi", "cagiran_is_akislari", "derleme"],
             workbook.Headers("Dış bağımlılıklar"));
         Assert.Contains(workbook.Rows("Dış bağımlılıklar"), row => row.Contains("NotifyPolicyService"));
-        Assert.Equal(["sunucu", "adres", "is_akisi", "adim_yolu"], workbook.Headers("Adresler"));
+        Assert.Equal(["sunucu", "adres", "is_akisi"], workbook.Headers("Adresler"));
         Assert.Contains(workbook.Rows("Adresler"), row => row.Count > 1 && row[1].StartsWith("https://", StringComparison.Ordinal));
         // The guide has to say what the page cannot see, or a reader takes an empty page for "calls nothing".
         Assert.Contains(workbook.Rows("Nasıl okunur"), row => row.Any(cell => cell.Contains("Görülemeyen", StringComparison.Ordinal)));

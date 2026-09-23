@@ -518,3 +518,27 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Guide:** the workbook now states in as many words that an empty Adresler page does NOT mean "calls nothing".
 - **Removed:** `ExternalSystems.Markdown`, which no longer had a caller, and the address list on
   `ExternalDependency`, which no sheet had shown since the column audit.
+### Read it as the analyst would (2026-09-23) — committed, awaiting merge
+- **Maintainer:** teach the guide every sheet; order the sheets to match it; drop what does not help a decision;
+  then WALK your own recommended workflow and fix what got in your way. Add to the diagrams too — they are what
+  the analysts will open most.
+- **Walked it.** The tool was run over the recorded export and the output read sheet by sheet, as an analyst who
+  has to draw the new design. Eight things got in the way, and each one is now fixed:
+  1. `kullanim_hukmu` carried a 120-character sentence in every row, so the column was 120 characters wide and the
+     sheet unreadable. The cell now says `çalışıyor · 2026-09-20` or `kayıtlı çalışma yok`; the caveat that an
+     absent record proves nothing is said once, in the guide and on the PDF's traps page.
+  2. Çağrı ağacı had a row per workflow, 45 of 46 saying "calls nothing". Only workflows in a call remain.
+  3. Süreç ağaçları listed a "tree" of one node. A tree needs two.
+  4. Okunamayan yapılar located the problem with a XAML index (`0`, `1`) that means nothing to a reader. It now
+     gives the diagram file and how many times, and the diagram marks the step OKUNAMADI.
+  5. Adresler had the same useless index column; gone.
+  6. A call to a workflow outside the inventory printed a bare guid; it now says `(envanterde bulunamadı)`.
+  7. The diagram's call activity did not name the workflow it starts, and its service task did not name the
+     registered code it runs. Both are now on the label, which is how a reader gets to the next file.
+  8. Sapma mixed drafts and cosmetic differences into the one list that means "what runs is not what we drew".
+- **Plan columns:** `bekleme_var` added — a process that spans time is not the same object as one that runs to the
+  end, and it was invisible. `öncelik`, `durum`, `aile_buyuklugu` and `yazdigi_alanlar` removed: a band with two
+  values that `kategori` already says, a column that never varies, a number that belongs to the family book, and
+  twelve field names in one cell that veri-analizi.xlsx carries properly.
+- **Guide:** every column now has a line saying what a reader does because of it, every workbook lists its sheets
+  in reading order, and the PDF walks file → sheet → column at each of its ten steps.

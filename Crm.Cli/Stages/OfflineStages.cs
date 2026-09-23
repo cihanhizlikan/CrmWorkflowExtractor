@@ -18,7 +18,6 @@ public static class OfflineStages
         UsageEvidence? usage = await UsageStage.LoadAsync(folder, state, settings.Run.Value.UsageFile, logger, token);
         IReadOnlyList<WorkflowIr> documents = await IrStage.RunAsync(folder, state, extractedAt, logger, token);
         state.Documents = documents;
-        await BpmnStage.RunAsync(folder, state, documents, logger, token);
         UsageStage.Summarize(state, documents, usage);
 
         // What is not this company's to rebuild leaves the plan and every stage after it: a Draft, which cannot start
@@ -32,6 +31,7 @@ public static class OfflineStages
             - state.Counts["clusters.draftsHeldApart"] - state.Counts["clusters.suppliedHeldApart"];
         SimilarityOptions similarity = settings.Similarity?.Value ?? new SimilarityOptions();
         SimilarityResult families = await SimilarityStage.RunAsync(folder, state, inScope, usage, similarity, logger, token);
+        await BpmnStage.RunAsync(folder, state, documents, families, usage, logger, token);
         await ConsolidationStage.RunAsync(folder, state, inScope, families, logger, token);
 
         await WriteAnalysisAsync(folder, state, documents, families, usage, settings.Run.Value.LogoFile, token);
@@ -45,6 +45,7 @@ public static class OfflineStages
         SimilarityResult families, UsageEvidence? usage, string logoFile, CancellationToken token)
     {
         CallGraph calls = CallGraph.Build(documents);
+        HashSet<Guid> inPlan = [.. MigrationPlan.InScope(documents, usage).Select(document => document.Identity.WorkflowId)];
         state.Sheets[SheetNames.Plan] = MigrationPlan.Build(state, documents, families, usage);
         state.Sheets[SheetNames.Excluded] = MigrationPlan.BuildExcluded(state, documents, usage);
         state.Sheets[SheetNames.CallGraph] = calls.Build();
@@ -52,6 +53,11 @@ public static class OfflineStages
         state.Sheets[SheetNames.DataFootprint] = DataFootprint.Build(documents);
         state.Sheets[SheetNames.Cascades] = DataFootprint.BuildCascades(documents);
         state.Sheets[SheetNames.ExternalDependencies] = ExternalSystems.BuildDependencies(documents);
+        state.Sheets[SheetNames.Unmapped] = QualitySheets.Unmapped(state.Coverage, state.BpmnFiles);
+        if (state.Drift is not null)
+        {
+            state.Sheets[SheetNames.Drift] = QualitySheets.Drift(state.Drift, inPlan);
+        }
         state.Sheets[SheetNames.Addresses] = ExternalSystems.BuildAddresses(state.Addresses);
 
         state.Counts["external.activities"] = ExternalSystems.Dependencies(documents).Count;
@@ -71,7 +77,7 @@ public static class OfflineStages
             MigrationPlan.InScope(documents, usage).Count(MigrationPlan.IsLiveProcess),
             Count(state, "plan.excluded"), Count(state, "callGraph.buildingBlocks"));
         await WriteWorkbookAsync(folder, state, RunPaths.PlanWorkbook,
-            [SheetNames.Guide, SheetNames.Plan, SheetNames.CallGraph, SheetNames.Trees, SheetNames.Unmapped, SheetNames.Drift], token);
+            [SheetNames.Guide, SheetNames.Plan, SheetNames.CallGraph, SheetNames.Trees, SheetNames.Drift, SheetNames.Unmapped], token);
 
         state.Sheets[SheetNames.Guide] = Guides.Excluded(Count(state, "plan.excluded"), Count(state, "usage.drafts"),
             Count(state, "clusters.suppliedHeldApart"), documents.Count);

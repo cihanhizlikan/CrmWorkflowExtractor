@@ -1,4 +1,3 @@
-using Crm.Extract.Inventory;
 using Crm.Extract.Xaml;
 using Crm.Ir.Parsing;
 using Crm.Ir.Reports;
@@ -12,36 +11,39 @@ namespace Crm.Cli.Reports;
 /// </summary>
 public static class QualitySheets
 {
-    public static Sheet Unmapped(IReadOnlyList<WorkflowCoverage> coverage)
+    /// <summary>
+    /// What the parser could not read, per workflow and construct. The locator is the diagram, not the XAML path:
+    /// the path CRM leaves behind is an index that means nothing to a reader, while the diagram marks the very
+    /// step OKUNAMADI. One row per construct per workflow — the same unreadable thing forty times is one problem.
+    /// </summary>
+    public static Sheet Unmapped(IReadOnlyList<WorkflowCoverage> coverage, IReadOnlyDictionary<Guid, string> bpmnFiles)
     {
-        Sheet sheet = new(SheetNames.Unmapped, "is_akisi", "yapi", "adim_yolu", "is_akisi_id");
+        Sheet sheet = new(SheetNames.Unmapped, "is_akisi", "yapi", "kac_kez", "bpmn_dosyasi", "is_akisi_id");
         foreach (WorkflowCoverage workflow in coverage.OrderBy(workflow => workflow.Name, StringComparer.Ordinal))
         {
-            foreach (CoverageObservation observation in workflow.Observations
+            foreach (IGrouping<string, CoverageObservation> construct in workflow.Observations
                 .Where(observation => observation.Status == CoverageStatus.Unmapped)
-                .DistinctBy(observation => (observation.Construct, observation.Path)))
+                .GroupBy(observation => observation.Construct, StringComparer.Ordinal)
+                .OrderByDescending(group => group.Count()))
             {
-                sheet.Row(workflow.Name, observation.Construct, observation.Path.Length == 0 ? "kök" : observation.Path, workflow.WorkflowId);
+                sheet.Row(workflow.Name, construct.Key, construct.Count(),
+                    bpmnFiles.TryGetValue(workflow.WorkflowId, out string? file) ? file + ".bpmn" : "", workflow.WorkflowId);
             }
         }
         return sheet;
     }
 
-    public static Sheet Drift(DriftReport report)
+    /// <summary>
+    /// The workflows whose running copy really differs from the definition the diagram was drawn from — every row
+    /// is a thing to go and check in CRM. Pairs that differ only in formatting or in the per-record class names are
+    /// left out, and so are the drafts: a draft is not in the plan, so a reader would look for it and not find it.
+    /// </summary>
+    public static Sheet Drift(DriftReport report, IReadOnlySet<Guid> inScope)
     {
-        Sheet sheet = new(SheetNames.Drift, "is_akisi", "durum", "yapi_farkli", "tanim_id");
-        foreach (DriftFinding finding in report.Drifted)
+        Sheet sheet = new(SheetNames.Drift, "is_akisi", "is_akisi_id");
+        foreach (DriftFinding finding in report.Drifted.Where(finding => finding.StructureDiffers && inScope.Contains(finding.DefinitionId)))
         {
-            sheet.Row(finding.Name, "tanım ile çalışan kopya farklı", finding.StructureDiffers, finding.DefinitionId);
-        }
-        foreach (WorkflowInventoryRecord record in report.DraftDefinitions)
-        {
-            sheet.Row(record.Name, record.ActiveWorkflowId is null ? "taslak, etkinleştirmesi yok" : "taslak, etkinleştirmesi var",
-                null, record.WorkflowId);
-        }
-        foreach (WorkflowInventoryRecord record in report.DefinitionsWithoutActivation)
-        {
-            sheet.Row(record.Name, "hiç etkinleştirme kaydı yok", null, record.WorkflowId);
+            sheet.Row(finding.Name, finding.DefinitionId);
         }
         return sheet;
     }

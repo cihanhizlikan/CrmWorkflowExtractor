@@ -90,14 +90,20 @@ public sealed class CallGraph
     /// <summary>One row per node of every process tree: the root, the depth, and the workflow at that depth.</summary>
     public Sheet BuildTrees()
     {
+        // A tree of one node is not a tree: the plan already carries that workflow as a line of its own.
         Sheet sheet = new(SheetNames.Trees, "kok_is_akisi", "derinlik", "is_akisi", "rol");
         foreach (Guid root in Calls.Keys
             .Where(id => CalledBy.GetValueOrDefault(id, []).Count == 0 && Calls[id].Count > 0)
             .OrderBy(id => Names[id], StringComparer.Ordinal))
         {
-            foreach ((Guid id, int depth) in Tree(root))
+            IReadOnlyList<(Guid Id, int Depth)> tree = Tree(root);
+            if (tree.Count < 2)
             {
-                sheet.Row(Names[root], depth, Names.GetValueOrDefault(id, id.ToString("D")), RoleOf(id));
+                continue;
+            }
+            foreach ((Guid id, int depth) in tree)
+            {
+                sheet.Row(Names[root], depth, Names.GetValueOrDefault(id, "(envanterde bulunamadı)"), RoleOf(id));
             }
         }
         return sheet;
@@ -105,12 +111,18 @@ public sealed class CallGraph
 
     public Sheet Build()
     {
+        // Only the workflows that are part of a call: for everything else the plan's own rol column already says
+        // "giriş noktası", and a row that repeats it is a row a reader has to skip.
         Sheet csv = new(SheetNames.CallGraph, "is_akisi", "rol", "alt_akislar", "cagiranlar", "is_akisi_id");
         foreach ((Guid id, IReadOnlyList<Guid> children) in Calls.OrderBy(entry => Names[entry.Key], StringComparer.Ordinal))
         {
             IReadOnlyList<Guid> parents = CalledBy.GetValueOrDefault(id, []);
+            if (children.Count == 0 && parents.Count == 0)
+            {
+                continue;
+            }
             csv.Row(Names[id], RoleOf(id),
-                string.Join(" | ", children.Select(child => Names.GetValueOrDefault(child, child.ToString("D")))),
+                string.Join(" | ", children.Select(child => Names.GetValueOrDefault(child, "(envanterde bulunamadı)"))),
                 string.Join(" | ", parents.Select(parent => Names[parent])), id);
         }
         return csv;

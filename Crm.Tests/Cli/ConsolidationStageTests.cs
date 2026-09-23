@@ -29,7 +29,6 @@ public sealed class ConsolidationStageTests
         IReadOnlyList<IReadOnlyList<string>> rows = families.Rows("Birleştirme");
         Assert.Equal(4, rows.Count - 1);
         Assert.All(rows.Skip(1), row => Assert.Contains("birleştirildi", row));
-        Assert.All(rows.Skip(1), row => Assert.Contains("her üye adımının hesabı verildi", row));
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
         Assert.Equal(1, manifest.RootElement.GetProperty("stageCounts").GetProperty("consolidation.combined").GetInt32());

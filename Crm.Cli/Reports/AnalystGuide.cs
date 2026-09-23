@@ -29,7 +29,7 @@ public static class AnalystGuide
         WorkflowIr? example = Example(state, documents, usage);
         Cover(pdf, state, documents, usage, Logo(state, logoFile));
         Background(pdf);
-        Order(pdf, state);
+        Files(pdf);
         Walkthrough(pdf, state, usage, example);
         Traps(pdf);
         Checklist(pdf);
@@ -73,37 +73,52 @@ public static class AnalystGuide
             + "uluslararası standardıdır: .bpmn dosyalarını bpmn.io sitesinde veya Camunda Modeler'da açabilirsiniz.");
     }
 
-    private static void Order(PdfDocument pdf, RunState state)
+    /// <summary>
+    /// The files in the order they are opened, with every sheet of every workbook and what a reader does on it.
+    /// A reader should be able to stop after this section, open the first file and start working.
+    /// </summary>
+    private static void Files(PdfDocument pdf)
     {
-        pdf.Heading("Dosyaları hangi sırayla açacaksınız");
-        pdf.Body("Sıra önemlidir: her adım bir sonrakinde ne arayacağınızı söyler. İlk üç adım yarım saatinizi alır.");
+        pdf.Heading("Dosyalar, sekmeler ve açılış sırası");
+        pdf.Body("Sıra önemlidir: her adım bir sonrakinde ne arayacağınızı söyler. Her çalışma kitabının ilk sayfası "
+            + "\"Nasıl okunur\"dur ve sütunların tek tek ne işe yaradığını yazar; sekmeler de burada anlatılan sırayla dizilidir.");
         pdf.Step(1, "rapor.md — çalıştırmanın özeti",
-            "Kaç tanım okundu, kaçı okunamadı, hangi uyarılar var. Sayıların birbirini tuttuğunu burada görürsünüz. "
-            + "İki dakika okuyun; bir sayı tuhaf geliyorsa işe başlamadan sorun.");
+            "Kaç tanım okundu, kaçı okunamadı, hangi uyarılar var. İki dakika okuyun; bir sayı tuhaf geliyorsa işe başlamadan sorun.");
         pdf.Step(2, "tasima-plani.xlsx — sizin iş listeniz",
-            "Önce \"Nasıl okunur\" sayfası, sonra \"Taşıma planı\". Her satır bir iş akışıdır ve taşınacak işi "
-            + "anlatır. Süzmeniz gerekmez: kurumun kurmadığı, taslak olan ve hiç çalışmamış deneme akışları bu "
-            + "dosyada zaten yoktur. Çalışmanızı bu sayfadan seçeceğiniz bir satırla başlatın.");
-        pdf.Step(3, "bpmn/ klasörü — akışın resmi",
-            "Plan satırındaki bpmn_dosyasi sütunu, o akışın diyagramının yolunu verir. Dosyalar kategori ve birincil "
-            + "varlık klasörlerine ayrılmıştır. Diyagramın üstündeki not kutusu akışın künyesini ve neyle "
-            + "başladığını söyler.");
+            "İşin kendisi. Süzmeniz gerekmez: kurumun kurmadığı, taslak olan ve hiç çalışmamış deneme akışları bu dosyada zaten yoktur.");
+        pdf.Bullet("Taşıma planı — her iş akışı için bir satır. Çalışmanızı buradan seçeceğiniz bir satırla başlatın; "
+            + "her sütun ya bir tasarım kararını ya da bir sorunu gösterir.", 26);
+        pdf.Bullet("Çağrı ağacı — bir akışın kimi çağırdığı ve kimin onu çağırdığı. \"Bu akışı tek başına ele alabilir miyim?\" "
+            + "sorusunun cevabı.", 26);
+        pdf.Bullet("Süreç ağaçları — bir giriş noktası ve altındaki bütün akışlar, derinlik sırasıyla. Taşıma kalemlerinizi "
+            + "bu sayfadan çıkarın: bir ağaç bir kalemdir.", 26);
+        pdf.Bullet("Sapma — CRM'de çalışan kopyası tanımından farklı olan akışlar. Buradaki her satır, diyagramın üretimdeki "
+            + "davranışı göstermeyebileceği anlamına gelir: o akışı CRM'de açıp doğrulayın.", 26);
+        pdf.Bullet("Okunamayan yapılar — aracın çözemediği adımlar. Bir akış burada geçiyorsa diyagramı eksiktir: "
+            + "bpmn_dosyasi sütunundaki diyagramı açın, eksik adımlar orada OKUNAMADI olarak işaretlidir.", 26);
+        pdf.Step(3, "bpmn/ — akışın resmi",
+            "Plan satırındaki bpmn_dosyasi sütunu diyagramın yolunu verir; dosyalar kategori ve varlık klasörlerine ayrılmıştır. "
+            + "Her diyagramın üstündeki not kutusu akışın künyesini, rolünü, ailesini, kullanım kaydını ve varsa uyarılarını taşır — "
+            + "yani bir diyagramı açtığınızda Excel'e dönmeden temel soruların cevabı oradadır.");
         pdf.Step(4, "aileler.xlsx — hangileri aslında aynı",
-            "Birbirine çok benzeyen akışlar \"aile\" olarak gruplandı ve her ailenin birleşik bir modeli çizildi. "
-            + "Aynı işi yapıp yapmadıklarına siz karar verirsiniz; kararınızı \"karar\" sütununa yazın.");
-        pdf.Step(5, "veri-analizi.xlsx — ne neye dokunuyor",
-            "Aynı alana birden fazla akış yazıyorsa sıra garantisi yoktur; bunu yeni üründe siz kararlaştıracaksınız. "
-            + "\"Tetikleme zincirleri\" sayfası, bir akışın yazmasıyla başlayan başka akışları gösterir — bu bağ "
-            + "diyagramlarda görünmez.");
+            "Bir akışın ailesi varsa onu tek başına tasarlamayın. Tek karar şudur: bunlar yeni üründe tek bir süreç mü olacak?");
+        pdf.Bullet("Aileler — üyeler, başlangıç noktasına benzerlikleri ve boş bırakılmış karar sütunu. Kararınızı oraya yazın.", 26);
+        pdf.Bullet("Birleştirme — ailenin tek birleşik modeli ve üyeleri. cesitleme_sayisi üyelerin ayrıştığı nokta sayısıdır: "
+            + "sıfıra yakınsa birleşme kolay, büyükse tartışmalıdır.", 26);
+        pdf.Bullet("Yakın çiftler — aile olmamış ama karara değer çiftler: eşiğe yakın kalanlar ve aynı yapıyı farklı adla "
+            + "taşıyanlar, yani kopyalanıp yeniden adlandırılmış olabilecekler.", 26);
+        pdf.Step(5, "veri-analizi.xlsx — bir akışı tek başına tasarlayamayacağınız yerler",
+            "Tasarladığınız akışın yazdığı alanları burada aratın.");
+        pdf.Bullet("Veri ayak izi — alan alan: kaç akış yazıyor, kaç akış okuyor, o alana yazmak neyi başlatıyor. "
+            + "yazan > 1 olan alanlarda sıra CRM'de hiçbir zaman garanti edilmedi; yeni üründe bir sıra kararlaştırın.", 26);
+        pdf.Bullet("Tetikleme zincirleri — bir akışın yazmasıyla kendiliğinden başlayan başka akışlar. Bu bağ diyagramlarda "
+            + "görünmez; yalnızca burada vardır.", 26);
         pdf.Step(6, "dis-sistemler.xlsx — entegrasyon yükü",
-            "CRM dışına uzanan her çağrı buradadır. Bir iş akışı kendi başına servis çağıramaz; yalnızca CRM'e "
-            + "kaydedilmiş özel bir etkinlik (derlenmiş kod) üzerinden çağırır. Yeni üründe bu kodun karşılığını "
-            + "ayrıca planlamanız gerekir.");
-        pdf.Step(7, "kapsam-disi.xlsx — yalnızca gerekirse",
-            "Plandan çıkarılan akışlar ve çıkarma gerekçeleri. Buradaki hiçbir satır için iş planlamayın; dosyayı "
-            + "sadece bir çıkarma kararını sorgulamak istediğinizde açın.");
-        pdf.Note("hassas-degerler.md dosyası kısıtlıdır: XAML içinde bulunan adres, kullanıcı adı ve parola benzeri "
-            + "değerleri taşır. Bilgi güvenliği ekibi içindir, analiz paketine konmaz.");
+            "CRM dışına uzanan çağrılar. Buradaki her etkinlik, yeni üründe ayrı bir iş kalemidir.");
+        pdf.Bullet("Dış bağımlılıklar — çağrılan kod ve onu çağıran akışlar, en çok akışı etkileyen üstte. "
+            + "Etkinliğin içinde ne olduğunu yalnızca derlemenin sahibi söyleyebilir.", 26);
+        pdf.Bullet("Adresler — tanımın metnine yazılmış adresler, sunucusuyla birlikte. Boş olması \"hiçbir yere bağlanmıyor\" "
+            + "demek değildir: adres çoğu zaman etkinliğin kendi kodundadır.", 26);
     }
 
     private static void Walkthrough(PdfDocument pdf, RunState state, UsageEvidence? usage, WorkflowIr? example)
@@ -127,40 +142,41 @@ public static class AnalystGuide
             pdf.Spacer(6);
         }
 
-        pdf.Step(1, "Satırın künyesini okuyun",
-            "kategori, birincil_varlik, tetikleyici, adim ve rol sütunları akışın ne olduğunu bir bakışta söyler. "
-            + "rol = \"yapı taşı\" ise bu akış başka akışlar tarafından çağrılıyor demektir: onu tek başına taşımayın.");
-        pdf.Step(2, "Diyagramı açın ve not kutusunu okuyun",
-            "Her diyagramın üstünde bir not kutusu vardır: akışın adı, künyesi ve \"Şununla başlar\" satırı. "
-            + "Diyagramı soldan sağa okuyun; elmas şeklindeki karar noktalarının üzerindeki metin, CRM'deki koşulun "
-            + "kendisidir.");
-        pdf.Step(3, "Tetikleyiciyi doğrulayın",
-            "Akışı ne başlatıyor: kayıt oluşturma, belirli alanların güncellenmesi, silme, yoksa kullanıcının isteği "
-            + "mi? Yeni üründe aynı olayın karşılığı var mı, yoksa olayı siz mi üreteceksiniz? Cevabı yazın.");
-        pdf.Step(4, "Bekleme adımlarını işaretleyin",
-            "\"Bekle\" adımı varsa süreç saatlerce ya da günlerce açık kalıyor demektir. Yeni üründe bunun karşılığı "
-            + "bir zamanlayıcı ya da bir bekleyen görevdir; tasarımı buna göre kurun.");
-        pdf.Step(5, "Alt akışları açın",
-            "Akış başka bir akışı çağırıyorsa (plan satırında rol ve Çağrı ağacı sayfası), onların diyagramlarını da "
-            + "açın. Bir üst akış ve çağırdığı alt akışlar TEK bir taşıma kalemidir; ayrı ayrı saymayın.");
-        pdf.Step(6, "Yazdığı veriyi çıkarın",
-            "yazdigi_varliklar ve yazdigi_alanlar sütunları akışın neye dokunduğunu söyler. Aynı alana yazan başka "
-            + "akış var mı diye veri-analizi.xlsx'e bakın: varsa hangi sıranın doğru olduğuna iş birimiyle karar verin.");
-        pdf.Step(7, "Dış çağrıları ayırın",
-            "ozel_etkinlikler sütunu doluysa bu akış CRM dışına uzanıyor. Etkinliğin içinde ne olduğu tanımda "
-            + "görünmez; dis-sistemler.xlsx'ten aynı etkinliği kimlerin çağırdığına bakın ve entegrasyonu ayrı bir "
-            + "iş kalemi olarak yazın.");
-        pdf.Step(8, "Ailesine bakın",
-            "aile sütunu doluysa benzer akışlar var demektir. birlesik/ klasöründeki birleşik modeli açın ve "
-            + "üyelerle karşılaştırın. Gerçekten aynı işi yapıyorlarsa yeni üründe tek bir süreç kurarsınız — bu "
-            + "kararı aileler.xlsx'teki \"karar\" sütununa yazın.");
-        pdf.Step(9, "Okunamayan adımları elle doğrulayın",
-            "okunamayan_adim sütunu sıfırdan büyükse aracın çözemediği adımlar var demektir. O akışı CRM ekranında "
-            + "açıp ilgili adımı gözle kontrol edin; hangi yapının okunamadığı \"Okunamayan yapılar\" sayfasındadır.");
+        pdf.Step(1, "Planda satırı okuyun",
+            "tasima-plani.xlsx → Taşıma planı. kategori, birincil_varlik, tetikleyici ve adim sütunları akışın ne olduğunu "
+            + "söyler; bekleme_var evet ise süreç zamana yayılıyor demektir ve tasarımı baştan farklıdır. kullanim sütununa "
+            + "bakın ama tek başına karar vermeyin: \"kayıtlı çalışma yok\" kullanılmıyor demek değildir.");
+        pdf.Step(2, "Tek başına mı, parça mı",
+            "Aynı satırda rol sütunu: \"yapı taşı\" ise başka akışlar bunu çağırıyor, tek başına taşınmaz. "
+            + "Çağrı ağacı sayfasından kimin çağırdığına, Süreç ağaçları sayfasından hangi kaleme ait olduğuna bakın.");
+        pdf.Step(3, "Diyagramı açın",
+            "bpmn_dosyasi sütunundaki dosyayı bpmn.io ya da Camunda Modeler ile açın. Üstteki not kutusunu okuyun: "
+            + "künye, rol, aile, kullanım ve uyarılar oradadır. Sonra akışı soldan sağa izleyin; elmasların üzerindeki "
+            + "metin CRM'deki koşulun kendisidir.");
+        pdf.Step(4, "Tetikleyiciyi karara bağlayın",
+            "Akışı ne başlatıyor ve yeni üründe aynı olayın karşılığı var mı? Yoksa olayı kim üretecek? "
+            + "Bu, tasarımın ilk kararıdır; cevabı yazmadan devam etmeyin.");
+        pdf.Step(5, "Beklemeleri işaretleyin",
+            "Diyagramdaki bekleme adımları süreci açık tutar. Her biri için \"ne kadar\" ve \"neyi bekliyor\" sorularını "
+            + "cevaplayın: yeni üründe karşılığı bir zamanlayıcı ya da bekleyen bir görevdir.");
+        pdf.Step(6, "Ailesine bakın",
+            "Plan satırında aile doluysa aileler.xlsx → Aileler sayfasında o aileyi bulun, birlesik_dosya sütunundaki "
+            + "birleşik modeli üyelerle karşılaştırın ve kararınızı karar sütununa yazın. Aynı işi birkaç kez tasarlamayın.");
+        pdf.Step(7, "Veri bağlarını çıkarın",
+            "yazdigi_varliklar sütunundaki varlıkları veri-analizi.xlsx → Veri ayak izi sayfasında aratın. yazan > 1 olan "
+            + "her alan bir sıra kararıdır. Tetikleme zincirleri sayfasında akışınız geçiyorsa, kendiliğinden başlattığı "
+            + "akışlar vardır ve bunlar diyagramda görünmez.");
+        pdf.Step(8, "Dış çağrıları ayırın",
+            "ozel_etkinlikler sütunu doluysa dis-sistemler.xlsx → Dış bağımlılıklar sayfasından aynı etkinliği kimlerin "
+            + "çağırdığına bakın. Entegrasyonu ayrı bir iş kalemi olarak yazın; içinde ne olduğunu derlemenin sahibine sorun.");
+        pdf.Step(9, "Çizime ne kadar güveneceğinizi bilin",
+            "okunamayan_adim sıfırdan büyükse diyagramdaki OKUNAMADI kutularını bulun ve karşılıklarını CRM ekranında gözle "
+            + "doğrulayın. Akış Sapma sayfasında geçiyorsa üretimde çalışan kopya bu çizimden farklıdır: esas alınacak olan "
+            + "çalışan kopyadır.");
         pdf.Step(10, "Süreci çizin",
-            "Tek sayfada, soldan sağa: solda tetikleyici, ortada adımlar, kararlar elmas, dış çağrılar ayrı bir kutu, "
-            + "bekleme adımı ayrı bir sembol, sağda sonuç. Her kutunun altına \"yeni üründe karşılığı\" satırı açın ve "
-            + "karşılığı olmayanları kırmızıyla işaretleyin: asıl tartışma o kutular üzerinden yürüyecek.");
+            "Tek sayfada, soldan sağa: solda tetikleyici, ortada adımlar, kararlar elmas, beklemeler ayrı sembol, dış çağrılar "
+            + "ayrı kutu, sağda sonuç. Her kutunun altına \"yeni üründe karşılığı\" satırı açın ve karşılığı olmayanları "
+            + "işaretleyin: asıl tartışma o kutular üzerinden yürüyecek.");
         pdf.Note("Çizerken CRM'deki adımları birebir kopyalamayın. Amaç, işin ne olduğunu göstermektir: aynı sonucu "
             + "veren daha kısa bir akış, yeni üründe doğru tasarımdır.");
     }
@@ -168,8 +184,9 @@ public static class AnalystGuide
     private static void Traps(PdfDocument pdf)
     {
         pdf.Heading("Nelere dikkat edeceksiniz");
-        pdf.Bullet("Kayıt bulunmaması kullanılmadığını KANITLAMAZ. CRM sistem işlerini düzenli olarak siler; "
-            + "\"kayıtlı çalışma yok\" yalnızca elimizdeki kanıtta iz olmadığını söyler.");
+        pdf.Bullet("Planın kullanim sütunundaki \"kayıtlı çalışma yok\", kullanılmadığını KANITLAMAZ. CRM sistem işlerini "
+            + "düzenli olarak siler, iş kuralları tarayıcıda çalışıp hiç iz bırakmaz, gerçek zamanlı akışlar yalnızca hatayı "
+            + "kaydeder. Bu sütun bir silme gerekçesi değildir.");
         pdf.Bullet("Ada bakarak temizlik yapmayın. Adında DRAFT, TEST ya da ESKİ geçen ve üretimde her gün çalışan "
             + "akışlar bulundu; bu yüzden ad tek başına kapsam dışı bırakma gerekçesi sayılmadı.");
         pdf.Bullet("İş kuralları tarayıcıda çalışır ve hiçbir kayıt bırakmaz: onların kullanımı hakkında hiçbir "

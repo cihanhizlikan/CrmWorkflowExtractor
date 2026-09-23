@@ -47,6 +47,12 @@ scan reads — not from the arguments the parser captured on steps: on the real 
 else, and the delivered page came out empty while the restricted report was reporting embedded addresses. What a
 custom activity does inside its own assembly is still invisible, and most endpoints are there.
 
+**A column exists only if a line can be written in the workbook's guide saying what a reader does differently
+because of it**, and a page exists only if its rows are things to act on: the call pages carry only workflows that
+are part of a call, Sapma only the definitions whose running copy really differs, Yakın çiftler only the pairs that
+nearly became a family or carry one structure under two names. The diagrams are emitted AFTER grouping, because
+each one's header note carries what the rest of the run learned about it — role, family, usage, drift.
+
 **The output is Turkish** — folder names, file names and every word the tool writes. Three tables carry it:
 `RunPaths` (paths), `RunStages` (stage names) and `ProcessLabels` (category, mode and state labels, which code also
 branches on). Names that come from CRM are never translated. A run made before this still reprocesses: its `raw/`
