@@ -127,13 +127,36 @@ public sealed class UsageStageTests
     [Fact]
     public void No_Logged_Run_Is_Never_Reported_As_Unused()
     {
-        UsageEvidence usage = new(DateTimeOffset.Parse("2026-06-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), null, "", new Dictionary<Guid, WorkflowUsage>());
+        UsageEvidence usage = new(DateTimeOffset.Parse("2026-06-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+            null, null, null, "", new Dictionary<Guid, WorkflowUsage>());
 
         Assert.StartsWith("Bilinemez", UsageStage.Verdict(Identity("İş Kuralı", "Arka plan", "Activated"), usage), StringComparison.Ordinal);
         Assert.StartsWith("Hata kaydı yok", UsageStage.Verdict(Identity("İş Akışı", "Gerçek zamanlı", "Etkin"), usage), StringComparison.Ordinal);
         Assert.Contains("KANITI DEĞİLDİR", UsageStage.Verdict(Identity("İş Akışı", "Arka plan", "Etkin"), usage), StringComparison.Ordinal);
         Assert.Contains("KANITI DEĞİLDİR", UsageStage.Verdict(Identity("Diyalog", "Arka plan", "Etkin"), usage), StringComparison.Ordinal);
         Assert.StartsWith("Taslak", UsageStage.Verdict(Identity("İş Akışı", "Arka plan", "Taslak"), usage), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Grouping the whole System Job table did not come back on the production server, so the export bounds the
+    /// scan by a date. That turns "no logged run" into "nothing since that date" — a different claim, and one the
+    /// reports have to make in those words rather than letting a reader hear the stronger one.
+    /// </summary>
+    [Fact]
+    public void A_Bounded_Scan_Says_So_Instead_Of_Claiming_Nothing_Ever_Ran()
+    {
+        DateTimeOffset since = DateTimeOffset.Parse("2025-08-20T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
+        UsageEvidence windowed = new(null, null, since, since, "", new Dictionary<Guid, WorkflowUsage>());
+        UsageEvidence everything = new(null, null, null, null, "", new Dictionary<Guid, WorkflowUsage>());
+        WorkflowIdentity identity = Identity("İş Akışı", "Arka plan", "Etkin");
+
+        Assert.Contains("TARANMADI", UsageStage.Verdict(identity, windowed), StringComparison.Ordinal);
+        Assert.Contains("2025-08-20", UsageStage.Verdict(identity, windowed), StringComparison.Ordinal);
+        Assert.Equal("2025-08-20 sonrası çalışma yok", UsageStage.ShortVerdict(identity, windowed));
+
+        // Without a window nothing was skipped, and the older wording — which does not name a date — still holds.
+        Assert.DoesNotContain("TARANMADI", UsageStage.Verdict(identity, everything), StringComparison.Ordinal);
+        Assert.Equal("kayıtlı çalışma yok", UsageStage.ShortVerdict(identity, everything));
     }
 
     private static WorkflowIdentity Identity(string category, string mode, string state)

@@ -601,3 +601,17 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Verified by running the bookmarklet**, not by reading it: stubbed CRM in node, both paths. The aggregate path
   issues three requests in total and produces byte-identical `usage` shape; the refused path falls back and still
   produces it. `PARALLEL` is now 6, the browser's own per-host ceiling, for whatever still goes record by record.
+### A bounded lookback, said in the words it deserves (2026-09-23) — committed, awaiting merge
+- **What happened:** the aggregate did not come back. `the aggregate was refused … signal timed out` — the server
+  did not refuse it, it could not group the whole System Job table inside ninety seconds.
+- **Built:** the aggregate now carries `<condition attribute="createdon" operator="last-x-days" value="400" />`,
+  which turns a whole-table group-by into a small scan, and it gets 180 s of its own rather than the shared 90.
+- **The cost is a different sentence, and the reports now make it.** Bounded, "no logged run" means "nothing since
+  that date" — a weaker claim than the one a reader would otherwise hear. The export declares the window per
+  source (`lookback.jobsSinceUtc`, `lookback.sessionsSinceUtc`, null where the per-record path answered and
+  nothing was skipped). `Verdict` becomes "yalnızca <tarih> tarihinden bugüne bakıldı, daha eskisi TARANMADI",
+  `ShortVerdict` becomes "<tarih> sonrası çalışma yok", and the run report leads with the scanned range before any
+  date a reader might mistake for the beginning of the record.
+- **Verified by running the bookmarklet** against a stubbed CRM, both paths: the aggregate path makes three
+  requests and declares the window; the refused path falls back to per-record lookups and declares none, which is
+  the honest difference — there, everything ever logged was in reach.

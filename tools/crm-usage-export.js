@@ -25,6 +25,12 @@
   const WEB_API = location.origin + "/api/data/v8.2/";   // IFD host: no organization segment. Change if needed.
   const PAGE_SIZE = 500;
   const PARALLEL = 6;   // A browser allows six connections to one host; asking for more buys nothing.
+  // How far back the aggregate looks. Grouping the whole System Job table did not come back inside a minute and a
+  // half on this server; bounded by a date it is a small scan. The cost is honest and stated: a run older than
+  // this is not seen, so "no logged run" becomes "nothing since that date", and the reports say exactly that.
+  const LOOKBACK_DAYS = 400;
+  // The aggregate is one query standing in for eighteen hundred; it may fairly take longer than one of them.
+  const AGGREGATE_TIMEOUT_MS = 180000;
 
   const TIMEOUT_MS = 90000;
 
@@ -102,9 +108,11 @@
   async function newestBy(entitySet, entity, groupAttribute) {
     const fetchXml = `<fetch aggregate="true"><entity name="${entity}">`
       + `<attribute name="${groupAttribute}" groupby="true" alias="anahtar" />`
-      + '<attribute name="createdon" aggregate="max" alias="son" /></entity></fetch>';
+      + '<attribute name="createdon" aggregate="max" alias="son" />'
+      + `<filter><condition attribute="createdon" operator="last-x-days" value="${LOOKBACK_DAYS}" /></filter>`
+      + '</entity></fetch>';
     try {
-      const page = await get(`${entitySet}?fetchXml=${encodeURIComponent(fetchXml)}`);
+      const page = await get(`${entitySet}?fetchXml=${encodeURIComponent(fetchXml)}`, undefined, AGGREGATE_TIMEOUT_MS);
       const newest = new Map();
       for (const row of page.value) {
         const key = row.anahtar && typeof row.anahtar === "object" ? row.anahtar.Value ?? row.anahtar.value : row.anahtar;
@@ -112,7 +120,7 @@
           newest.set(String(key).toLowerCase(), row.son);
         }
       }
-      log(`${entity}: one aggregate answered for ${newest.size} record(s)`);
+      log(`${entity}: one aggregate answered for ${newest.size} record(s), looking back ${LOOKBACK_DAYS} days`);
       return newest;
     } catch (error) {
       log(`${entity}: the aggregate was refused, falling back to one lookup per record —`, error.message);
@@ -120,6 +128,7 @@
     }
   }
 
+  const scannedSince = new Date(Date.now() - (LOOKBACK_DAYS * 86400000)).toISOString();
   const newestJob = await newestBy("asyncoperations", "asyncoperation", "workflowactivationid");
   const newestSession = await newestBy("processsessions", "processsession", "processid");
 
@@ -166,6 +175,13 @@
     startedAtUtc: started.toISOString(),
     webApiRoot: WEB_API,
     method: { jobs: newestJob ? "aggregate" : "per-record", sessions: newestSession ? "aggregate" : "per-record" },
+    // Only where the aggregate answered: that source saw a window, and nothing before it. Where the per-record
+    // path ran, every run ever logged was in reach and there is no window to declare.
+    lookback: {
+      days: LOOKBACK_DAYS,
+      jobsSinceUtc: newestJob ? scannedSince : null,
+      sessionsSinceUtc: newestSession ? scannedSince : null
+    },
     usage
   };
   const stamp = started.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);

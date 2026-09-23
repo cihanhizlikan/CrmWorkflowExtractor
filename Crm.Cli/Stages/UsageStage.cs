@@ -12,7 +12,14 @@ namespace Crm.Cli.Stages;
 public sealed record WorkflowUsage(DateTimeOffset? LastLoggedRun, string? Source, int FailedLookups);
 
 /// <summary>A <c>crm-usage-export/1</c> file: per-definition run evidence and how far back the logs reach.</summary>
-public sealed record UsageEvidence(DateTimeOffset? OldestWorkflowJob, DateTimeOffset? OldestDialogSession, string ExportedAtUtc, IReadOnlyDictionary<Guid, WorkflowUsage> Workflows);
+/// <summary>
+/// What the export found, and how far back it was able to look. <see cref="JobsScannedSince"/> and
+/// <see cref="SessionsScannedSince"/> are set only when that source was read with a bounded aggregate: then
+/// "no logged run" means "nothing since that date", which is a different sentence and has to be said as one.
+/// </summary>
+public sealed record UsageEvidence(DateTimeOffset? OldestWorkflowJob, DateTimeOffset? OldestDialogSession,
+    DateTimeOffset? JobsScannedSince, DateTimeOffset? SessionsScannedSince,
+    string ExportedAtUtc, IReadOnlyDictionary<Guid, WorkflowUsage> Workflows);
 
 /// <summary>
 /// Whether a workflow is used. Only two things are certain: a Draft definition cannot start a run, and a logged run
@@ -101,8 +108,23 @@ public static partial class UsageStage
         return new UsageEvidence(
             jobRuns.Count == 0 ? null : jobRuns.Min(),
             sessionRuns.Count == 0 ? null : sessionRuns.Min(),
+            ScannedSince(root, "jobsSinceUtc"),
+            ScannedSince(root, "sessionsSinceUtc"),
             root.GetProperty("exportedAtUtc").GetString() ?? "",
             workflows);
+    }
+
+    /// <summary>
+    /// How far back that source was scanned, or null when it was not bounded at all — the export declares a date
+    /// only for a source it answered with an aggregate over a window.
+    /// </summary>
+    private static DateTimeOffset? ScannedSince(JsonElement root, string property)
+    {
+        return root.TryGetProperty("lookback", out JsonElement lookback) && lookback.ValueKind == JsonValueKind.Object
+            && lookback.TryGetProperty(property, out JsonElement since) && since.ValueKind == JsonValueKind.String
+            && DateTimeOffset.TryParse(since.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTimeOffset at)
+            ? at
+            : null;
     }
 
     private static DateTimeOffset? CreatedOn(JsonElement lookup)
@@ -142,7 +164,11 @@ public static partial class UsageStage
         {
             return "bilinemez (iş kuralı iz bırakmaz)";
         }
-        return identity.Mode == ProcessLabels.ModeRealTime ? "bilinemez (gerçek zamanlı)" : "kayıtlı çalışma yok";
+        if (identity.Mode == ProcessLabels.ModeRealTime)
+        {
+            return "bilinemez (gerçek zamanlı)";
+        }
+        return ScannedSince(identity, usage) is DateTimeOffset from ? $"{Day(from)} sonrası çalışma yok" : "kayıtlı çalışma yok";
     }
 
     public static string Verdict(WorkflowIdentity identity, UsageEvidence? usage)
@@ -167,10 +193,20 @@ public static partial class UsageStage
         {
             return "Hata kaydı yok: gerçek zamanlı akışlar yalnızca hatayı kaydeder, bu bilgi kullanım hakkında bir şey söylemez";
         }
+        if (ScannedSince(identity, usage) is DateTimeOffset from)
+        {
+            return $"Kayıtlı çalışma yok: yalnızca {Day(from)} tarihinden bugüne bakıldı, daha eskisi TARANMADI";
+        }
         DateTimeOffset? horizon = identity.Category == ProcessLabels.CategoryDialog ? usage.OldestDialogSession : usage.OldestWorkflowJob;
         return horizon is DateTimeOffset since
             ? $"Kayıtlı çalışma yok; görülen en eski çalışma {Day(since)}: kullanılmadığının KANITI DEĞİLDİR (sistem işleri düzenli olarak silinir)"
             : "Kayıtlı çalışma yok ve karşılaştırılacak hiç kayıt bulunamadı: kullanılmadığının KANITI DEĞİLDİR";
+    }
+
+    /// <summary>A dialog's evidence is its sessions, everything else's is its system jobs; each has its own window.</summary>
+    private static DateTimeOffset? ScannedSince(WorkflowIdentity identity, UsageEvidence? usage)
+    {
+        return identity.Category == ProcessLabels.CategoryDialog ? usage?.SessionsScannedSince : usage?.JobsScannedSince;
     }
 
     /// <summary>What the reports say about usage. The per-workflow verdict travels in the plan's own column.</summary>
@@ -183,10 +219,25 @@ public static partial class UsageStage
         state.UsageHorizon = usage is null
             ? ""
             : string.Create(CultureInfo.InvariantCulture,
-                $"Kanıt {usage.ExportedAtUtc} tarihinde alındı. Görülen en eski sistem işi: {(usage.OldestWorkflowJob is DateTimeOffset job ? Day(job) : "yok")}; "
+                $"Kanıt {usage.ExportedAtUtc} tarihinde alındı. {Window(usage)}Görülen en eski sistem işi: {(usage.OldestWorkflowJob is DateTimeOffset job ? Day(job) : "yok")}; "
                 + $"en eski diyalog oturumu: {(usage.OldestDialogSession is DateTimeOffset session ? Day(session) : "yok")}. Bunlar bulunan en eski çalışmalardır, saklama ayarı değildir.");
         state.Counts["usage.drafts"] = drafts.Count;
         state.Counts["usage.testNamedActive"] = testNamedActive.Count;
+    }
+
+    /// <summary>
+    /// The scanned window, said before any date a reader might otherwise take for the beginning of the record.
+    /// Grouping the whole System Job table did not come back on the production server, so the export bounds it.
+    /// </summary>
+    private static string Window(UsageEvidence usage)
+    {
+        if (usage.JobsScannedSince is null && usage.SessionsScannedSince is null)
+        {
+            return "";
+        }
+        string jobs = usage.JobsScannedSince is DateTimeOffset from ? Day(from) + " sonrası" : "tamamı";
+        string sessions = usage.SessionsScannedSince is DateTimeOffset since ? Day(since) + " sonrası" : "tamamı";
+        return $"TARANAN ARALIK — sistem işleri: {jobs}; diyalog oturumları: {sessions}. Bu tarihten eski çalışmalar görülmedi. ";
     }
 
     private static string VerdictKind(string verdict)

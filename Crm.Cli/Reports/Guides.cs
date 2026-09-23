@@ -36,7 +36,8 @@ public static class Guides
         sheet.Row("aile · aile_rolu", "Bu akışa çok benzeyen başkaları varsa ailenin adı (ailenin başlangıç noktası olan akış). "
             + "Dolu ise tasarıma tek tek değil, aile olarak başlayın — ayrıntısı aileler.xlsx.");
         sheet.Row("kullanim · son_kayitli_calisma",
-            "Canlı mı: \"çalışıyor · tarih\", \"kayıtlı çalışma yok\" ya da \"bilinemez\". Tarihe göre sıralayabilirsiniz. "
+            "Canlı mı: \"çalışıyor · tarih\", \"kayıtlı çalışma yok\" ya da \"bilinemez\". Hücrede \"<tarih> sonrası çalışma yok\" "
+            + "yazıyorsa kanıt yalnızca o tarihten bugüne tarandı; daha eskisine bakılmadı, o akış daha önce çalışmış olabilir. "
             + "DİKKAT: kaydın bulunmaması kullanılmadığını KANITLAMAZ — CRM sistem işlerini düzenli olarak siler, iş kuralları "
             + "hiç iz bırakmaz, gerçek zamanlı akışlar yalnızca hatayı kaydeder. \"kayıtlı çalışma yok\" bir silme gerekçesi değildir.");
         sheet.Row("okunamayan_adim", "Sıfırsa çizim tamdır. Sıfırdan büyükse çizim eksiktir: diyagramda o adımlar OKUNAMADI olarak "
