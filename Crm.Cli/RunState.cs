@@ -46,6 +46,12 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>The BPMN file path (relative to the run folder, without extension) written for each workflow.</summary>
     public IReadOnlyDictionary<Guid, string> BpmnFiles { get; set; } = new Dictionary<Guid, string>();
 
+    /// <summary>How many definitions fell into each usage verdict; the run report prints them.</summary>
+    public IReadOnlyDictionary<string, int> UsageVerdicts { get; set; } = new Dictionary<string, int>(StringComparer.Ordinal);
+
+    /// <summary>How far back the run evidence reaches, in words. Empty when no usage file was given.</summary>
+    public string UsageHorizon { get; set; } = "";
+
     /// <summary>Sheets collected during the run; the offline stages gather them into the workbooks.</summary>
     public Dictionary<string, Crm.Cli.Reports.Sheet> Sheets { get; } = new(StringComparer.Ordinal);
 

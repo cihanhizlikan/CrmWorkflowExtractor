@@ -33,14 +33,8 @@ public static class RunPaths
     public const string WarningLog = Logs + "/uyarilar.txt";
 
     public const string Report = Reports + "/rapor.md";
-    public const string Inventory = Reports + "/envanter.md";
-    public const string ParseCoverage = Reports + "/ayristirma-kapsami.md";
     public const string SensitiveLiterals = Reports + "/hassas-degerler.md";
-    public const string Drift = Reports + "/sapma.md";
-    public const string Consolidation = Reports + "/birlestirme.md";
-    public const string Usage = Reports + "/kullanim.md";
 
-    public const string MigrationPlan = Reports + "/tasima-plani.md";
     /// <summary>The planning workbook: the worksheet, usage, the call graph and the diagram index.</summary>
     public const string PlanWorkbook = Reports + "/tasima-plani.xlsx";
 
@@ -53,10 +47,7 @@ public static class RunPaths
     /// <summary>What the workflows reach outside CRM: the custom activities they call, and the addresses they pass.</summary>
     public const string ExternalSystemsWorkbook = Reports + "/dis-sistemler.xlsx";
 
-    public const string ExternalSystems = Reports + "/dis-sistemler.md";
-    public const string CallGraph = Reports + "/cagri-agaci.md";
 
-    public const string DataFootprint = Reports + "/veri-ayak-izi.md";
 
 
 

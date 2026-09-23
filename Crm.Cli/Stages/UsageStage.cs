@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Crm.Cli.Reports;
@@ -165,32 +164,13 @@ public static partial class UsageStage
 
         List<WorkflowIr> drafts = [.. documents.Where(document => document.Identity.State == DraftState)];
         List<WorkflowIr> testNamedActive = [.. documents.Where(document => document.Identity.State != DraftState && NameSuggestsTest(document.Identity.Name))];
-        StringBuilder text = new();
-        text.AppendLine("# Kullanım").AppendLine();
-        text.AppendLine("Yalnızca iki şey kesindir: **Taslak** bir tanım yeni çalıştırma başlatamaz (devre dışı bırakılmadan önce beklemeye girmiş çalıştırmalar tamamlanabilir) ve **kayıtlı bir çalışma** o akışın çalıştığını kanıtlar. Kaydın bulunmaması hiçbir şeyi kanıtlamaz: sistem işleri düzenli olarak silinir, gerçek zamanlı akışlar yalnızca hatayı kaydeder, iş kuralları ise hiç kayıt bırakmaz.").AppendLine();
-        if (usage is null)
-        {
-            text.AppendLine("Bu çalıştırmada kullanım kanıtı yok. `tools/crm-usage.html` ile dışa aktarıp `Run:UsageFile` ayarını verin.").AppendLine();
-        }
-        else
-        {
-            text.AppendLine(CultureInfo.InvariantCulture, $"Kanıt {usage.ExportedAtUtc} tarihinde alındı. Görülen en eski sistem işi: **{(usage.OldestWorkflowJob is DateTimeOffset job ? Day(job) : "yok")}**; görülen en eski diyalog oturumu: **{(usage.OldestDialogSession is DateTimeOffset session ? Day(session) : "yok")}**. Bunlar bulunan en eski çalışmalardır; kayıtların ne kadar geriye gittiğinin alt sınırını verir, saklama ayarını değil.").AppendLine();
-        }
-        text.AppendLine("| Hüküm | Tanım |").AppendLine("|---|---:|");
-        foreach (IGrouping<string, string> group in documents.Select(document => VerdictKind(Verdict(document.Identity, usage))).GroupBy(kind => kind).OrderBy(group => group.Key, StringComparer.Ordinal))
-        {
-            text.AppendLine(CultureInfo.InvariantCulture, $"| {group.Key} | {group.Count()} |");
-        }
-        text.AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"**Taslak tanımlar ({drafts.Count})** benzerlik gruplamasının ve birleştirmenin dışında tutulur; her birinin ara modeli ve BPMN dosyası yine üretilir, listeleri `{Crm.Extract.Runs.RunPaths.FamilyWorkbook}` kitabının **{SheetNames.Drafts}** sayfasındadır.").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"## Adı taslak veya deneme gibi okunan etkin akışlar ({testNamedActive.Count})").AppendLine();
-        text.AppendLine("Bunlar üretimde çalışabilir, bu yüzden gruplamada kalırlar. Herhangi birini kullanılmıyor saymadan önce hükmü okuyun.").AppendLine();
-        text.AppendLine("| İş akışı | Kategori | Mod | Hüküm |").AppendLine("|---|---|---|---|");
-        foreach (WorkflowIr document in testNamedActive.OrderBy(document => document.Identity.Name, StringComparer.Ordinal))
-        {
-            text.AppendLine(CultureInfo.InvariantCulture, $"| {document.Identity.Name} | {document.Identity.Category} | {document.Identity.Mode} | {Verdict(document.Identity, usage)} |");
-        }
-        await folder.WriteTextAsync(RunPaths.Usage, text.ToString(), token);
+        state.UsageVerdicts = documents.GroupBy(document => VerdictKind(Verdict(document.Identity, usage)))
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        state.UsageHorizon = usage is null
+            ? ""
+            : string.Create(CultureInfo.InvariantCulture,
+                $"Kanıt {usage.ExportedAtUtc} tarihinde alındı. Görülen en eski sistem işi: {(usage.OldestWorkflowJob is DateTimeOffset job ? Day(job) : "yok")}; "
+                + $"en eski diyalog oturumu: {(usage.OldestDialogSession is DateTimeOffset session ? Day(session) : "yok")}. Bunlar bulunan en eski çalışmalardır, saklama ayarı değildir.");
         state.Counts["usage.drafts"] = drafts.Count;
         state.Counts["usage.testNamedActive"] = testNamedActive.Count;
     }

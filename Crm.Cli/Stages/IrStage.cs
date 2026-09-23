@@ -66,7 +66,9 @@ public static class IrStage
             sensitive.AddRange(SensitiveLiteralScanner.Scan(identity.WorkflowId, identity.Name, entry.File, result.Literals));
         }
 
-        await WriteReportsAsync(folder, coverage, sensitive, failures, token);
+        await folder.WriteTextAsync(RunPaths.SensitiveLiterals, SensitiveLiteralScanner.Markdown(sensitive), token);
+        state.Sheets[Reports.SheetNames.Unmapped] = Reports.QualitySheets.Unmapped(coverage);
+        state.Sheets[Reports.SheetNames.Constructs] = Reports.QualitySheets.Constructs(coverage);
         state.Counts["ir.documents"] = documents.Count;
         state.Counts["ir.noInventoryRecord"] = orphaned;
         state.Counts["xaml.definitions"] = XamlEntry.ReadIndex(folder.Root).Count(entry => entry.Kind == XamlEntry.KindDefinition);
@@ -86,12 +88,6 @@ public static class IrStage
         string extracted = extractedAt.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
         return new WorkflowIr(identity, Trigger(record), result.Steps, result.Dependencies, result.DataTouched, result.Warnings,
             new IrProvenance(entry.File, entry.Sha256, extracted, toolVersion));
-    }
-
-    private static async Task WriteReportsAsync(RunFolder folder, IReadOnlyList<WorkflowCoverage> coverage, IReadOnlyList<SensitiveFinding> sensitive, int failures, CancellationToken token)
-    {
-        await folder.WriteTextAsync(RunPaths.ParseCoverage, CoverageReport.Markdown(coverage, failures), token);
-        await folder.WriteTextAsync(RunPaths.SensitiveLiterals, SensitiveLiteralScanner.Markdown(sensitive), token);
     }
 
     public static Dictionary<Guid, JsonElement> ReadInventory(RunFolder folder)

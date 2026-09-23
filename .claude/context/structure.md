@@ -21,13 +21,16 @@ The stages after retrieval read only the run folder, never the network.
 out/runs/<yyyyMMdd-HHmmss>/   manifest.json (written LAST — its presence seals the run)
   ham/  ara-model/  aileler/  birlesik/  elle-inceleme/  raporlar/  gunlukler/
   bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn
-  raporlar/  tasima-plani.xlsx (çalışma kitabı) · aileler.xlsx · veri-analizi.xlsx · rapor.md · …
+  raporlar/  rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · aileler.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx
 out/cache/metadata/           shared across runs, copied into each run's ham/ust-veri/
 ```
 
-**Tables are .xlsx, not CSV** (`ExcelWorkbook`, written by hand — a workbook is a zip of XML, so no dependency).
-Three workbooks, one per question: `tasima-plani.xlsx` (what is the work), `aileler.xlsx` (which of these are the
-same), `veri-analizi.xlsx` (what touches what). Header frozen, filter on every column, numbers kept as numbers.
+**Every table is a sheet in a workbook, and no table is also a file.** Four workbooks, one per question the reader
+has: `tasima-plani.xlsx` (what the work is), `aileler.xlsx` (which of these are the same), `veri-analizi.xlsx`
+(what touches what), `dis-sistemler.xlsx` (what reaches outside CRM). Each opens with a **Nasıl okunur** sheet
+carrying the columns, the caveats and that run's numbers, so a reader who has the file needs nothing beside it.
+Only two Markdown pages remain: `rapor.md` (the entry point) and `hassas-degerler.md` (restricted, kept separate so
+it is easy to leave out of a delivery). `ExcelWorkbook` writes .xlsx by hand — a zip of XML, so no dependency.
 
 **The output is Turkish** — folder names, file names and every word the tool writes. Three tables carry it:
 `RunPaths` (paths), `RunStages` (stage names) and `ProcessLabels` (category, mode and state labels, which code also

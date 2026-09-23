@@ -1,7 +1,7 @@
 using System.Globalization;
-using System.Text;
 using System.Xml.Linq;
 using Crm.Bpmn;
+using Crm.Cli.Reports;
 using Crm.Consolidation;
 using Crm.Extract.Runs;
 using Crm.Ir.Model;
@@ -52,7 +52,7 @@ public static class ConsolidationStage
         }
 
         state.CombinedFiles = fileNames;
-        await folder.WriteTextAsync(RunPaths.Consolidation, Markdown(outcomes, byId, fileNames, state.BpmnFiles), token);
+        state.Sheets[SheetNames.Consolidation] = BuildSheet(outcomes, byId, fileNames, state.BpmnFiles);
         state.Counts["consolidation.combined"] = outcomes.Count(outcome => outcome.Combined is not null);
         state.Counts["consolidation.skipped"] = outcomes.Count(outcome => outcome.Combined is null);
         state.Counts["consolidation.workflowsCombined"] = outcomes.Where(outcome => outcome.Combined is not null).Sum(outcome => outcome.Members.Count);
@@ -60,50 +60,42 @@ public static class ConsolidationStage
         logger.LogInformation("Consolidation: {Combined} families combined, {Skipped} skipped", state.Counts["consolidation.combined"], state.Counts["consolidation.skipped"]);
     }
 
-    private static string Markdown(IReadOnlyList<CombineOutcome> outcomes, IReadOnlyDictionary<Guid, WorkflowIr> documents,
+    /// <summary>
+    /// The index for checking the combining: one row per member, with the combined model it went into and its own
+    /// diagram beside it, so a reader can open both and see whether they belong together.
+    /// </summary>
+    private static Sheet BuildSheet(IReadOnlyList<CombineOutcome> outcomes, IReadOnlyDictionary<Guid, WorkflowIr> documents,
         IReadOnlyDictionary<string, string> fileNames, IReadOnlyDictionary<Guid, string> bpmnFiles)
     {
-        StringBuilder text = new();
-        text.AppendLine("# Birleştirme").AppendLine();
-        text.AppendLine("Tutarlı her aile, küme birleşimi olarak tek bir iş akışında toplanır: bütün üyelerin ortak adımları bir kez görünür; üyelerin "
-            + "ayrıştığı yerde bir *Çeşitleme* kapısı hangi üyenin hangi yoldan gittiğini adıyla belirtir; herhangi bir üyenin yazdığı her değer, o değeri "
-            + "yazan üyelerle birlikte saklanır. **Her birleşik BPMN dosyasını üyelerin `bpmn/` altındaki kendi dosyalarıyla karşılaştırın** — bu dosya o kontrolün dizinidir.").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"Birleştirilen: **{outcomes.Count(outcome => outcome.Combined is not null)}** aile. "
-            + $"Birleştirilmeyen: **{outcomes.Count(outcome => outcome.Combined is null)}**.").AppendLine();
-
-        foreach (CombineOutcome outcome in outcomes.Where(outcome => outcome.Combined is not null))
+        Sheet sheet = new(SheetNames.Consolidation, "aile", "durum", "birlesik_dosya", "uye", "uye_bpmn", "tetikleyici", "cesitleme_sayisi", "mutabakat");
+        foreach (CombineOutcome outcome in outcomes)
         {
-            WorkflowIr combined = outcome.Combined!;
-            int variants = CountVariants(combined.Steps);
-            text.AppendLine(CultureInfo.InvariantCulture, $"## {combined.Identity.Name}").AppendLine();
+            string combinedFile = fileNames.TryGetValue(outcome.ClusterId, out string? stem) ? $"{RunPaths.Combined}/{stem}.bpmn" : "";
+            int variants = outcome.Combined is WorkflowIr combined ? CountVariants(combined.Steps) : 0;
+            string state = outcome.Combined is null ? "birleştirilmedi: " + outcome.SkippedBecause : "birleştirildi";
             string reconciliation = outcome.ReconciliationErrors.Count == 0
-                ? "her üye adımının hesabı tam olarak bir kez verildi."
-                : string.Create(CultureInfo.InvariantCulture, $"**{outcome.ReconciliationErrors.Count} mutabakat hatası**.");
-            text.AppendLine(CultureInfo.InvariantCulture, $"`{RunPaths.Combined}/{fileNames.GetValueOrDefault(outcome.ClusterId, outcome.ClusterId)}.bpmn` — {outcome.Members.Count} üye, {variants} çeşitleme ayrımı, {reconciliation}");
-            text.AppendLine().AppendLine("| Üye | İş akışı id | Kendi BPMN dosyası | Tetikleyici |").AppendLine("|---|---|---|---|");
+                ? "her üye adımının hesabı verildi"
+                : string.Create(CultureInfo.InvariantCulture, $"{outcome.ReconciliationErrors.Count} mutabakat hatası");
             foreach (Guid member in outcome.Members)
             {
                 WorkflowIr document = documents[member];
-                WorkflowTrigger trigger = document.Trigger;
-                string triggerText = string.Join(", ", new[]
-                {
-                    trigger.OnCreate ? "oluşturma" : null,
-                    trigger.OnUpdateFields.Count > 0 ? "güncelleme(" + string.Join(",", trigger.OnUpdateFields) + ")" : null,
-                    trigger.OnDelete ? "silme" : null,
-                    trigger.OnDemand ? "istek üzerine" : null
-                }.OfType<string>());
-                text.AppendLine(CultureInfo.InvariantCulture, $"| {document.Identity.Name} | `{member:D}` | `{RunPaths.Bpmn}/{bpmnFiles.GetValueOrDefault(member, member.ToString("D"))}.bpmn` | {triggerText} |");
+                sheet.Row(outcome.ClusterId, state, combinedFile, document.Identity.Name,
+                    $"{RunPaths.Bpmn}/{bpmnFiles.GetValueOrDefault(member, member.ToString("D"))}.bpmn",
+                    TriggerText(document.Trigger), variants, reconciliation);
             }
-            text.AppendLine();
         }
+        return sheet;
+    }
 
-        text.AppendLine("## Birleştirilmeyenler").AppendLine();
-        foreach (CombineOutcome outcome in outcomes.Where(outcome => outcome.Combined is null))
+    private static string TriggerText(WorkflowTrigger trigger)
+    {
+        return string.Join(", ", new[]
         {
-            string members = string.Join(", ", outcome.Members.Select(member => documents[member].Identity.Name));
-            text.AppendLine(CultureInfo.InvariantCulture, $"- `{outcome.ClusterId}` ({members}): {outcome.SkippedBecause}");
-        }
-        return text.ToString();
+            trigger.OnCreate ? "oluşturma" : null,
+            trigger.OnUpdateFields.Count > 0 ? "güncelleme(" + string.Join(",", trigger.OnUpdateFields) + ")" : null,
+            trigger.OnDelete ? "silme" : null,
+            trigger.OnDemand ? "istek üzerine" : null
+        }.OfType<string>());
     }
 
     private static int CountVariants(IReadOnlyList<StepNode> steps)

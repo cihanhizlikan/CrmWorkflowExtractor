@@ -19,7 +19,7 @@ public sealed class SimilarityStageTests
 
         Assert.Equal(ExitCode.Success, code);
         Workbook families = Workbook.Open(Path.Combine(runRoot, "raporlar", "aileler.xlsx"));
-        Assert.Equal(["Aileler", "Çiftler", "Taslaklar", "Ürünle gelenler"], families.Names);
+        Assert.Equal(["Nasıl okunur", "Aileler", "Birleştirme", "Çiftler", "Taslaklar", "Ürünle gelenler"], families.Names);
         Assert.Equal(
             ["aile_id", "aile_buyuklugu", "is_akisi", "is_akisi_id", "birincil_varlik", "kategori", "durum",
              "baslangica_benzerlik", "baslangic_noktasi", "zayif_tutarlilik", "adi_deneme_gibi", "son_kayitli_calisma", "karar"],

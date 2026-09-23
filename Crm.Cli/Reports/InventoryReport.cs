@@ -59,40 +59,6 @@ public static class InventoryReport
         return text.ToString();
     }
 
-    public static string Markdown(RunState state, IReadOnlyList<WorkflowInventoryRecord> records)
-    {
-        StringBuilder text = new();
-        text.AppendLine("# Envanter — " + state.RunId).AppendLine();
-        text.AppendLine("```").Append(Summary(state)).AppendLine("```").AppendLine();
-
-        text.AppendLine("## Kategori, tür ve duruma göre kayıtlar").AppendLine();
-        text.AppendLine("| Kategori | Tür | Durum | Kayıt |").AppendLine("|---|---|---|---:|");
-        foreach (IGrouping<(string Category, string Type, string State), WorkflowInventoryRecord> group in records
-            .GroupBy(record => (Category: record.Category.Label, Type: record.Type.Label, State: record.State.Label))
-            .OrderBy(group => group.Key.Category, StringComparer.Ordinal)
-            .ThenBy(group => group.Key.Type, StringComparer.Ordinal)
-            .ThenBy(group => group.Key.State, StringComparer.Ordinal))
-        {
-            text.Append(CultureInfo.InvariantCulture, $"| {group.Key.Category} | {group.Key.Type} | {group.Key.State} | {group.Count()} |").AppendLine();
-        }
-        text.AppendLine();
-
-        text.AppendLine("## Seçenek değerleri: şartname tablosu ile sunucu etiketi").AppendLine();
-        text.AppendLine("Görülen her farklı değer; §3.1 tablosundaki etiket ile sunucunun kendi döndürdüğü etiket yan yana. "
-            + "Sunucu etiketinin farklı sözcüklerle yazılması olağandır; farklı bir *anlam* taşıması plana kaydedilmesi gereken bir uyuşmazlıktır.").AppendLine();
-        text.AppendLine("| Sütun | Ham değer | Şartname etiketi | Sunucu etiketi | Kayıt |").AppendLine("|---|---:|---|---|---:|");
-        foreach (IGrouping<(string Column, int Raw, string Tool, string Server), ObservedOption> group in records
-            .SelectMany(record => record.ObservedOptions)
-            .GroupBy(option => (Column: option.Column, Raw: option.Raw, Tool: option.ToolLabel, Server: option.ServerLabel ?? "(yok)"))
-            .OrderBy(group => group.Key.Column, StringComparer.Ordinal)
-            .ThenBy(group => group.Key.Raw)
-            .ThenBy(group => group.Key.Server, StringComparer.Ordinal))
-        {
-            text.Append(CultureInfo.InvariantCulture, $"| {group.Key.Column} | {group.Key.Raw} | {group.Key.Tool} | {group.Key.Server} | {group.Count()} |").AppendLine();
-        }
-        return text.ToString();
-    }
-
     /// <summary>The privilege verdicts as the console prints them; the manifest keeps the enum name for tooling.</summary>
     private static string Verdict(PrivilegeVerdict verdict)
     {

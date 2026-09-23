@@ -206,10 +206,6 @@ public sealed class ExtractionRun(ExtractorSettings settings, string? password, 
         }
         await folder.WriteTextAsync(RunPaths.RawHttpIndex, index.ToString(), token);
 
-        if (state.StagesRun.Contains(RunStages.Inventory))
-        {
-            await folder.WriteTextAsync(RunPaths.Inventory, InventoryReport.Markdown(state, records), token);
-        }
         await folder.WriteTextAsync(RunPaths.Report, RunReport.Markdown(state), token);
     }
 

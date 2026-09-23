@@ -43,7 +43,10 @@ public sealed class MigrationPlanTests
             importFile: Fixture("mock-crm-export.json"), usageFile: Fixture("mock-usage-export.json"));
 
         Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        Assert.Equal(["Taşıma planı", "Kullanım", "Çağrı ağacı", "BPMN dizini"], workbook.Names);
+        Assert.Equal(["Nasıl okunur", "Taşıma planı", "Kullanım", "Çağrı ağacı", "Süreç ağaçları", "BPMN dizini",
+        "Okunamayan yapılar", "Yapı sıklığı", "Sapma"], workbook.Names);
+        // The guide travels inside the workbook, so a reader who has the file has the column meanings too.
+        Assert.Contains(workbook.Rows("Nasıl okunur"), row => row.Count > 1 && row[0] == "Bu kitap ne işe yarar");
         IReadOnlyList<IReadOnlyList<string>> rows = workbook.Rows("Taşıma planı");
         Assert.Equal(1 + 46, rows.Count);
         Assert.Equal(["öncelik", "is_akisi", "bpmn_dosyasi"], rows[0].Take(3));
@@ -54,7 +57,7 @@ public sealed class MigrationPlanTests
         Assert.True(workbook.HasFrozenHeaderAndFilter("Taşıma planı"));
         Assert.Contains(rows, row => row.Any(cell => cell.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20", StringComparison.Ordinal)));
         Assert.Contains(rows, row => row.Any(cell => cell.Contains("is-akisi/new-policy/police-iptal-sureci-0.bpmn", StringComparison.Ordinal)));
-        Assert.True(File.Exists(Path.Combine(runRoot, "raporlar", "tasima-plani.md")), console);
+        Assert.False(File.Exists(Path.Combine(runRoot, "raporlar", "tasima-plani.md")), "Kitaba taşınan sayfa ayrıca dosya olarak üretilmemeli.");
     }
 
     [Fact]
@@ -68,11 +71,10 @@ public sealed class MigrationPlanTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.True(code == ExitCode.Success, console);
-        string graph = File.ReadAllText(Path.Combine(runRoot, "raporlar", "cagri-agaci.md"));
-        Assert.Contains("alt iş akışı çağrısı", graph, StringComparison.Ordinal);
-        Assert.Contains("bu çalıştırmada bulunmayan", graph, StringComparison.Ordinal);
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
         Assert.Contains(plan.Rows("Çağrı ağacı"), row => row.Contains("giriş noktası"));
+        // A process tree is one migration unit: the root, then what it calls, by depth.
+        Assert.Contains(plan.Rows("Süreç ağaçları"), row => row.Count > 1 && row[1] == "0");
     }
 
     /// <summary>

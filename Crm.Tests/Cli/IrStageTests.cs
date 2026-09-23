@@ -26,7 +26,8 @@ public sealed class IrStageTests
         Assert.Equal("Condition", condition.GetProperty("kind").GetString());
         Assert.Equal("İptal Edildi", condition.GetProperty("branches")[0].GetProperty("predicate").GetProperty("values")[0].GetProperty("resolved").GetString());
         Assert.Equal("Poliçe İptal Süreci 0", ir.RootElement.GetProperty("identity").GetProperty("name").GetString());
-        Assert.True(File.Exists(Path.Combine(runRoot, "raporlar", "ayristirma-kapsami.md")));
+        Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
+        Assert.Contains("Yapı sıklığı", plan.Names);
         Assert.True(File.Exists(Path.Combine(runRoot, "raporlar", "hassas-degerler.md")));
     }
 

@@ -443,3 +443,14 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance — Do:** reprocess and open the workbook. **Pass:** the well-known integrations (Feniks, Nova, IGES,
   Genesys, Docman, Pisano, North52 `ExecuteFormula`) appear with plausible caller counts. **Capture:** the two
   summary bullets; the address sheet holds production URLs and stays on the company machine.
+
+### One table, one place (2026-09-23) — committed
+- **Maintainer:** what we moved into a workbook should not also be produced as a file.
+- **Built:** every table is now a sheet, and each workbook opens with a **Nasıl okunur** guide sheet (columns,
+  caveats, this run’s numbers). New sheets: Süreç ağaçları, Okunamayan yapılar, Yapı sıklığı, Sapma, Birleştirme.
+  Nine Markdown pages deleted (tasima-plani, kullanim, cagri-agaci, veri-ayak-izi, dis-sistemler,
+  ayristirma-kapsami, sapma, birlestirme, envanter) and their builders removed with them.
+- **What moved rather than vanished:** the usage verdict table and its “absence proves nothing” wording now live in
+  `rapor.md`; the process trees became a sheet; the column legend became each workbook’s first sheet.
+- **Result:** `raporlar/` holds 2 pages and 4 workbooks. `rapor.md` is the entry point; `hassas-degerler.md` stays
+  a separate file so a delivery can leave it out in one move.

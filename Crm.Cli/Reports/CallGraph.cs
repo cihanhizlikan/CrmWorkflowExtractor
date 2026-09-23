@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text;
 using Crm.Ir.Model;
 
 namespace Crm.Cli.Reports;
@@ -89,49 +87,20 @@ public sealed class CallGraph
         }
     }
 
-    public string Markdown()
+    /// <summary>One row per node of every process tree: the root, the depth, and the workflow at that depth.</summary>
+    public Sheet BuildTrees()
     {
-        List<Guid> roots = [.. Calls.Keys.Where(id => CalledBy.GetValueOrDefault(id, []).Count == 0 && Calls[id].Count > 0)
-            .OrderBy(id => Names[id], StringComparer.Ordinal)];
-        StringBuilder text = new();
-        text.AppendLine("# Çağrı ağacı").AppendLine();
-        text.AppendLine("Kimsenin çağırmadığı bir iş akışı başlı başına bir süreçtir; başkalarının çağırdığı ise süreçler arasında paylaşılan bir yapı taşıdır. Bir üst akış ve altındaki her şey **tek** bir taşıma kalemidir.").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"- {Calls.Count} iş akışı · en az bir akışça çağrılan {CalledBy.Count} · alt akış çağıran {roots.Count} giriş noktası");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- toplam {Calls.Values.Sum(children => children.Count)} alt iş akışı çağrısı");
-        if (MissingTargets.Count > 0)
+        Sheet sheet = new(SheetNames.Trees, "kok_is_akisi", "derinlik", "is_akisi", "rol");
+        foreach (Guid root in Calls.Keys
+            .Where(id => CalledBy.GetValueOrDefault(id, []).Count == 0 && Calls[id].Count > 0)
+            .OrderBy(id => Names[id], StringComparer.Ordinal))
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"- **{MissingTargets.Count} çağrı, bu çalıştırmada bulunmayan bir iş akışını hedefliyor** (silinmiş ya da ayrıştırılmamış). Listesi sonda.");
-        }
-        text.AppendLine();
-
-        text.AppendLine("## En çok kullanılan yapı taşları").AppendLine();
-        text.AppendLine("| İş akışı | Çağrı sayısı | Çağıranlar |").AppendLine("|---|---:|---|");
-        foreach ((Guid id, IReadOnlyList<Guid> parents) in CalledBy.OrderByDescending(entry => entry.Value.Count).ThenBy(entry => Names[entry.Key], StringComparer.Ordinal).Take(40))
-        {
-            text.AppendLine(CultureInfo.InvariantCulture, $"| {Names[id]} | {parents.Count} | {string.Join(", ", parents.Take(6).Select(parent => Names[parent]))}{(parents.Count > 6 ? ", …" : "")} |");
-        }
-        text.AppendLine();
-
-        text.AppendLine("## Süreç ağaçları").AppendLine();
-        text.AppendLine("Her ağaç tek bir taşıma kalemidir. Girinti, çağrı derinliğini gösterir.").AppendLine();
-        foreach (Guid root in roots)
-        {
-            text.AppendLine("```");
             foreach ((Guid id, int depth) in Tree(root))
             {
-                text.Append(new string(' ', depth * 2)).Append(depth == 0 ? "" : "└ ").AppendLine(Names.GetValueOrDefault(id, id.ToString("D")));
-            }
-            text.AppendLine("```");
-        }
-        if (MissingTargets.Count > 0)
-        {
-            text.AppendLine().AppendLine("## Bu çalıştırmada bulunmayan iş akışlarına yapılan çağrılar").AppendLine();
-            foreach (Guid id in MissingTargets)
-            {
-                text.AppendLine(CultureInfo.InvariantCulture, $"- `{id:D}`");
+                sheet.Row(Names[root], depth, Names.GetValueOrDefault(id, id.ToString("D")), RoleOf(id));
             }
         }
-        return text.ToString();
+        return sheet;
     }
 
     public Sheet Build()

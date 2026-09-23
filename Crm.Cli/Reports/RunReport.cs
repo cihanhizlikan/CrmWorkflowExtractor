@@ -27,17 +27,17 @@ public static class RunReport
         AppendInventory(text, state);
         AppendFamilies(text, state);
 
-        text.AppendLine("## Diğer raporlar").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.ParseCoverage)}` — en az bir yapısı okunamayan {Count(state, "ir.workflowsWithUnmapped")} iş akışı; hiç ayrıştırılamayan {Count(state, "ir.parseFailed")} XAML dosyası.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.Drift)}` — çalışan kopyası farklı mantık taşıyan {Count(state, "drift.structureDiffers")} tanım; {Count(state, "drift.draftDefinitions")} taslak tanım.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.Consolidation)}` — {Count(state, "consolidation.workflowsCombined")} iş akışını kapsayan {Count(state, "consolidation.combined")} aile birleştirildi; {Count(state, "consolidation.skipped")} aile birleştirilmedi.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.PlanWorkbook)}` — çalışma kitabı: **{SheetNames.Plan}** (her iş akışı için bir satır, canlı süreçler başta), **{SheetNames.Usage}**, **{SheetNames.CallGraph}**, **{SheetNames.Diagrams}**. Sütun açıklamaları `{Name(RunPaths.MigrationPlan)}` dosyasındadır.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.ExternalSystemsWorkbook)}` / `{Name(RunPaths.ExternalSystems)}` — CRM dışına uzanan {Count(state, "external.activities")} özel etkinlik; iş akışlarının geçirdiği {Count(state, "external.addresses")} farklı adres.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.FamilyWorkbook)}` — gruplama kitabı: **{SheetNames.Families}**, **{SheetNames.Pairs}** (her çiftin benzerlik puanı), **{SheetNames.Drafts}**, **{SheetNames.Supplied}**.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.DataWorkbook)}` (**{SheetNames.DataFootprint}**, **{SheetNames.Cascades}**) ve `{Name(RunPaths.DataFootprint)}` — birden fazla iş akışının yazdığı {Count(state, "data.sharedFields")} alan; başka bir iş akışını başlatan {Count(state, "data.cascades")} yazma, {Count(state, "data.cascadePairs")} çift arasında.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.CallGraph)}` — {Count(state, "callGraph.entryPoints")} giriş noktası; başka bir iş akışının çağırdığı {Count(state, "callGraph.buildingBlocks")} iş akışı (tablosu çalışma kitabının **{SheetNames.CallGraph}** sayfasındadır).");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.Usage)}` (tablosu **{SheetNames.Usage}** sayfasında) — gruplamanın dışında tutulan {Count(state, "usage.drafts")} taslak tanım ve ürünle gelen {Count(state, "clusters.suppliedHeldApart")} iş akışı; adı deneme gibi okunan {Count(state, "usage.testNamedActive")} etkin iş akışı; {(state.StagesRun.Contains(RunStages.Usage) ? $"{Count(state, "usage.definitions")} tanımın {Count(state, "usage.withLoggedRun")} tanesinin çalıştığına dair kayıt var" : "kullanım kanıtı yok (Run:UsageFile)")}.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.SensitiveLiterals)}` — {Count(state, "sensitive.findings")} bulgu. KISITLI: bilgi güvenliği ekibi içindir.");
+        AppendUsage(text, state);
+
+        text.AppendLine("## Çalışma kitapları").AppendLine();
+        text.AppendLine("Her kitabın ilk sayfası **Nasıl okunur**: sütunlar, uyarılar ve bu çalıştırmanın sayıları oradadır.").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.PlanWorkbook)}` — **işin kendisi.** Sayfalar: {SheetNames.Plan} (her iş akışı için bir satır, canlı süreçler başta) · {SheetNames.Usage} · {SheetNames.CallGraph} · {SheetNames.Trees} · {SheetNames.Diagrams} · {SheetNames.Unmapped} ({Count(state, "ir.workflowsWithUnmapped")} iş akışı) · {SheetNames.Constructs} · {SheetNames.Drift} (çalışan kopyası farklı {Count(state, "drift.structureDiffers")} tanım).");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.FamilyWorkbook)}` — **hangileri aynı.** Sayfalar: {SheetNames.Families} · {SheetNames.Consolidation} ({Count(state, "consolidation.workflowsCombined")} iş akışını kapsayan {Count(state, "consolidation.combined")} aile birleştirildi, {Count(state, "consolidation.skipped")} birleştirilmedi) · {SheetNames.Pairs} · {SheetNames.Drafts} ({Count(state, "usage.drafts")}) · {SheetNames.Supplied} ({Count(state, "clusters.suppliedHeldApart")}).");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.DataWorkbook)}` — **ne neye dokunuyor.** Birden fazla iş akışının yazdığı {Count(state, "data.sharedFields")} alan; {Count(state, "data.cascadePairs")} çift arasında {Count(state, "data.cascades")} tetikleme zinciri.");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.ExternalSystemsWorkbook)}` — **CRM dışına ne uzanıyor.** {Count(state, "external.activities")} özel etkinlik; iş akışlarının geçirdiği {Count(state, "external.addresses")} farklı adres.");
+        text.AppendLine();
+        text.AppendLine("## Kısıtlı ve yardımcı dosyalar").AppendLine();
+        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.SensitiveLiterals)}` — {Count(state, "sensitive.findings")} bulgu. KISITLI: bilgi güvenliği ekibi içindir, pakete konmaz.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- `../{RunPaths.ManualReviewIndex}` — ayrıştırılmayan, elle yazılmış {Count(state, "manualReview")} iş akışı.");
         text.AppendLine();
 
@@ -56,6 +56,31 @@ public static class RunReport
             text.Append("- ").AppendLine(failure);
         }
         return text.ToString();
+    }
+
+    /// <summary>
+    /// What the run evidence says, in one table. Two things are certain — a Draft cannot start a run, and a logged
+    /// run proves one happened — and the absence of a record proves nothing; that sentence travels with the numbers.
+    /// </summary>
+    private static void AppendUsage(StringBuilder text, RunState state)
+    {
+        if (state.UsageVerdicts.Count == 0)
+        {
+            return;
+        }
+        text.AppendLine("## Kullanım").AppendLine();
+        text.AppendLine("Kesin olan iki şey var: **Taslak** bir tanım yeni çalıştırma başlatamaz ve **kayıtlı bir çalışma** o akışın çalıştığını kanıtlar. Kaydın bulunmaması hiçbir şeyi kanıtlamaz: sistem işleri düzenli olarak silinir, gerçek zamanlı akışlar yalnızca hatayı kaydeder, iş kuralları hiç kayıt bırakmaz.").AppendLine();
+        if (state.UsageHorizon.Length > 0)
+        {
+            text.AppendLine(state.UsageHorizon).AppendLine();
+        }
+        text.AppendLine("| Hüküm | Tanım |").AppendLine("|---|---:|");
+        foreach (KeyValuePair<string, int> verdict in state.UsageVerdicts.OrderBy(verdict => verdict.Key, StringComparer.Ordinal))
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"| {verdict.Key} | {verdict.Value} |");
+        }
+        text.AppendLine().AppendLine(CultureInfo.InvariantCulture,
+            $"Adı taslak veya deneme gibi okunan {Count(state, "usage.testNamedActive")} etkin iş akışı var; bunlar üretimde çalışabilir, ada göre temizlik yapmayın. Listesi çalışma kitabının **{SheetNames.Usage}** sayfasındadır.").AppendLine();
     }
 
     /// <summary>The file name on its own: inside raporlar/ the folder prefix is noise.</summary>

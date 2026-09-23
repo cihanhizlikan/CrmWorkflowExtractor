@@ -109,9 +109,9 @@ public sealed class DataFootprintTests
         (_, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output,
             importFile: Path.Combine(AppContext.BaseDirectory, "Fixtures", "BrowserExport", "mock-crm-export.json"));
 
-        Assert.True(File.Exists(Path.Combine(runRoot, "raporlar", "veri-ayak-izi.md")), console);
+        Assert.False(File.Exists(Path.Combine(runRoot, "raporlar", "veri-ayak-izi.csv")), console);
         Workbook data = Workbook.Open(Path.Combine(runRoot, "raporlar", "veri-analizi.xlsx"));
-        Assert.Equal(["Veri ayak izi", "Tetikleme zincirleri"], data.Names);
+        Assert.Equal(["Nasıl okunur", "Veri ayak izi", "Tetikleme zincirleri"], data.Names);
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
         Assert.Contains("paylasilan_alan", plan.Headers("Taşıma planı"));
     }

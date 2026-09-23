@@ -25,8 +25,11 @@ public sealed class ConsolidationStageTests
         // Named for a reader: the family medoid, how many workflows it covers, and the tail of the cluster id.
         Assert.Contains("-combined-4-", Path.GetFileName(combined), StringComparison.Ordinal);
         Assert.DoesNotContain("cl_", Path.GetFileName(combined), StringComparison.Ordinal);
-        string report = File.ReadAllText(Path.Combine(runRoot, "raporlar", "birlestirme.md"));
-        Assert.Contains("4 üye, 0 çeşitleme ayrımı, her üye adımının hesabı tam olarak bir kez verildi.", report, StringComparison.Ordinal);
+        Workbook families = Workbook.Open(Path.Combine(runRoot, "raporlar", "aileler.xlsx"));
+        IReadOnlyList<IReadOnlyList<string>> rows = families.Rows("Birleştirme");
+        Assert.Equal(4, rows.Count - 1);
+        Assert.All(rows.Skip(1), row => Assert.Contains("birleştirildi", row));
+        Assert.All(rows.Skip(1), row => Assert.Contains("her üye adımının hesabı verildi", row));
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
         Assert.Equal(1, manifest.RootElement.GetProperty("stageCounts").GetProperty("consolidation.combined").GetInt32());

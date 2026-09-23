@@ -82,8 +82,10 @@ public sealed class RetrievalStagesTests
         Dictionary<string, int> counts = Counts(runRoot);
         Assert.Equal(3, counts["drift.pairsCompared"]);
         Assert.Equal(1, counts["drift.structureDiffers"]);
-        string report = File.ReadAllText(Path.Combine(runRoot, "raporlar", "sapma.md"));
-        Assert.Contains($"`{FakeOrganization.WorkflowId(2):D}` | `{FakeOrganization.WorkflowId(3):D}` | **evet**", report, StringComparison.Ordinal);
+        Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
+        Assert.Contains(plan.Rows("Sapma"), row => row.Count > 4
+            && row[2] == FakeOrganization.WorkflowId(2).ToString("D") && row[3] == FakeOrganization.WorkflowId(3).ToString("D")
+            && row[4] == "evet");
     }
 
     [Fact]

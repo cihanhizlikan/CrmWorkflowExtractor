@@ -22,9 +22,10 @@ public sealed class EndToEndTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.True(code == ExitCode.Success, console);
-        foreach (string file in new[] { "manifest.json", "ham/is-akislari.jsonl", "ham/xaml/dizin.json", "raporlar/rapor.md", "raporlar/ayristirma-kapsami.md",
-            "raporlar/sapma.md", "raporlar/birlestirme.md", "raporlar/hassas-degerler.md", "raporlar/envanter.md", "raporlar/aileler.xlsx", "raporlar/tasima-plani.xlsx",
-            "aileler/aileler.json", "elle-inceleme/dizin.md", "gunlukler/calistirma.log" })
+        // Two pages and four workbooks: what was moved into a workbook is not written as a file beside it.
+        foreach (string file in new[] { "manifest.json", "ham/is-akislari.jsonl", "ham/xaml/dizin.json", "raporlar/rapor.md",
+            "raporlar/hassas-degerler.md", "raporlar/tasima-plani.xlsx", "raporlar/aileler.xlsx", "raporlar/veri-analizi.xlsx",
+            "raporlar/dis-sistemler.xlsx", "aileler/aileler.json", "elle-inceleme/dizin.md", "gunlukler/calistirma.log" })
         {
             Assert.True(File.Exists(Path.Combine(runRoot, file)), file + " is missing");
         }
