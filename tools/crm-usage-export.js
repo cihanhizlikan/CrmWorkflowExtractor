@@ -24,7 +24,7 @@
   "use strict";
   const WEB_API = location.origin + "/api/data/v8.2/";   // IFD host: no organization segment. Change if needed.
   const PAGE_SIZE = 500;
-  const PARALLEL = 4;
+  const PARALLEL = 6;   // A browser allows six connections to one host; asking for more buys nothing.
 
   const TIMEOUT_MS = 90000;
 
@@ -62,6 +62,13 @@
     return rows;
   }
 
+  // The same shape a lookup returns, so the importer cannot tell which way the answer was found: a row with a
+  // createdon, or a null row meaning "this one has never run". Only createdon is read on the other side.
+  function fromAggregate(newest, id) {
+    const at = newest.get(String(id).toLowerCase());
+    return { row: at ? { createdon: at } : null };
+  }
+
   async function first(path) {
     try {
       const page = await get(path);
@@ -88,21 +95,58 @@
   const JOB_COLUMNS = "$select=createdon,statecode,statuscode&$orderby=createdon desc&$top=1";
   const SESSION_COLUMNS = "$select=createdon,statecode,statuscode&$orderby=createdon desc&$top=1";
 
+  // One question, asked once. "The newest run of every activation" is a group-by with a max, and CRM answers a
+  // FetchXML aggregate in a single GET — against eighteen hundred filtered lookups, one per activation, each of
+  // which this server was taking ten seconds to answer. The aggregate has its own limit (the server refuses when
+  // it would have to scan too many rows), so a refusal is expected and falls back to asking record by record.
+  async function newestBy(entitySet, entity, groupAttribute) {
+    const fetchXml = `<fetch aggregate="true"><entity name="${entity}">`
+      + `<attribute name="${groupAttribute}" groupby="true" alias="anahtar" />`
+      + '<attribute name="createdon" aggregate="max" alias="son" /></entity></fetch>';
+    try {
+      const page = await get(`${entitySet}?fetchXml=${encodeURIComponent(fetchXml)}`);
+      const newest = new Map();
+      for (const row of page.value) {
+        const key = row.anahtar && typeof row.anahtar === "object" ? row.anahtar.Value ?? row.anahtar.value : row.anahtar;
+        if (key && row.son) {
+          newest.set(String(key).toLowerCase(), row.son);
+        }
+      }
+      log(`${entity}: one aggregate answered for ${newest.size} record(s)`);
+      return newest;
+    } catch (error) {
+      log(`${entity}: the aggregate was refused, falling back to one lookup per record —`, error.message);
+      return null;
+    }
+  }
+
+  const newestJob = await newestBy("asyncoperations", "asyncoperation", "workflowactivationid");
+  const newestSession = await newestBy("processsessions", "processsession", "processid");
+
   const usage = {};
   let done = 0;
   let queries = 0;
   const startedAt = Date.now();
   async function evidenceFor(definition) {
     const activations = activationsOf.get(definition.workflowid) || [];
-    queries += activations.length + (definition.category === 1 ? 1 + activations.length : 0);
+    queries += (newestJob ? 0 : activations.length)
+      + (definition.category === 1 && !newestSession ? 1 + activations.length : 0);
     const jobs = [];
     for (const activation of activations) {
-      jobs.push({ activationId: activation, ...await first(`asyncoperations?${JOB_COLUMNS}&$filter=_workflowactivationid_value eq ${activation}`) });
+      jobs.push({
+        activationId: activation,
+        ...(newestJob ? fromAggregate(newestJob, activation)
+          : await first(`asyncoperations?${JOB_COLUMNS}&$filter=_workflowactivationid_value eq ${activation}`))
+      });
     }
     const sessions = [];
     if (definition.category === 1) {
       for (const processId of [definition.workflowid, ...activations]) {
-        sessions.push({ processId, ...await first(`processsessions?${SESSION_COLUMNS}&$filter=_processid_value eq ${processId}`) });
+        sessions.push({
+          processId,
+          ...(newestSession ? fromAggregate(newestSession, processId)
+            : await first(`processsessions?${SESSION_COLUMNS}&$filter=_processid_value eq ${processId}`))
+        });
       }
     }
     usage[definition.workflowid] = { activations, jobs, sessions };
@@ -121,6 +165,7 @@
     exportedAtUtc: new Date().toISOString(),
     startedAtUtc: started.toISOString(),
     webApiRoot: WEB_API,
+    method: { jobs: newestJob ? "aggregate" : "per-record", sessions: newestSession ? "aggregate" : "per-record" },
     usage
   };
   const stamp = started.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);

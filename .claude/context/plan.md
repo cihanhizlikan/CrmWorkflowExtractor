@@ -586,3 +586,18 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   failure is not fatal: it falls through to the FetchXML aggregate that already stood behind it, which is what
   this server answers anyway, so nothing is lost by cutting the wait. A timeout is reported as a sentence rather
   than an unhandled rejection, and the phase is logged before it starts so a stall is attributable.
+### One aggregate instead of eighteen hundred lookups (2026-09-23) — committed, awaiting merge
+- **Measured, not guessed:** the maintainer's run reported `150/1437 — 340 lookups, 841s elapsed`. That is 5.6 s per
+  definition and, at four in parallel, about ten seconds of server time for every single filtered lookup against
+  the System Job table. Projected total: two hours fourteen minutes.
+- **The query was the cost.** `asyncoperations?$filter=_workflowactivationid_value eq <guid>&$orderby=createdon
+  desc&$top=1`, once per activation, on a table with no useful index for that predicate.
+- **Built:** the same question asked once. `<fetch aggregate="true">` with `groupby` on the activation and
+  `aggregate="max"` on `createdon` returns the newest run of every activation in a single GET, and the importer
+  reads nothing but `createdon`, so it is a lossless substitute — the horizon (`oldest run seen`) is the same set
+  and therefore the same minimum. Dialogs get the same treatment over `processsession`.
+- **A refusal is not a failure.** Aggregates have a scan limit; if the server refuses, that source falls back to
+  the per-record path, per source independently. The export records which way each was answered (`method`).
+- **Verified by running the bookmarklet**, not by reading it: stubbed CRM in node, both paths. The aggregate path
+  issues three requests in total and produces byte-identical `usage` shape; the refused path falls back and still
+  produces it. `PARALLEL` is now 6, the browser's own per-host ceiling, for whatever still goes record by record.

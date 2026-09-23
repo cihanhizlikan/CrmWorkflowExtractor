@@ -79,6 +79,25 @@ public sealed class UsageStageTests
         Assert.Contains("AbortSignal.timeout", script, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// "The newest run of every activation" is a group-by with a max, and CRM answers it in one GET. Asked record
+    /// by record it was eighteen hundred filtered lookups, ten seconds each on the production server — two hours.
+    /// The aggregate has a scan limit of its own, so a refusal is expected and must fall back rather than fail.
+    /// </summary>
+    [Fact]
+    public void The_Export_Script_Asks_For_The_Newest_Run_In_One_Aggregate()
+    {
+        string script = File.ReadAllText(Path.Combine(RepositoryTree.Root().FullName, "tools", "crm-usage-export.js"));
+
+        Assert.Contains("aggregate=\"true\"", script, StringComparison.Ordinal);
+        Assert.Contains("aggregate=\"max\"", script, StringComparison.Ordinal);
+        Assert.Contains("groupby=\"true\"", script, StringComparison.Ordinal);
+        // Refused is not failed: both paths stay, and the export says which one answered.
+        Assert.Contains("the aggregate was refused, falling back to one lookup per record", script, StringComparison.Ordinal);
+        Assert.Contains("_workflowactivationid_value eq", script, StringComparison.Ordinal);
+        Assert.Contains("\"aggregate\" : \"per-record\"", script.Replace(" ? ", " : "), StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task A_Missing_Usage_File_Fails_Cleanly()
     {
