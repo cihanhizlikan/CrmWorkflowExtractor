@@ -41,7 +41,7 @@ public static class RunReport
         text.AppendLine();
         text.AppendLine("## Kısıtlı ve yardımcı dosyalar").AppendLine();
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.SensitiveLiterals)}` — {Count(state, "sensitive.findings")} bulgu. KISITLI: bilgi güvenliği ekibi içindir, pakete konmaz.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `../{RunPaths.ManualReviewIndex}` — ayrıştırılmayan, elle yazılmış {Count(state, "manualReview")} iş akışı.");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- Ayrıştırılmayan, elle yazılmış {Count(state, "manualReview")} iş akışı var: ayrıştırılmadıkları için taşıma planında satırları YOKTUR. Listesi çalıştırma klasöründeki `{RunPaths.ManualReviewIndex}` dosyasındadır.");
         text.AppendLine();
 
         text.AppendLine(CultureInfo.InvariantCulture, $"## Uyarılar ({state.Warnings.Count})").AppendLine();

@@ -58,6 +58,11 @@ and sends only the text. What this says is "the code this step runs contains the
 calls this address" — and it is said that way on the sheet, in the guide and on the diagram. Plug-in steps come
 with it: code CRM runs on a message, not a process, invisible to the plan and listed on its own page.
 
+**What is delivered names only what is delivered.** The analysts get the four workbooks, the diagrams, the
+combined models and `rapor.md`; the evidence, the restricted findings and `kapsam-disi.xlsx` stay with Enterprise
+Architecture. A delivered file that names one of those sends a reader looking for what they do not have, so none
+does — `DeliveryTests` opens every delivered workbook and fails on any cell that mentions something left behind.
+
 **A column exists only if a line can be written in the workbook's guide saying what a reader does differently
 because of it**, and a page exists only if its rows are things to act on: the call pages carry only workflows that
 are part of a call, Sapma only the definitions whose running copy really differs, Yakın çiftler only the pairs that

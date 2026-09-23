@@ -615,3 +615,14 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Verified by running the bookmarklet** against a stubbed CRM, both paths: the aggregate path makes three
   requests and declares the window; the refused path falls back to per-record lookups and declares none, which is
   the honest difference — there, everything ever logged was in reach.
+### The delivered files name nothing the reader lacks (2026-09-23) — committed, awaiting merge
+- **Maintainer:** the analysts get only some of the run folder — are there concepts in the guide they were never
+  given? And then: not in the Excels either.
+- **Audited all of it.** The PDF was already clean: the six files it walks are all in the delivery, and "ara model"
+  appears only as a glossary term, not as a folder to open. Two workbook lines were not: the plan's
+  `hassas_deger_var` sent the reader to "the restricted report", and the external book's credential line named
+  `hassas-degerler.md` outright. Both now say the values are not in this package and who holds them.
+- **`rapor.md`** pointed at `../elle-inceleme/dizin.md` as if it were part of the package. It now says what those
+  workflows are — unparsed, and therefore with NO row in the plan — and that the list lives in the run folder.
+- **Made a rule, not a fix.** `DeliveryTests` opens every delivered workbook from an end-to-end run and fails on
+  any cell naming something left behind. Checked by breaking it: it named the workbook, the sheet and the cell.

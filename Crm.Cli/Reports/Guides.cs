@@ -47,7 +47,8 @@ public static class Guides
             "Kaç akışı tetikliyor ve kaç alanı başkalarıyla paylaşıyor. İkisi de sıfırdan büyükse bu akış tek başına tasarlanamaz — veri-analizi.xlsx.");
         sheet.Row("yazdigi_varliklar", "Neye dokunduğu. Yeni tasarımın dış dünyaya verdiği sözdür; alan alan dökümü veri-analizi.xlsx'tedir.");
         sheet.Row("mod", "\"Gerçek zamanlı\" akış kullanıcıyı bekletir, \"arka plan\" bekletmez. Aynı işi arka plana almak davranışı değiştirir.");
-        sheet.Row("hassas_deger_var", "XAML içinde adres, kullanıcı adı veya parola benzeri değer var. Değerlerin kendisi kısıtlı rapordadır.");
+        sheet.Row("hassas_deger_var", "XAML içinde adres, kullanıcı adı veya parola benzeri değer var. Değerlerin kendisi bu pakette "
+            + "yoktur; kurum içinde bilgi güvenliği ekibindedir. Tasarım için değeri bilmeniz gerekmez, bir sır taşındığını bilmeniz yeter.");
         sheet.Row("bpmn_dosyasi · birlesik_dosya · is_akisi_id", "Nereye gideceğiniz: akışın diyagramı, ailesinin birleşik modeli ve CRM'de aramak için kimliği.");
         sheet.Row("İş yükü nasıl hesaplanır",
             "Bir üst akış ve çağırdığı alt akışlar TEK bir taşıma kalemidir. Süreç ağaçları sayfası bu kalemleri gösterir; "
@@ -156,7 +157,8 @@ public static class Guides
             + "maddelerini bu sütundan çıkarın.");
         sheet.Row("parametrelerde kimlik bilgisi",
             "Bu sütunda UserName, PassWord, FtpUserID gibi bir ad görürseniz, kimlik bilgisi iş akışı tanımının içine "
-            + "yazılmış demektir. Değerleri kısıtlı rapordadır (hassas-degerler.md); bilgi güvenliği ekibine iletin.");
+            + "yazılmış demektir. Değerlerin kendisi bu pakette yoktur; bulguyu Kurumsal Mimari'ye iletin, oradan bilgi "
+            + "güvenliği ekibine gider.");
         sheet.Row("Görülemeyen",
             "Etkinliğin kendi derlemesi içinde ne yaptığı XAML'de yoktur: koda ya da konfigürasyona gömülü bir adres buradan "
             + "GÖRÜNMEZ ve çoğu adres oradadır. Ayrıca eklentiler (plug-in) iş akışı değildir; bu envantere hiç girmezler.");
