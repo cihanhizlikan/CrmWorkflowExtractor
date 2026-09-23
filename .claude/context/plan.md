@@ -504,3 +504,17 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   blue, so the page and the mark on it agree. The logo sits on a white card because the mark is drawn for a light
   ground — which is how the site carries it too.
 - **Checked by eye:** rendered through pdf.js at 2× and read; the mark is sharp, the palette and the card are right.
+### Every address in the definition reaches the page (2026-09-23) — committed, awaiting merge
+- **Maintainer:** the Adresler page is completely empty, and the called web services' URLs are nowhere.
+- **Two causes, one ours.** A CRM workflow cannot call a service: the only way out is a custom activity, whose
+  endpoint is usually inside its own assembly and in no CRM record at all. That part cannot be fixed from here.
+  But the page was also reading a much narrower source than the restricted report beside it — only the arguments
+  captured on mapped steps — so an address in a variable, an expression or an unreadable construct never arrived.
+  On the real data that set was empty while the sensitive scan was finding embedded addresses.
+- **Built:** addresses now come from the literals of the definition, the same text the sensitive scan reads, and
+  both are gathered in one pass (`IrStage.Literals`) so neither can quietly read less than the other. The page
+  gained a `sunucu` column — sort by it and the question "which outside systems do we touch" answers itself — and
+  a user name and password written into an address are masked, because this page is delivered and the other is not.
+- **Guide:** the workbook now states in as many words that an empty Adresler page does NOT mean "calls nothing".
+- **Removed:** `ExternalSystems.Markdown`, which no longer had a caller, and the address list on
+  `ExternalDependency`, which no sheet had shown since the column audit.

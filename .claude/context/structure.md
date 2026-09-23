@@ -42,6 +42,11 @@ The document is set in the logo's own two colours.
 Only two Markdown pages remain: `rapor.md` (the entry point) and `hassas-degerler.md` (restricted, kept separate so
 it is easy to leave out of a delivery). `ExcelWorkbook` writes .xlsx by hand — a zip of XML, so no dependency.
 
+Addresses in `dis-sistemler.xlsx` are read from every literal in the definition — the same text the sensitive
+scan reads — not from the arguments the parser captured on steps: on the real data every address sat somewhere
+else, and the delivered page came out empty while the restricted report was reporting embedded addresses. What a
+custom activity does inside its own assembly is still invisible, and most endpoints are there.
+
 **The output is Turkish** — folder names, file names and every word the tool writes. Three tables carry it:
 `RunPaths` (paths), `RunStages` (stage names) and `ProcessLabels` (category, mode and state labels, which code also
 branches on). Names that come from CRM are never translated. A run made before this still reprocesses: its `raw/`

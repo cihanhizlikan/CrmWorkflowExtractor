@@ -90,20 +90,27 @@ public static class Guides
         return sheet;
     }
 
-    public static Sheet External(int activities, int addresses)
+    public static Sheet External(int activities, int addresses, int hosts)
     {
         Sheet sheet = Empty();
         sheet.Row("Bu kitap ne işe yarar", "İş akışlarının CRM dışına uzanan çağrılarını gösterir: entegrasyon yükü buradadır.");
-        sheet.Row("Sayfalar", "Dış bağımlılıklar (etkinlik başına: kim çağırıyor) · Adresler (iş akışının geçirdiği her adres)");
+        sheet.Row("Sayfalar", "Dış bağımlılıklar (etkinlik başına: kim çağırıyor) · Adresler (tanımın içinde geçen her adres)");
         sheet.Row("Nasıl çalışır",
             "Bir CRM iş akışı bir servisi kendi başına çağıramaz; tek yol, CRM'e kaydedilmiş özel bir etkinliktir (derlenmiş kod). "
             + "Dışarıya uzanan her çağrı bu yüzden bir satır olarak görünür.");
-        sheet.Row("Görülebilen", "Çağrılan etkinliğin adı, hangi iş akışlarının çağırdığı ve iş akışının geçirdiği bağımsız değişkenler — "
-            + "adres bunların arasındaysa adres de.");
+        sheet.Row("Görülebilen", "Çağrılan etkinliğin adı, hangi iş akışlarının çağırdığı ve iş akışı tanımının herhangi bir yerinde "
+            + "yazılı olan adresler — bağımsız değişkende, değişken tanımında ya da bir ifadenin içinde.");
         sheet.Row("Görülemeyen",
-            "Etkinliğin kendi derlemesi içinde ne yaptığı XAML'de yoktur: koda gömülü bir adres buradan görünmez. "
+            "Etkinliğin kendi derlemesi içinde ne yaptığı XAML'de yoktur: koda ya da konfigürasyona gömülü bir adres buradan "
+            + "GÖRÜNMEZ ve çoğu adres oradadır. Bunu yalnızca derlemenin sahibi söyleyebilir; derleme adı yan sütundadır. "
             + "Ayrıca eklentiler (plug-in) iş akışı değildir; bu envantere hiç girmezler.");
-        sheet.Row("Bu çalıştırma", string.Create(CultureInfo.InvariantCulture, $"{activities} özel etkinlik · {addresses} farklı adres"));
+        sheet.Row("Boş Adresler sayfası", "\"Hiçbir yere bağlanmıyor\" demek DEĞİLDİR: yalnızca hiçbir adresin tanım metninin "
+            + "içine yazılmadığı anlamına gelir.");
+        sheet.Row("sunucu", "Adresin işaret ettiği sunucu. Sayfayı bu sütuna göre sıralayın: hangi dış sistemlere dokunulduğu böyle görünür.");
+        sheet.Row("adres", "Bulunan adresin kendisi. İçine yazılmış kullanıcı adı ve parola maskelenmiştir (***).");
+        sheet.Row("adim_yolu", "Adresin tanım içinde bulunduğu yer. Aynı yol, Okunamayan yapılar sayfasındaki yolla aynı biçimdedir.");
+        sheet.Row("Bu çalıştırma", string.Create(CultureInfo.InvariantCulture,
+            $"{activities} özel etkinlik · {hosts} farklı sunucu · {addresses} farklı adres"));
         sheet.Row("Uyarı", "Adresler sayfası üretim adresleri taşır; kurum dışına çıkarmayın.");
         return sheet;
     }

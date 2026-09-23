@@ -18,9 +18,14 @@ public sealed class ExternalSystemsTests
     private static readonly Guid First = Guid.Parse("11111111-0000-0000-0000-000000000001");
     private static readonly Guid Second = Guid.Parse("11111111-0000-0000-0000-000000000002");
 
+    private static ParseResult Parse(Guid id)
+    {
+        return new XamlWorkflowParser(OptionLabels.Empty).Parse(id, XamlWorkflowParserTests.Fixture("child-and-custom.xaml"));
+    }
+
     private static WorkflowIr Ir(Guid id, string name)
     {
-        ParseResult result = new XamlWorkflowParser(OptionLabels.Empty).Parse(id, XamlWorkflowParserTests.Fixture("child-and-custom.xaml"));
+        ParseResult result = Parse(id);
         return new WorkflowIr(
             new WorkflowIdentity(id, name, null, ProcessLabels.CategoryWorkflow, "Tanım", "new_policy", ProcessLabels.ModeBackground,
                 "Kuruluş", ProcessLabels.StateActivated, false, false, null, null, null, 1, true),
@@ -37,27 +42,43 @@ public sealed class ExternalSystemsTests
         ExternalDependency dependency = Assert.Single(dependencies);
         Assert.Equal("NotifyPolicyService", dependency.Activity);
         Assert.Equal(["Hasar Onay", "Poliçe İptal"], dependency.Workflows);
-        Assert.Contains(dependency.Addresses, address => address.StartsWith("https://", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The reason addresses are read from the literals and not from the arguments captured on steps: on the real
+    /// data every address sat somewhere else — a variable, an expression, a construct the parser could not read —
+    /// and the delivered page came out empty while the restricted report was reporting embedded addresses.
+    /// </summary>
+    [Fact]
+    public void An_Address_Anywhere_In_The_Definition_Is_Found_Not_Only_In_A_Captured_Argument()
+    {
+        IReadOnlyList<XamlLiteral> literals =
+        [
+            new XamlLiteral("Sequence/Assign", "https://nova.local:8443/api/sign?x=1"),
+            new XamlLiteral("", "http://schemas.microsoft.com/netfx/2009/xaml/activities"),
+            new XamlLiteral("Sequence/Variables", @"\\dosya01\paylasim\cikti"),
+            new XamlLiteral("Sequence/If", "ftp://sistem:parola@ftp.local/out")
+        ];
+
+        IReadOnlyList<ExternalAddress> found = ExternalSystems.Find("Poliçe İptal", literals);
+
+        // The XAML's own schema namespaces are not addresses.
+        Assert.Equal(3, found.Count);
+        Assert.All(found, address => Assert.Equal("Poliçe İptal", address.Workflow));
+        Assert.Contains(found, address => address.Host == "nova.local" && address.Path == "Sequence/Assign");
+        Assert.Contains(found, address => address.Host == "dosya01");
+        // The page is delivered; a password written into an address is not.
+        ExternalAddress ftp = Assert.Single(found, address => address.Host == "ftp.local");
+        Assert.Equal("ftp://***@ftp.local/out", ftp.Address);
+        Assert.DoesNotContain("parola", ftp.Address, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void An_Address_The_Workflow_Passes_Is_Reported_With_Where_It_Was_Found()
+    public void An_Address_In_A_Custom_Activity_Argument_Is_Still_Found()
     {
-        ExternalAddress address = Assert.Single(ExternalSystems.Addresses([Ir(First, "Poliçe İptal")]));
+        IReadOnlyList<ExternalAddress> found = ExternalSystems.Find("Poliçe İptal", Parse(First).Literals);
 
-        Assert.StartsWith("https://", address.Address, StringComparison.Ordinal);
-        Assert.Equal("Poliçe İptal", address.Workflow);
-        Assert.False(string.IsNullOrEmpty(address.Argument));
-    }
-
-    /// <summary>The page has to say what it cannot see, or a reader will take an empty column for "calls nothing".</summary>
-    [Fact]
-    public void The_Page_States_What_Cannot_Be_Seen()
-    {
-        string markdown = ExternalSystems.Markdown([Ir(First, "Poliçe İptal")]);
-
-        Assert.Contains("kendi derlemesi içinde ne yaptığı", markdown, StringComparison.Ordinal);
-        Assert.Contains("| NotifyPolicyService |", markdown, StringComparison.Ordinal);
+        Assert.Contains(found, address => address.Address.StartsWith("https://", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -75,6 +96,10 @@ public sealed class ExternalSystemsTests
         Assert.Equal(["etkinlik", "cagiran_is_akisi_sayisi", "cagiran_is_akislari", "derleme"],
             workbook.Headers("Dış bağımlılıklar"));
         Assert.Contains(workbook.Rows("Dış bağımlılıklar"), row => row.Contains("NotifyPolicyService"));
+        Assert.Equal(["sunucu", "adres", "is_akisi", "adim_yolu"], workbook.Headers("Adresler"));
+        Assert.Contains(workbook.Rows("Adresler"), row => row.Count > 1 && row[1].StartsWith("https://", StringComparison.Ordinal));
+        // The guide has to say what the page cannot see, or a reader takes an empty page for "calls nothing".
         Assert.Contains(workbook.Rows("Nasıl okunur"), row => row.Any(cell => cell.Contains("Görülemeyen", StringComparison.Ordinal)));
+        Assert.Contains(workbook.Rows("Nasıl okunur"), row => row.Any(cell => cell.Contains("demek DEĞİLDİR", StringComparison.Ordinal)));
     }
 }

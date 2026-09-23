@@ -52,10 +52,11 @@ public static class OfflineStages
         state.Sheets[SheetNames.DataFootprint] = DataFootprint.Build(documents);
         state.Sheets[SheetNames.Cascades] = DataFootprint.BuildCascades(documents);
         state.Sheets[SheetNames.ExternalDependencies] = ExternalSystems.BuildDependencies(documents);
-        state.Sheets[SheetNames.Addresses] = ExternalSystems.BuildAddresses(documents);
+        state.Sheets[SheetNames.Addresses] = ExternalSystems.BuildAddresses(state.Addresses);
 
         state.Counts["external.activities"] = ExternalSystems.Dependencies(documents).Count;
-        state.Counts["external.addresses"] = ExternalSystems.Addresses(documents).Select(address => address.Address).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        state.Counts["external.addresses"] = state.Addresses.Select(address => address.Address).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        state.Counts["external.hosts"] = state.Addresses.Select(address => address.Host).Distinct(StringComparer.OrdinalIgnoreCase).Count();
         state.Counts["callGraph.entryPoints"] = documents.Count(document => calls.RoleOf(document.Identity.WorkflowId) == CallGraph.EntryPoint);
         state.Counts["callGraph.buildingBlocks"] = calls.CalledBy.Count;
         state.Counts["data.fields"] = DataFootprint.Fields(documents).Count;
@@ -85,7 +86,7 @@ public static class OfflineStages
             Count(state, "data.cascades"), Count(state, "data.cascadePairs"));
         await WriteWorkbookAsync(folder, state, RunPaths.DataWorkbook, [SheetNames.Guide, SheetNames.DataFootprint, SheetNames.Cascades], token);
 
-        state.Sheets[SheetNames.Guide] = Guides.External(Count(state, "external.activities"), Count(state, "external.addresses"));
+        state.Sheets[SheetNames.Guide] = Guides.External(Count(state, "external.activities"), Count(state, "external.addresses"), Count(state, "external.hosts"));
         await WriteWorkbookAsync(folder, state, RunPaths.ExternalSystemsWorkbook,
             [SheetNames.Guide, SheetNames.ExternalDependencies, SheetNames.Addresses], token);
 

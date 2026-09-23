@@ -27,7 +27,7 @@ public static class IrStage
 
         List<WorkflowIr> documents = [];
         List<WorkflowCoverage> coverage = [];
-        List<SensitiveFinding> sensitive = [];
+        Literals literals = new();
         int failures = 0;
         int orphaned = 0;
         foreach (XamlEntry entry in XamlEntry.ReadIndex(folder.Root)
@@ -63,23 +63,48 @@ public static class IrStage
             await folder.WriteJsonAsync(RunPaths.IrFile(identity.WorkflowId), document, token);
             documents.Add(document);
             coverage.Add(new WorkflowCoverage(identity.WorkflowId, identity.Name, result.Coverage));
-            sensitive.AddRange(SensitiveLiteralScanner.Scan(identity.WorkflowId, identity.Name, entry.File, result.Literals));
+            literals.Add(identity, entry.File, result);
         }
 
-        await folder.WriteTextAsync(RunPaths.SensitiveLiterals, SensitiveLiteralScanner.Markdown(sensitive), token);
+        await literals.PublishAsync(folder, state, token);
         state.Sheets[Reports.SheetNames.Unmapped] = Reports.QualitySheets.Unmapped(coverage);
         state.Counts["ir.documents"] = documents.Count;
         state.Counts["ir.noInventoryRecord"] = orphaned;
         state.Counts["xaml.definitions"] = XamlEntry.ReadIndex(folder.Root).Count(entry => entry.Kind == XamlEntry.KindDefinition);
         state.Counts["ir.parseFailed"] = failures;
         state.Counts["ir.workflowsWithUnmapped"] = coverage.Count(workflow => workflow.Observations.Any(observation => observation.Status == CoverageStatus.Unmapped));
-        state.Counts["sensitive.findings"] = sensitive.Count;
-        state.SensitiveWorkflows = sensitive.Select(finding => finding.WorkflowId).ToHashSet();
         state.UnmappedSteps = coverage.ToDictionary(workflow => workflow.WorkflowId,
             workflow => workflow.Observations.Count(observation => observation.Status == CoverageStatus.Unmapped));
         state.StagesRun.Add(RunStages.Ir);
-        logger.LogInformation("IR: {Documents} documents, {Failures} parse failures, {Sensitive} sensitive literal findings", documents.Count, failures, sensitive.Count);
+        logger.LogInformation("IR: {Documents} documents, {Failures} parse failures, {Sensitive} sensitive literal findings",
+            documents.Count, failures, state.Counts["sensitive.findings"]);
         return documents;
+    }
+
+    /// <summary>
+    /// What the literals of every definition yield. Two reports walk the same text: the sensitive findings, which
+    /// are restricted and never carry the value, and the addresses, which are delivered and do. They are gathered
+    /// in one pass and published together, so neither can quietly read a narrower set of literals than the other —
+    /// which is exactly how the delivered address page once came out empty while the restricted one had findings.
+    /// </summary>
+    private sealed class Literals
+    {
+        private readonly List<SensitiveFinding> _findings = [];
+        private readonly List<Reports.ExternalAddress> _addresses = [];
+
+        public void Add(WorkflowIdentity identity, string sourceFile, ParseResult result)
+        {
+            _findings.AddRange(SensitiveLiteralScanner.Scan(identity.WorkflowId, identity.Name, sourceFile, result.Literals));
+            _addresses.AddRange(Reports.ExternalSystems.Find(identity.Name, result.Literals));
+        }
+
+        public async Task PublishAsync(RunFolder folder, RunState state, CancellationToken token)
+        {
+            await folder.WriteTextAsync(RunPaths.SensitiveLiterals, SensitiveLiteralScanner.Markdown(_findings), token);
+            state.Counts["sensitive.findings"] = _findings.Count;
+            state.SensitiveWorkflows = _findings.Select(finding => finding.WorkflowId).ToHashSet();
+            state.Addresses = _addresses;
+        }
     }
 
     private static WorkflowIr Document(WorkflowIdentity identity, JsonElement record, ParseResult result, XamlEntry entry, DateTimeOffset extractedAt, string toolVersion)

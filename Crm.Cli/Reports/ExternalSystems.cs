@@ -1,29 +1,34 @@
-using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 using Crm.Ir.Model;
+using Crm.Ir.Parsing;
+using Crm.Ir.Reports;
 
 namespace Crm.Cli.Reports;
 
 /// <summary>One custom activity and every workflow that calls it.</summary>
-public sealed record ExternalDependency(string Activity, string Assembly, IReadOnlyList<string> Workflows, IReadOnlyList<string> Addresses);
+public sealed record ExternalDependency(string Activity, string Assembly, IReadOnlyList<string> Workflows);
 
-/// <summary>One address written into a workflow, and where it was found.</summary>
-public sealed record ExternalAddress(string Address, string Workflow, string Step, string Argument);
+/// <summary>One address written into a workflow's definition, and where in it the address was found.</summary>
+public sealed record ExternalAddress(string Host, string Address, string Workflow, string Path);
 
 /// <summary>
 /// What the workflows reach outside CRM. A CRM workflow cannot call a service by itself: the only way is a custom
 /// activity — compiled code registered in CRM — so every such call is one of these rows. What the activity does
 /// inside its own assembly is NOT in the XAML; the name and the arguments are all CRM records, and that is what is
-/// reported here. An address appears only when the workflow itself passes it; one hardcoded inside the assembly
-/// cannot be seen from here at all.
+/// reported here. An address hardcoded inside the assembly cannot be seen from here at all.
+///
+/// <para>
+/// Addresses are read from every literal in the definition, which is the same text the sensitive-literal scan
+/// reads. An earlier version took them from the arguments captured on mapped steps, and on the real data that set
+/// was empty while the scan was finding embedded addresses — an address in a variable, in an expression or inside
+/// a construct the parser could not read never reached the page, and an empty page reads as "calls nothing".
+/// </para>
 /// </summary>
 public static partial class ExternalSystems
 {
     public static IReadOnlyList<ExternalDependency> Dependencies(IReadOnlyList<WorkflowIr> documents)
     {
         Dictionary<string, List<string>> callers = new(StringComparer.Ordinal);
-        Dictionary<string, SortedSet<string>> addresses = new(StringComparer.Ordinal);
         foreach (WorkflowIr document in documents)
         {
             foreach (StepNode step in Walk(document.Steps).Where(step => step.Kind == StepKind.CustomActivity))
@@ -37,51 +42,38 @@ public static partial class ExternalSystems
                 {
                     workflows = [];
                     callers[type] = workflows;
-                    addresses[type] = [];
                 }
                 if (!workflows.Contains(document.Identity.Name, StringComparer.Ordinal))
                 {
                     workflows.Add(document.Identity.Name);
-                }
-                foreach (NamedArgument argument in step.Arguments)
-                {
-                    foreach (Match match in Address().Matches(argument.Value))
-                    {
-                        addresses[type].Add(match.Value);
-                    }
                 }
             }
         }
 
         return
         [
-            .. callers.Select(entry => new ExternalDependency(ShortName(entry.Key), AssemblyOf(entry.Key),
-                    [.. entry.Value.Order(StringComparer.Ordinal)], [.. addresses[entry.Key]]))
+            .. callers.Select(entry => new ExternalDependency(ShortName(entry.Key), AssemblyOf(entry.Key), [.. entry.Value.Order(StringComparer.Ordinal)]))
                 .OrderByDescending(dependency => dependency.Workflows.Count)
                 .ThenBy(dependency => dependency.Activity, StringComparer.Ordinal)
         ];
     }
 
-    /// <summary>Every address a workflow passes to a step, wherever it appears — custom activity or not.</summary>
-    public static IReadOnlyList<ExternalAddress> Addresses(IReadOnlyList<WorkflowIr> documents)
+    /// <summary>
+    /// Every address in one workflow's definition. The XAML's own schema and clr namespaces are not addresses, and
+    /// a user name and password written into one are masked: this page is delivered, the restricted report is not.
+    /// </summary>
+    public static IReadOnlyList<ExternalAddress> Find(string workflow, IReadOnlyList<XamlLiteral> literals)
     {
         List<ExternalAddress> found = [];
-        foreach (WorkflowIr document in documents)
+        foreach (XamlLiteral literal in literals.Where(literal => !SensitiveLiteralScanner.IsSchemaNamespace(literal.Text)))
         {
-            foreach (StepNode step in Walk(document.Steps))
+            foreach (Match match in Address().Matches(literal.Text))
             {
-                foreach (NamedArgument argument in step.Arguments)
-                {
-                    foreach (Match match in Address().Matches(argument.Value))
-                    {
-                        found.Add(new ExternalAddress(match.Value, document.Identity.Name, step.DisplayName, argument.Name));
-                    }
-                }
+                string address = Mask(match.Value);
+                found.Add(new ExternalAddress(HostOf(address), address, workflow, literal.Path.Length == 0 ? "kök" : literal.Path));
             }
         }
-        return [.. found.DistinctBy(address => (address.Address, address.Workflow, address.Argument))
-            .OrderBy(address => address.Address, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(address => address.Workflow, StringComparer.Ordinal)];
+        return [.. found.DistinctBy(address => (address.Address, address.Path))];
     }
 
     public static Sheet BuildDependencies(IReadOnlyList<WorkflowIr> documents)
@@ -94,42 +86,18 @@ public static partial class ExternalSystems
         return sheet;
     }
 
-    public static Sheet BuildAddresses(IReadOnlyList<WorkflowIr> documents)
+    /// <summary>The server first, so that sorting the sheet answers "which outside systems do we touch" at a glance.</summary>
+    public static Sheet BuildAddresses(IReadOnlyList<ExternalAddress> addresses)
     {
-        Sheet sheet = new(SheetNames.Addresses, "adres", "is_akisi", "adim", "bagimsiz_degisken");
-        foreach (ExternalAddress address in Addresses(documents))
+        Sheet sheet = new(SheetNames.Addresses, "sunucu", "adres", "is_akisi", "adim_yolu");
+        foreach (ExternalAddress address in addresses
+            .OrderBy(address => address.Host, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(address => address.Address, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(address => address.Workflow, StringComparer.Ordinal))
         {
-            sheet.Row(address.Address, address.Workflow, address.Step, address.Argument);
+            sheet.Row(address.Host, address.Address, address.Workflow, address.Path);
         }
         return sheet;
-    }
-
-    public static string Markdown(IReadOnlyList<WorkflowIr> documents)
-    {
-        IReadOnlyList<ExternalDependency> dependencies = Dependencies(documents);
-        IReadOnlyList<ExternalAddress> addresses = Addresses(documents);
-
-        StringBuilder text = new();
-        text.AppendLine("# Dış sistemler").AppendLine();
-        text.AppendLine("Bir CRM iş akışı bir servisi kendi başına çağıramaz: tek yol, CRM'e kaydedilmiş **özel bir etkinliktir** — derlenmiş koddur. Bu yüzden dışarıya uzanan her çağrı aşağıdaki satırlardan biridir.").AppendLine();
-        text.AppendLine("**Görülebilen:** çağrılan etkinliğin adı, hangi iş akışlarının çağırdığı ve iş akışının ona geçirdiği bağımsız değişkenler — adres bunların arasındaysa adres de. **Görülemeyen:** etkinliğin kendi derlemesi içinde ne yaptığı; kodun içine gömülü bir adres buradan görünmez. Bunu yalnızca o derlemenin sahibi söyleyebilir.").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"- CRM dışına uzanan **{dependencies.Count} özel etkinlik**, toplam {dependencies.Sum(dependency => dependency.Workflows.Count)} çağrı");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- İş akışlarının geçirdiği **{addresses.Select(address => address.Address).Distinct(StringComparer.OrdinalIgnoreCase).Count()} farklı adres**").AppendLine();
-
-        text.AppendLine("## En çok kullanılan özel etkinlikler").AppendLine();
-        text.AppendLine("Yeni üründe her birinin karşılığının kurulması gerekir; üstte olanlar en çok iş akışını etkiler.").AppendLine();
-        text.AppendLine("| Etkinlik | Derleme | Çağıran iş akışı |").AppendLine("|---|---|---:|");
-        foreach (ExternalDependency dependency in dependencies.Take(40))
-        {
-            text.AppendLine(CultureInfo.InvariantCulture, $"| {dependency.Activity} | {dependency.Assembly} | {dependency.Workflows.Count} |");
-        }
-        if (dependencies.Count > 40)
-        {
-            text.AppendLine().AppendLine(CultureInfo.InvariantCulture, $"…ve `dis-sistemler.xlsx` kitabındaki {dependencies.Count - 40} etkinlik daha.");
-        }
-        text.AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"Adreslerin tamamı kitabın **{SheetNames.Addresses}** sayfasındadır; üretim adresleri içerdiği için kurum dışına çıkarılmamalıdır.");
-        return text.ToString();
     }
 
     private static IEnumerable<StepNode> Walk(IReadOnlyList<StepNode> steps)
@@ -142,6 +110,29 @@ public static partial class ExternalSystems
                 yield return child;
             }
         }
+    }
+
+    /// <summary><c>https://user:secret@host/path</c> → <c>https://***@host/path</c>.</summary>
+    private static string Mask(string address)
+    {
+        return Credentials().Replace(address, "$1://***@");
+    }
+
+    /// <summary>The server the address names: <c>https://nova.local:8443/api</c> → <c>nova.local</c>.</summary>
+    private static string HostOf(string address)
+    {
+        if (address.StartsWith(@"\\", StringComparison.Ordinal))
+        {
+            string share = address[2..];
+            int slash = share.IndexOf('\\', StringComparison.Ordinal);
+            return slash < 0 ? share : share[..slash];
+        }
+        int scheme = address.IndexOf("://", StringComparison.Ordinal);
+        string rest = scheme < 0 ? address : address[(scheme + 3)..];
+        int at = rest.LastIndexOf('@');
+        string host = at < 0 ? rest : rest[(at + 1)..];
+        int end = host.IndexOfAny(['/', ':', '?', '#']);
+        return end < 0 ? host : host[..end];
     }
 
     /// <summary><c>Anadolu.Crm.Activities.SendSignatureToNova, Anadolu.Crm, Version=…</c> → <c>SendSignatureToNova</c>.</summary>
@@ -161,4 +152,7 @@ public static partial class ExternalSystems
     /// <summary>An http(s) or ftp address, or a UNC share — the shapes an endpoint written into a workflow takes.</summary>
     [GeneratedRegex(@"(https?|ftp)://[^\s""'<>\]]+|\\\\[A-Za-z0-9._-]+\\[^\s""'<>\]]+", RegexOptions.IgnoreCase)]
     private static partial Regex Address();
+
+    [GeneratedRegex(@"(https?|ftp)://[^/\s:@""]+:[^/\s@""]*@", RegexOptions.IgnoreCase)]
+    private static partial Regex Credentials();
 }

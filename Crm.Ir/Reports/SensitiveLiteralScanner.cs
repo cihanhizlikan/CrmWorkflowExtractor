@@ -63,8 +63,8 @@ public static partial class SensitiveLiteralScanner
         return text.ToString();
     }
 
-    /// <summary>XAML is full of schema and clr namespace URIs; those are not findings.</summary>
-    private static bool IsSchemaNamespace(string text)
+    /// <summary>XAML is full of schema and clr namespace URIs; those are neither findings nor addresses.</summary>
+    public static bool IsSchemaNamespace(string text)
     {
         return text.StartsWith("http://schemas.microsoft.com/", StringComparison.OrdinalIgnoreCase)
             || text.StartsWith("clr-namespace:", StringComparison.Ordinal);

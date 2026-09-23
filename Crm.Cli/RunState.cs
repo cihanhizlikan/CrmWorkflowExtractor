@@ -34,6 +34,9 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>IR documents produced by the offline stages.</summary>
     public IReadOnlyList<Crm.Ir.Model.WorkflowIr> Documents { get; set; } = [];
 
+    /// <summary>Every address found in the definitions, from anywhere in the XAML — not only the captured arguments.</summary>
+    public IReadOnlyList<Crm.Cli.Reports.ExternalAddress> Addresses { get; set; } = [];
+
     /// <summary>Workflows whose XAML holds at least one sensitive literal (the values stay in the restricted report).</summary>
     public IReadOnlySet<Guid> SensitiveWorkflows { get; set; } = new HashSet<Guid>();
 

@@ -178,8 +178,10 @@ public static class AnalystGuide
             + "değiştirir; bunu bilerek karar verin.");
         pdf.Bullet("Tetikleme zincirleri diyagramda görünmez. Bir akış, başka bir akışın izlediği alana yazdığı için "
             + "onu başlatıyor olabilir; bu bağ yalnızca veri-analizi.xlsx'tedir.");
-        pdf.Bullet("Özel etkinliklerin içi görünmez. Kodun içine gömülü bir adres ya da kural bu pakette yoktur; "
-            + "eklentiler (plug-in) ise iş akışı değildir, bu envantere hiç girmezler.");
+        pdf.Bullet("Özel etkinliklerin içi görünmez. Adresler sayfası yalnızca tanımın metnine yazılmış adresleri "
+            + "gösterir; çağrılan servisin adresi çoğu zaman etkinliğin kendi kodunda ya da konfigürasyonundadır ve "
+            + "oradan görünmez — onu derlemenin sahibi söyler. Eklentiler (plug-in) ise iş akışı değildir, bu "
+            + "envantere hiç girmezler.");
         pdf.Bullet("Birleşik model bir öneridir, karar değil. Araç yalnızca benzerliği ölçer; aynı işi yapıp "
             + "yapmadıklarına insan karar verir.");
     }
