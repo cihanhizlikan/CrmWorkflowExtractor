@@ -122,8 +122,8 @@ public sealed class CallGraph
                 continue;
             }
             csv.Row(Names[id], RoleOf(id),
-                string.Join(" | ", children.Select(child => Names.GetValueOrDefault(child, "(envanterde bulunamadı)"))),
-                string.Join(" | ", parents.Select(parent => Names[parent])), id);
+                Sheet.List(children.Select(child => Names.GetValueOrDefault(child, "(envanterde bulunamadı)"))),
+                Sheet.List(parents.Select(parent => Names[parent])), id);
         }
         return csv;
     }

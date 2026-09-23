@@ -45,6 +45,19 @@ public sealed class Sheet(string name, params string[] headers)
         get { return _rows; }
     }
 
+    /// <summary>
+    /// Several names in one cell. Capped, because nobody reads the four hundredth name in a cell and Excel will
+    /// not hold more than 32,767 characters in one — a longer cell makes it "repair" the file on open, which means
+    /// throwing the content away. The count that belongs beside such a list is its own column.
+    /// </summary>
+    public static string List(IEnumerable<string> values, int most = 40)
+    {
+        List<string> all = [.. values];
+        return all.Count <= most
+            ? string.Join(" | ", all)
+            : string.Join(" | ", all.Take(most)) + string.Create(CultureInfo.InvariantCulture, $" | …ve {all.Count - most} tane daha");
+    }
+
     public void Row(params object?[] fields)
     {
         _rows.Add(fields);

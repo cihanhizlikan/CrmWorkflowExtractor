@@ -108,8 +108,8 @@ public static partial class ExternalSystems
             "parametreler", "cagiran_is_akislari", "derleme", "kayitli");
         foreach (ExternalDependency dependency in Dependencies(documents, plugins))
         {
-            sheet.Row(dependency.Activity, string.Join(" | ", dependency.Addresses), dependency.Workflows.Count,
-                string.Join(" | ", dependency.Parameters), string.Join(" | ", dependency.Workflows), dependency.Assembly,
+            sheet.Row(dependency.Activity, Sheet.List(dependency.Addresses), dependency.Workflows.Count,
+                Sheet.List(dependency.Parameters, 80), Sheet.List(dependency.Workflows), dependency.Assembly,
                 dependency.Registered);
         }
         return sheet;
@@ -130,7 +130,7 @@ public static partial class ExternalSystems
             PluginAssembly? assembly = type?.AssemblyId is Guid owner ? assemblies.GetValueOrDefault(owner) : null;
             sheet.Row(ShortName(type?.TypeName ?? ""), step.Name, step.State == 0 ? "etkin" : "devre dışı",
                 step.Mode == 1 ? "eşzamansız" : "eşzamanlı",
-                string.Join(" | ", AssemblyStrings.Addresses(Encoding.UTF8.GetBytes(step.Configuration ?? ""))),
+                Sheet.List(AssemblyStrings.Addresses(Encoding.UTF8.GetBytes(step.Configuration ?? ""))),
                 assembly?.Name ?? "");
         }
         return sheet;

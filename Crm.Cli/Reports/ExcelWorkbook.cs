@@ -15,6 +15,11 @@ namespace Crm.Cli.Reports;
 /// </summary>
 public static class ExcelWorkbook
 {
+    /// <summary>Excel's own limit for one cell. A file with a longer one opens "repaired", with that cell emptied.</summary>
+    public const int CellLimit = 32767;
+
+    private const string Cut = " …(kesildi)";
+
     private static readonly XNamespace Main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
     private static readonly XNamespace Relationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
     private static readonly XNamespace PackageRelationships = "http://schemas.openxmlformats.org/package/2006/relationships";
@@ -188,13 +193,24 @@ public static class ExcelWorkbook
                     new XElement(Main + "v", Convert.ToString(cell, CultureInfo.InvariantCulture))));
                 continue;
             }
-            string text = cell.ToString() ?? "";
+            string text = Writable(cell.ToString() ?? "");
             if (text.Length > 0)
             {
                 row.Add(TextCell(reference, text, header: false));
             }
         }
         return row;
+    }
+
+    /// <summary>
+    /// What a cell can hold. Excel stops at 32,767 characters and "repairs" a longer one by discarding it, and XML
+    /// cannot carry a control character at all — a string scanned out of a binary may hold one. Both are silent
+    /// losses at the reader's end, so they are cut here, where the writer knows the limit.
+    /// </summary>
+    private static string Writable(string text)
+    {
+        string clean = new([.. text.Where(letter => letter is '\t' or '\n' or '\r' || !char.IsControl(letter))]);
+        return clean.Length <= CellLimit ? clean : clean[..(CellLimit - Cut.Length)] + Cut;
     }
 
     /// <summary>Inline strings: a shared-string table would save bytes and cost every reader the ability to diff the file.</summary>

@@ -27,7 +27,13 @@ internal sealed class Workbook
 
     public static Workbook Open(string path)
     {
-        using ZipArchive zip = ZipFile.OpenRead(path);
+        return Read(File.ReadAllBytes(path));
+    }
+
+    /// <summary>The same workbook before it reaches a disk: what the writer produced, byte for byte.</summary>
+    public static Workbook Read(byte[] bytes)
+    {
+        using ZipArchive zip = new(new MemoryStream(bytes), ZipArchiveMode.Read);
         XDocument workbook = Read(zip, "xl/workbook.xml");
         List<string> names = [.. workbook.Descendants(Main + "sheet").Select(sheet => sheet.Attribute("name")!.Value)];
         List<XDocument> sheets = [.. Enumerable.Range(1, names.Count).Select(index => Read(zip, $"xl/worksheets/sheet{index}.xml"))];

@@ -626,3 +626,17 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   workflows are — unparsed, and therefore with NO row in the plan — and that the list lives in the run folder.
 - **Made a rule, not a fix.** `DeliveryTests` opens every delivered workbook from an end-to-end run and fails on
   any cell naming something left behind. Checked by breaking it: it named the workbook, the sheet and the cell.
+### No cell Excel has to repair (2026-09-23) — committed, awaiting merge
+- **Maintainer:** Excel opened `dis-sistemler.xlsx` "repaired": string properties from `sheet2.xml`, which is the
+  Dış bağımlılıklar page.
+- **The cause was length.** Excel holds 32,767 characters in one cell and discards a longer one, calling it a
+  repair. `cagiran_is_akislari` joined every workflow that calls an activity into a single cell; on this estate,
+  with around nine hundred call sites, one popular activity passes that limit easily. The reader is told the file
+  was repaired, not that a cell was emptied — a silent loss at the far end.
+- **Fixed in two places.** `ExcelWorkbook` now clamps every cell to the limit with a visible marker and strips the
+  control characters XML cannot carry at all (a string scanned out of a binary assembly may hold one, and that
+  would have crashed the run rather than been repaired). `Sheet.List` caps a list at forty names and says how many
+  it left out — because a cell holding four hundred names is unreadable whatever Excel permits, and the count that
+  matters is already its own column. Every list cell in every workbook goes through it.
+- **What it does not fix:** the file already produced. Excel emptied that cell on open; the next run writes it
+  properly.

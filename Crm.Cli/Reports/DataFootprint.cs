@@ -253,6 +253,6 @@ public static class DataFootprint
 
     private static string Names(IReadOnlyDictionary<Guid, string> names, IReadOnlyList<Guid> workflows)
     {
-        return string.Join(" | ", workflows.Select(id => names.GetValueOrDefault(id, id.ToString("D"))).Order(StringComparer.Ordinal));
+        return Sheet.List(workflows.Select(id => names.GetValueOrDefault(id, id.ToString("D"))).Order(StringComparer.Ordinal));
     }
 }
