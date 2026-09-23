@@ -35,7 +35,9 @@ CRM reads first: what the package is, which file to open in which order, and how
 its plan row to a drawn process — demonstrated on a real live workflow picked from that run. `PdfDocument` writes
 it by hand, as `ExcelWorkbook` writes .xlsx, and embeds an installed TrueType font because the PDF base encodings
 have no ğ, ı or ş. No font on the machine that covers them and allows embedding means no PDF and a warning, never
-a misspelled one.
+a misspelled one. The cover carries the organisation's logo — embedded in `Crm.Cli` so the locked-down host needs
+no loose file, read by `PngImage` (8-bit, non-interlaced), and replaceable with `Run:LogoFile` without a rebuild.
+The document is set in the logo's own two colours.
 
 Only two Markdown pages remain: `rapor.md` (the entry point) and `hassas-degerler.md` (restricted, kept separate so
 it is easy to leave out of a delivery). `ExcelWorkbook` writes .xlsx by hand — a zip of XML, so no dependency.

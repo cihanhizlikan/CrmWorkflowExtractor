@@ -46,6 +46,12 @@ public sealed class RunOptions
     /// workflow. Optional; it becomes this run's evidence, and a reprocessed run inherits it from its source run.
     /// </summary>
     public string UsageFile { get; set; } = "";
+
+    /// <summary>
+    /// A PNG to put on the guide's cover instead of the built-in logo. Empty means the built-in one. A relative
+    /// path resolves against the executable's folder; a file that cannot be read is a warning, not a failure.
+    /// </summary>
+    public string LogoFile { get; set; } = "";
 }
 
 /// <summary>The bound, validated configuration for one run.</summary>

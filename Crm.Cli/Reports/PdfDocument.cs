@@ -28,12 +28,16 @@ public sealed class PdfDocument(TrueTypeFont font, string title)
     /// <summary>A circle drawn as four Bézier arcs needs this much of the radius as its control-point offset.</summary>
     private const double Kappa = 0.5523;
 
-    // The organisation's own colours and page furniture, read off its site: a deep blue that carries every heading
-    // and the top band, a green kept for the one thing it wants pressed, white cards with a pale rule around them
-    // on a near-white ground. Here the green is used the same way — only on what the reader is meant to act on.
-    private const string Blue = "0 0.4 0.702";
-    private const string DeepBlue = "0 0.29 0.55";
-    private const string Green = "0.443 0.745 0.267";
+    /// <summary>How wide the logo is drawn. The file is 436 pixels across, so this is about 240 dots to the inch.</summary>
+    private const double LogoWidth = 130;
+
+    // The organisation's own colours and page furniture. The blue and the green are the two colours of its logo
+    // itself (#005C9C and #6CB644), so the page and the mark on it agree; the site's furniture is here too — white
+    // cards with a pale rule on a near-white ground, and the green kept for the one thing it wants pressed. Here
+    // the green is used the same way: only on what the reader is meant to act on.
+    private const string Blue = "0 0.361 0.612";
+    private const string DeepBlue = "0 0.29 0.49";
+    private const string Green = "0.424 0.714 0.267";
     private const string Ink = "0.094 0.082 0.078";
     private const string Quiet = "0.38 0.424 0.439";
     private const string Tint = "0.929 0.957 0.98";
@@ -44,6 +48,7 @@ public sealed class PdfDocument(TrueTypeFont font, string title)
     private readonly SortedSet<int> _used = [];
     private readonly Dictionary<int, char> _letters = [];
     private StringBuilder _page = new();
+    private PngImage? _logo;
     private double _y = Top;
 
     public double Width
@@ -51,18 +56,30 @@ public sealed class PdfDocument(TrueTypeFont font, string title)
         get { return Right - Left; }
     }
 
-    /// <summary>The band across the top of the first page: the only place the guide raises its voice.</summary>
-    public void Banner(string heading, string subtitle, string stamp)
+    /// <summary>
+    /// The band across the top of the first page: the only place the guide raises its voice. The logo sits on a
+    /// white card inside it — the mark is drawn for a light ground, and a card is how the site carries it too.
+    /// </summary>
+    public void Banner(string heading, string subtitle, string stamp, PngImage? logo)
     {
-        Fill(DeepBlue, 0, PageHeight - 178, PageWidth, 178);
-        Fill(Green, 0, PageHeight - 184, PageWidth, 6);
-        _y = PageHeight - 64;
+        Fill(DeepBlue, 0, PageHeight - 190, PageWidth, 190);
+        Fill(Green, 0, PageHeight - 196, PageWidth, 6);
+        if (logo is PngImage picture)
+        {
+            _logo = picture;
+            double height = LogoWidth * picture.Height / picture.Width;
+            double card = height + 20;
+            double bottom = PageHeight - 30 - card;
+            RoundedFill(Paper, Right - LogoWidth - 20, bottom, LogoWidth + 20, card, 8);
+            Draw(LogoWidth, height, Right - LogoWidth - 10, bottom + 10);
+        }
+        _y = PageHeight - 76;
         Write(stamp, 9.5, Green, bold: true, Width);
         _y -= 10;
         Write(heading, 23, Paper, bold: true, Width);
         _y -= 8;
         Write(subtitle, 11.5, Paper, bold: false, Width);
-        _y = PageHeight - 184 - 32;
+        _y = PageHeight - 196 - 32;
     }
 
     /// <summary>A heading takes the space above it and whatever is left below: never the last line on a page.</summary>
@@ -187,8 +204,9 @@ public sealed class PdfDocument(TrueTypeFont font, string title)
         objects.Add(Ascii($"<< /Type /Pages /Count {_pages.Count} /Kids [{kids}] >>"));
         for (int page = 0; page < _pages.Count; page++)
         {
+            string images = _logo is null ? "" : $"/XObject << /Im1 {fontObject + 6} 0 R >> ";
             objects.Add(Ascii($"<< /Type /Page /Parent {pagesObject} 0 R /MediaBox [0 0 {PageWidth:0.##} {PageHeight:0.##}] "
-                + $"/Resources << /Font << /F1 {fontObject} 0 R >> >> /Contents {4 + (page * 2)} 0 R >>"));
+                + $"/Resources << /Font << /F1 {fontObject} 0 R >> {images}>> /Contents {4 + (page * 2)} 0 R >>"));
             objects.Add(Stream("", Encoding.ASCII.GetBytes(_pages[page].ToString())));
         }
 
@@ -205,6 +223,18 @@ public sealed class PdfDocument(TrueTypeFont font, string title)
         objects.Add(Stream($"/Length1 {font.File.Length} ", font.File));
         objects.Add(Stream("", Encoding.ASCII.GetBytes(ToUnicode())));
         objects.Add(Ascii($"<< /Title {Unicode(title)} /Producer (CrmWorkflowExtractor) >>"));
+        if (_logo is PngImage picture)
+        {
+            // The colour and the transparency are two images to a PDF: the second one masks the first.
+            string mask = picture.Alpha is null ? "" : $"/SMask {fontObject + 7} 0 R ";
+            objects.Add(Stream($"/Type /XObject /Subtype /Image /Width {picture.Width} /Height {picture.Height} "
+                + $"/ColorSpace /DeviceRGB /BitsPerComponent 8 {mask}", picture.Rgb));
+            if (picture.Alpha is byte[] opacity)
+            {
+                objects.Add(Stream($"/Type /XObject /Subtype /Image /Width {picture.Width} /Height {picture.Height} "
+                    + "/ColorSpace /DeviceGray /BitsPerComponent 8 ", opacity));
+            }
+        }
 
         return Assemble(objects);
     }
@@ -301,6 +331,14 @@ public sealed class PdfDocument(TrueTypeFont font, string title)
             map.Append("endbfchar\n");
         }
         return map.Append("endcmap CMapName currentdict /CMap defineresource pop end end").ToString();
+    }
+
+    /// <summary>
+    /// A picture is drawn into the unit square, so the matrix that places it is also the one that sizes it.
+    /// </summary>
+    private void Draw(double width, double height, double x, double y)
+    {
+        _page.Append(CultureInfo.InvariantCulture, $"q {width:0.##} 0 0 {height:0.##} {x:0.##} {y:0.##} cm /Im1 Do Q\n");
     }
 
     private void Fill(string colour, double x, double y, double width, double height)

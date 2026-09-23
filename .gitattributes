@@ -1,3 +1,6 @@
+# A picture is bytes: no end-of-line conversion may touch one.
+*.png binary
+
 # Test fixtures are byte-exact evidence: recorded API payloads and XAML samples whose hashes tests assert.
 # Git must never rewrite their line endings.
 Crm.Tests/Fixtures/** -text

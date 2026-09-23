@@ -490,3 +490,17 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   after the company.
 - **Checked by eye:** rendered through pdf.js and read page by page; the text extracts back correctly, which is
   what proves the glyph mapping.
+### The logo on the cover (2026-09-23) — committed, awaiting merge
+- **Maintainer:** put the organisation's logo on the guide.
+- **Built:** `PngImage` — a PNG opened far enough to put in a PDF. The two formats agree on deflated 8-bit rows and
+  disagree on everything else: PNG filters each row against the one above, keeps a palette, and carries alpha in
+  the colour stream where PDF wants a separate grey mask. So the file is unfiltered, de-paletted and handed on in
+  the two pieces a PDF understands. Depth 8 and no interlacing, which is every logo anyone exports; anything else
+  is refused rather than drawn wrong.
+- **Where the file lives:** embedded in `Crm.Cli` (its own site, 2026-09-23, unmodified), because the host is locked
+  down and a loose file would be one more thing to copy. `Run:LogoFile` names another PNG instead, no rebuild; a
+  named file that cannot be read is a warning and a guide without a mark, never a failed run.
+- **Colours:** the document now uses the logo's own blue and green (#005C9C, #6CB644) rather than the site's UI
+  blue, so the page and the mark on it agree. The logo sits on a white card because the mark is drawn for a light
+  ground — which is how the site carries it too.
+- **Checked by eye:** rendered through pdf.js at 2× and read; the mark is sharp, the palette and the card are right.

@@ -46,6 +46,10 @@ public sealed class AnalystGuideTests
         Assert.Contains("/Subtype /Type0", text, StringComparison.Ordinal);
         Assert.Contains("/Encoding /Identity-H", text, StringComparison.Ordinal);
         Assert.Contains("/FontFile2", text, StringComparison.Ordinal);
+        // The cover carries the logo: the picture is in the file and the page offers it as a resource. That it is
+        // also drawn is inside the deflated content stream, so it is checked by looking at the rendered page.
+        Assert.Contains("/Subtype /Image", text, StringComparison.Ordinal);
+        Assert.Contains("/XObject << /Im1", text, StringComparison.Ordinal);
     }
 
     /// <summary>Two runs over the same evidence must give the same bytes, or nobody can tell a re-run from a change.</summary>
@@ -74,8 +78,11 @@ public sealed class AnalystGuideTests
 
     private static byte[] Sample(TrueTypeFont font)
     {
+        using Stream? resource = typeof(AnalystGuide).Assembly.GetManifestResourceStream("Crm.Cli.Resources.kurumsal-logo.png");
+        MemoryStream copy = new();
+        resource!.CopyTo(copy);
         PdfDocument pdf = new(font, "Kılavuz");
-        pdf.Banner("Başlık", "Alt başlık", "DAMGA");
+        pdf.Banner("Başlık", "Alt başlık", "DAMGA", PngImage.TryRead(copy.ToArray()));
         pdf.Heading("Bölüm");
         pdf.Body("Gövde metni: ğışİĞŞ.");
         pdf.Step(1, "Adım", "Yapılacak iş.");

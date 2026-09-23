@@ -34,7 +34,7 @@ public static class OfflineStages
         SimilarityResult families = await SimilarityStage.RunAsync(folder, state, inScope, usage, similarity, logger, token);
         await ConsolidationStage.RunAsync(folder, state, inScope, families, logger, token);
 
-        await WriteAnalysisAsync(folder, state, documents, families, usage, token);
+        await WriteAnalysisAsync(folder, state, documents, families, usage, settings.Run.Value.LogoFile, token);
     }
 
     /// <summary>
@@ -42,7 +42,7 @@ public static class OfflineStages
     /// the work is, which of these are the same, what touches what, and what reaches outside CRM.
     /// </summary>
     private static async Task WriteAnalysisAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents,
-        SimilarityResult families, UsageEvidence? usage, CancellationToken token)
+        SimilarityResult families, UsageEvidence? usage, string logoFile, CancellationToken token)
     {
         CallGraph calls = CallGraph.Build(documents);
         state.Sheets[SheetNames.Plan] = MigrationPlan.Build(state, documents, families, usage);
@@ -90,7 +90,7 @@ public static class OfflineStages
             [SheetNames.Guide, SheetNames.ExternalDependencies, SheetNames.Addresses], token);
 
         // Written last of all: it quotes the numbers and names a real workflow from everything above it.
-        if (AnalystGuide.Build(state, documents, usage) is byte[] guide)
+        if (AnalystGuide.Build(state, documents, usage, logoFile) is byte[] guide)
         {
             await folder.WriteBytesAsync(RunPaths.AnalystGuide, guide, token);
         }

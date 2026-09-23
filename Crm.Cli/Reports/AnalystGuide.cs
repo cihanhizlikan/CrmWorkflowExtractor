@@ -17,7 +17,7 @@ namespace Crm.Cli.Reports;
 /// </summary>
 public static class AnalystGuide
 {
-    public static byte[]? Build(RunState state, IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage)
+    public static byte[]? Build(RunState state, IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage, string logoFile)
     {
         TrueTypeFont? font = TrueTypeFont.FindInstalled();
         if (font is null)
@@ -27,7 +27,7 @@ public static class AnalystGuide
 
         PdfDocument pdf = new(font, "CRM İş Akışları — Sistem Analisti Kılavuzu");
         WorkflowIr? example = Example(state, documents, usage);
-        Cover(pdf, state, documents, usage);
+        Cover(pdf, state, documents, usage, Logo(state, logoFile));
         Background(pdf);
         Order(pdf, state);
         Walkthrough(pdf, state, usage, example);
@@ -37,12 +37,12 @@ public static class AnalystGuide
         return pdf.ToBytes();
     }
 
-    private static void Cover(PdfDocument pdf, RunState state, IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage)
+    private static void Cover(PdfDocument pdf, RunState state, IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage, PngImage? logo)
     {
         int inScope = MigrationPlan.InScope(documents, usage).Count();
         pdf.Banner("CRM İş Akışları — Sistem Analisti Kılavuzu",
             "Bu paketle ne yapacaksınız, hangi dosyayı hangi sırayla açacaksınız ve bir iş akışını adım adım nasıl çözümlersiniz.",
-            "KURUMSAL MİMARİ · " + Stamp(state.RunId));
+            "KURUMSAL MİMARİ · " + Stamp(state.RunId), logo);
         pdf.Lead("Elinizdeki paket, kurumun CRM sisteminde çalışan " + Number(documents.Count)
             + " süreç tanımının okunmuş ve çizilmiş halidir. Bunların " + Number(inScope)
             + " tanesi yeni üründe yeniden kurulacak iştir; kalanı ayrı bir dosyaya alındı. CRM'i hiç görmemiş "
@@ -225,6 +225,34 @@ public static class AnalystGuide
             .ThenByDescending(document => document.Steps.Count)
             .ThenBy(document => document.Identity.Name, StringComparer.Ordinal)
             .FirstOrDefault();
+    }
+
+    /// <summary>
+    /// The logo on the cover: the one built into the tool, or the PNG the configuration names instead. A named
+    /// file that cannot be read is said out loud and the guide goes out without a logo — it is a mark on a cover,
+    /// not a reason to fail a run.
+    /// </summary>
+    private static PngImage? Logo(RunState state, string logoFile)
+    {
+        if (logoFile.Length == 0)
+        {
+            using Stream? built = typeof(AnalystGuide).Assembly.GetManifestResourceStream("Crm.Cli.Resources.kurumsal-logo.png");
+            if (built is null)
+            {
+                return null;
+            }
+            MemoryStream copy = new();
+            built.CopyTo(copy);
+            return PngImage.TryRead(copy.ToArray());
+        }
+
+        string path = Path.IsPathRooted(logoFile) ? logoFile : Path.Combine(AppContext.BaseDirectory, logoFile);
+        PngImage? picture = File.Exists(path) ? PngImage.TryRead(File.ReadAllBytes(path)) : null;
+        if (picture is null)
+        {
+            state.Warnings.Add($"Run:LogoFile olarak verilen '{path}' okunamadı (8 bitlik, katmansız bir PNG bekleniyor); kılavuz logosuz üretildi.");
+        }
+        return picture;
     }
 
     private static string Number(int value)
