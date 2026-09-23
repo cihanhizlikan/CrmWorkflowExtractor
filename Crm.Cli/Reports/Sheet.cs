@@ -16,6 +16,7 @@ public static class SheetNames
     public const string DataFootprint = "Veri ayak izi";
     public const string ExternalDependencies = "Dış bağımlılıklar";
     public const string Addresses = "Adresler";
+    public const string Plugins = "Eklentiler";
     public const string Guide = "Nasıl okunur";
     public const string Trees = "Süreç ağaçları";
     public const string Unmapped = "Okunamayan yapılar";

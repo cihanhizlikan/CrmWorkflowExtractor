@@ -34,6 +34,9 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>IR documents produced by the offline stages.</summary>
     public IReadOnlyList<Crm.Ir.Model.WorkflowIr> Documents { get; set; } = [];
 
+    /// <summary>The code registered in CRM, and the addresses found inside the assemblies. Empty when not retrieved.</summary>
+    public Crm.Extract.Metadata.PluginRegistry Plugins { get; set; } = Crm.Extract.Metadata.PluginRegistry.Empty;
+
     /// <summary>What the parser read and could not read. The sheet is built later, beside the diagram file names.</summary>
     public IReadOnlyList<Crm.Ir.Reports.WorkflowCoverage> Coverage { get; set; } = [];
 

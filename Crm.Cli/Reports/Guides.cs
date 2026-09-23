@@ -128,17 +128,26 @@ public static class Guides
         return sheet;
     }
 
-    public static Sheet External(int activities, int addresses, int hosts)
+    public static Sheet External(int activities, int addresses, int hosts, int assemblyAddresses, int pluginSteps)
     {
         Sheet sheet = Empty();
         sheet.Row("Bu kitap ne işe yarar", "İş akışlarının CRM dışına uzanan çağrılarını gösterir: entegrasyon yükü buradadır.");
-        sheet.Row("Sayfa sırası", "Dış bağımlılıklar (etkinlik başına: kim çağırıyor) → Adresler (tanımın içinde geçen her adres)");
+        sheet.Row("Sayfa sırası", "Dış bağımlılıklar (etkinlik başına: kim çağırıyor, nereye gidiyor) → Adresler (tanımın "
+            + "içinde geçen her adres) → Eklentiler (iş akışı olmayan, mesaj üzerinde çalışan kod)");
         sheet.Row("Nasıl çalışır",
             "Bir CRM iş akışı bir servisi kendi başına çağıramaz; tek yol, CRM'e kaydedilmiş özel bir etkinliktir (derlenmiş kod). "
             + "Dışarıya uzanan her çağrı bu yüzden bir satır olarak görünür.");
         sheet.Row("etkinlik · derleme", "Çağrılan kodun adı ve içinde bulunduğu derleme. Yeni üründe her birinin karşılığını kurmanız gerekir; "
             + "ne yaptığını yalnızca derlemenin sahibi söyleyebilir.");
         sheet.Row("cagiran_is_akisi_sayisi · cagiran_is_akislari", "Kaç akışı etkiliyor. Üstteki satırlar en çok akışı etkileyenlerdir: oradan başlayın.");
+        sheet.Row("derlemedeki_adresler",
+            "Etkinliğin geldiği DERLEMENİN İÇİNDE yazılı adresler. Aradığınız servis adresi neredeyse her zaman buradadır, "
+            + "çünkü iş akışı onu geçirmez, kod kendi içinde tutar. Okuma şekli: \"bu adımın çalıştırdığı kodun içinde şu "
+            + "adresler var\" — \"bu adım şu adrese gidiyor\" DEĞİL. Kod çalışırken adresi parçalardan birleştiriyorsa ya da "
+            + "bir ayar kaydından okuyorsa burada görünmez.");
+        sheet.Row("kayitli",
+            "Bu etkinlik CRM'de hâlâ kayıtlı mı. hayır ise iş akışı artık var olmayan bir koda gidiyor demektir: "
+            + "üretimde kırık bir çağrıdır, önce onu sorun.");
         sheet.Row("parametreler",
             "Etkinliğin iş akışından aldığı ve ona geri verdiği adların tamamı — CRM'in tuttuğu en yakın şey bir imzadır. "
             + "Adresi söylemez ama ARKADAKİ OPERASYONU söyler: \"GetPersonEntityInformationRq\" ya da \"ApproveClaimFundSellResult\" "
@@ -154,8 +163,13 @@ public static class Guides
             + "içine yazılmadığı anlamına gelir.");
         sheet.Row("sunucu", "Adresin işaret ettiği sunucu. Sayfayı bu sütuna göre sıralayın: hangi dış sistemlere dokunulduğu böyle görünür.");
         sheet.Row("adres", "Bulunan adresin kendisi. İçine yazılmış kullanıcı adı ve parola maskelenmiştir (***).");
+        sheet.Row("Eklentiler sayfası",
+            "Eklentiler iş akışı değildir: CRM'de bir mesaj üzerinde çalışan koddur ve taşıma planında hiç görünmezler. "
+            + "Yeni üründe karşılıkları ayrıca kurulmalıdır. konfigurasyondaki_adresler, kayıt sırasında verilmiş "
+            + "\"unsecure configuration\" metninde geçen adreslerdir; gizli konfigürasyon okunmaz, orada kimlik bilgisi tutulur.");
         sheet.Row("Bu çalıştırma", string.Create(CultureInfo.InvariantCulture,
-            $"{activities} özel etkinlik · {hosts} farklı sunucu · {addresses} farklı adres"));
+            $"{activities} özel etkinlik · {hosts} farklı sunucu · {addresses} farklı adres · "
+            + $"derlemelerin içinde {assemblyAddresses} adres · {pluginSteps} eklenti adımı"));
         sheet.Row("Uyarı", "Adresler sayfası üretim adresleri taşır; kurum dışına çıkarmayın.");
         return sheet;
     }

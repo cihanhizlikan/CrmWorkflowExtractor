@@ -84,6 +84,37 @@ public sealed class ExternalSystemsTests
         Assert.Contains(found, address => address.Address.StartsWith("https://", StringComparison.Ordinal));
     }
 
+    /// <summary>
+    /// The one thing no workflow record carries: where a service call goes. A CRM workflow cannot call a service,
+    /// its custom activity can, and the endpoint is written inside that activity's assembly — which CRM stores, so
+    /// the address can be read out of its string constants and put beside the activity and on the diagram.
+    /// </summary>
+    [Fact]
+    public async Task The_Address_Inside_An_Activitys_Assembly_Reaches_The_Sheet_And_The_Diagram()
+    {
+        string xaml = XamlWorkflowParserTests.Fixture("child-and-custom.xaml");
+        FakeCrmServer server = new FakeOrganization { WorkflowCount = 8, XamlFor = (_, _) => xaml }.Build();
+        using TemporaryOutput output = new();
+
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+
+        Assert.True(code == ExitCode.Success, console);
+        Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "dis-sistemler.xlsx"));
+        IReadOnlyList<string> row = Assert.Single(workbook.Rows("Dış bağımlılıklar").Skip(1));
+        Assert.Equal("NotifyPolicyService", row[0]);
+        Assert.Equal(FakeOrganization.AssemblyAddress, row[1]);
+        Assert.Equal("evet", row[^1]);
+
+        // Plug-in steps are not workflows and never enter the process inventory; the other half of what CRM
+        // reaches outside is listed on its own page.
+        Assert.Contains(workbook.Rows("Eklentiler"), line => line.Contains("https://kuyruk.ornek.local/route"));
+
+        // And on the diagram, where the analyst actually is: on the step's own label and in the header note.
+        string diagram = File.ReadAllText(Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories)[0]);
+        Assert.Contains("→ " + FakeOrganization.AssemblyAddress, diagram, StringComparison.Ordinal);
+        Assert.Contains("Dış çağrı: NotifyPolicyService → " + FakeOrganization.AssemblyAddress, diagram, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task A_Run_Writes_The_External_Systems_Workbook()
     {
@@ -95,8 +126,8 @@ public sealed class ExternalSystemsTests
 
         Assert.True(code == ExitCode.Success, console);
         Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "dis-sistemler.xlsx"));
-        Assert.Equal(["Nasıl okunur", "Dış bağımlılıklar", "Adresler"], workbook.Names);
-        Assert.Equal(["etkinlik", "cagiran_is_akisi_sayisi", "parametreler", "cagiran_is_akislari", "derleme"],
+        Assert.Equal(["Nasıl okunur", "Dış bağımlılıklar", "Adresler", "Eklentiler"], workbook.Names);
+        Assert.Equal(["etkinlik", "derlemedeki_adresler", "cagiran_is_akisi_sayisi", "parametreler", "cagiran_is_akislari", "derleme", "kayitli"],
             workbook.Headers("Dış bağımlılıklar"));
         Assert.Contains(workbook.Rows("Dış bağımlılıklar"), row => row.Contains("NotifyPolicyService"));
         Assert.Equal(["sunucu", "adres", "is_akisi"], workbook.Headers("Adresler"));

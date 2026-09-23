@@ -9,9 +9,12 @@ namespace Crm.Bpmn;
 /// <summary>
 /// What the rest of the run knows about a workflow and the diagram cannot work out for itself: what calls it,
 /// which family it belongs to, whether it is known to run, and whether CRM's running copy differs from this
-/// definition. Each is a finished sentence for the header note — how to say it is the caller's business.
+/// definition, and per custom activity type the addresses written inside the assembly that type comes from —
+/// what the code behind a step reaches out to, which is the one thing no workflow record carries. Each is a
+/// finished sentence for the header note; how to say it is the caller's business.
 /// </summary>
-public sealed record DiagramFacts(string? Role, string? Family, string? Usage, bool RunningCopyDiffers);
+public sealed record DiagramFacts(string? Role, string? Family, string? Usage, bool RunningCopyDiffers,
+    IReadOnlyDictionary<string, string>? ActivityAddresses = null);
 
 /// <summary>A laid-out process ready to serialize.</summary>
 public sealed record BpmnProcess(string ProcessId, string Name, string Documentation, FlowGraph Graph, IReadOnlyList<StepSource> Sources)
@@ -34,13 +37,16 @@ public sealed partial class BpmnBuilder
     private readonly string _workflowName;
     private readonly IReadOnlyDictionary<Guid, string> _memberNames;
     private readonly IReadOnlyDictionary<Guid, string> _workflowNames;
+    private readonly IReadOnlyDictionary<string, string> _activityAddresses;
 
-    private BpmnBuilder(string idBase, string workflowName, IReadOnlyDictionary<Guid, string>? memberNames, IReadOnlyDictionary<Guid, string>? workflowNames)
+    private BpmnBuilder(string idBase, string workflowName, IReadOnlyDictionary<Guid, string>? memberNames,
+        IReadOnlyDictionary<Guid, string>? workflowNames, DiagramFacts? facts)
     {
         _idBase = idBase;
         _workflowName = workflowName;
         _memberNames = memberNames ?? new Dictionary<Guid, string>();
         _workflowNames = workflowNames ?? new Dictionary<Guid, string>();
+        _activityAddresses = facts?.ActivityAddresses ?? new Dictionary<string, string>();
     }
 
     public static string ProcessIdFor(Guid workflowId)
@@ -60,7 +66,7 @@ public sealed partial class BpmnBuilder
     public static BpmnProcess Build(string processId, string name, WorkflowIr ir, IReadOnlyList<StepSource> sources,
         IReadOnlyDictionary<Guid, string>? memberNames = null, IReadOnlyDictionary<Guid, string>? workflowNames = null, DiagramFacts? facts = null)
     {
-        BpmnBuilder builder = new(processId[(processId.IndexOf('_', StringComparison.Ordinal) + 1)..], name, memberNames, workflowNames);
+        BpmnBuilder builder = new(processId[(processId.IndexOf('_', StringComparison.Ordinal) + 1)..], name, memberNames, workflowNames, facts);
         FlowNode start = builder._graph.Add(new FlowNode(builder.Id("start"), FlowNodeType.StartEvent, StartName(ir.Trigger))
         {
             Documentation = TriggerDocumentation(ir),
@@ -321,9 +327,10 @@ public sealed partial class BpmnBuilder
         }
         if (step.Kind == StepKind.CustomActivity && step.Detail is string type)
         {
-            string name = type.Split(',')[0].Trim();
-            name = name[(name.LastIndexOf('.') + 1)..];
-            return name.Length == 0 || subject.Contains(name, StringComparison.Ordinal) ? "" : $" ({name})";
+            string full = type.Split(',')[0].Trim();
+            string name = full[(full.LastIndexOf('.') + 1)..];
+            string code = name.Length == 0 || subject.Contains(name, StringComparison.Ordinal) ? "" : $" ({name})";
+            return _activityAddresses.TryGetValue(full, out string? host) ? code + " → " + host : code;
         }
         return "";
     }
@@ -446,6 +453,11 @@ public sealed partial class BpmnBuilder
         if (facts?.Usage is string usage)
         {
             lines.Add("Kullanım: " + usage);
+        }
+        if (facts?.ActivityAddresses is { Count: > 0 } addresses)
+        {
+            lines.Add("Dış çağrı: " + string.Join(" · ", addresses.Select(entry => entry.Key[(entry.Key.LastIndexOf('.') + 1)..] + " → " + entry.Value))
+                + ". Bunlar, adımın çalıştırdığı kodun içinde yazılı adreslerdir; adımın oraya gittiğinin kanıtı değildir.");
         }
         if (facts?.RunningCopyDiffers == true)
         {

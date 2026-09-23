@@ -49,6 +49,15 @@ custom activity does inside its own assembly is still invisible, and most endpoi
 is the names an activity is called with, gathered per activity as its `parametreler`: the closest thing to a
 signature, and the only record of which back-end operation a call stands for.
 
+**The endpoint of a service call is not in any workflow record.** A CRM workflow cannot call a service; a custom
+activity can, and its address is written inside that activity's assembly. CRM stores the assembly, so
+`PluginRegistryRetriever` reads the registry (`pluginassemblies`, `plugintypes`, `sdkmessageprocessingsteps`),
+downloads only the assemblies behind a workflow's activities, and `AssemblyStrings` scans their string constants
+for addresses; the bytes are dropped, never written to disk. The browser export does the same scan in the browser
+and sends only the text. What this says is "the code this step runs contains these addresses", never "this step
+calls this address" — and it is said that way on the sheet, in the guide and on the diagram. Plug-in steps come
+with it: code CRM runs on a message, not a process, invisible to the plan and listed on its own page.
+
 **A column exists only if a line can be written in the workbook's guide saying what a reader does differently
 because of it**, and a page exists only if its rows are things to act on: the call pages carry only workflows that
 are part of a call, Sapma only the definitions whose running copy really differs, Yakın çiftler only the pairs that

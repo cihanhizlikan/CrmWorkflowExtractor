@@ -66,7 +66,45 @@ internal sealed class FakeOrganization
         server.OnJson("EntityDefinitions(LogicalName='new_policy')/Attributes/Microsoft.Dynamics.CRM.StatusAttributeMetadata", "{\"value\":[]}");
         server.OnJson("EntityDefinitions(LogicalName='new_policy')/Attributes/Microsoft.Dynamics.CRM.StateAttributeMetadata", "{\"value\":[]}");
         server.OnJson("processstages?", "{\"value\":[]}");
+        server.OnJson("pluginassemblies?", PluginAssembliesBody());
+        server.OnJson("plugintypes?", PluginTypesBody());
+        server.OnJson("sdkmessageprocessingsteps?", PluginStepsBody());
+        server.OnJson($"pluginassemblies({AssemblyId:D})", AssemblyContentBody());
         return server;
+    }
+
+    public static Guid AssemblyId { get; } = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001");
+
+    public static Guid PluginTypeId { get; } = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000002");
+
+    /// <summary>The address the assembly carries, and the only place in this organization it is written down.</summary>
+    public const string AssemblyAddress = "https://nova.ornek.local/imza/v2";
+
+    private static string PluginAssembliesBody()
+    {
+        return $"{{\"value\":[{{\"pluginassemblyid\":\"{AssemblyId:D}\",\"name\":\"Partner.Crm.Activities\",\"version\":\"2.1.0.0\",\"sourcetype\":0,\"ismanaged\":false}}]}}";
+    }
+
+    private static string PluginTypesBody()
+    {
+        return $"{{\"value\":[{{\"plugintypeid\":\"{PluginTypeId:D}\",\"typename\":\"Partner.Crm.Activities.NotifyPolicyService\","
+            + $"\"friendlyname\":\"Poliçe servisi\",\"isworkflowactivity\":true,\"workflowactivitygroupname\":\"Partner\","
+            + $"\"_pluginassemblyid_value\":\"{AssemblyId:D}\"}}]}}";
+    }
+
+    private static string PluginStepsBody()
+    {
+        return $"{{\"value\":[{{\"sdkmessageprocessingstepid\":\"aaaaaaaa-0000-0000-0000-000000000003\","
+            + $"\"name\":\"Partner.Crm.Plugins.CaseRouter: Create of incident\",\"configuration\":\"<ayarlar><servis>https://kuyruk.ornek.local/route</servis></ayarlar>\","
+            + $"\"stage\":40,\"mode\":0,\"statecode\":0,\"_plugintypeid_value\":\"{PluginTypeId:D}\"}}]}}";
+    }
+
+    /// <summary>The assembly as CRM stores it: base64. Here it is only the string constants an address hides in.</summary>
+    private static string AssemblyContentBody()
+    {
+        string bytes = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(
+            "PolicyNumber\0" + AssemblyAddress + "\0System.Runtime.Serialization"));
+        return $"{{\"pluginassemblyid\":\"{AssemblyId:D}\",\"content\":\"{bytes}\"}}";
     }
 
     /// <summary>

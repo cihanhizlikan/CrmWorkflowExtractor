@@ -26,7 +26,7 @@ public static class BpmnStage
         Dictionary<Guid, string> fileNames = documents.ToDictionary(
             document => document.Identity.WorkflowId,
             document => $"{BpmnFileNames.Slug(document.Identity.Category)}/{BpmnFileNames.Slug(document.Identity.PrimaryEntity ?? "no entity")}/{stems[document.Identity.WorkflowId]}");
-        Facts facts = new(documents, families, usage, state.Drift);
+        Facts facts = new(documents, families, usage, state.Drift, state.Plugins);
         foreach (WorkflowIr document in documents)
         {
             XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(document, names, facts.For(document)), state.ToolVersion);
@@ -58,9 +58,12 @@ public static class BpmnStage
         private readonly Dictionary<Guid, WorkflowCluster> _familyOf = [];
         private readonly Dictionary<Guid, string> _names;
         private readonly HashSet<Guid> _drifted;
+        private readonly IReadOnlyDictionary<string, string> _addresses;
 
-        public Facts(IReadOnlyList<WorkflowIr> documents, SimilarityResult families, UsageEvidence? usage, Crm.Extract.Xaml.DriftReport? drift)
+        public Facts(IReadOnlyList<WorkflowIr> documents, SimilarityResult families, UsageEvidence? usage,
+            Crm.Extract.Xaml.DriftReport? drift, Crm.Extract.Metadata.PluginRegistry plugins)
         {
+            _addresses = ExternalSystems.AddressesByActivity(plugins);
             _calls = CallGraph.Build(documents);
             _usage = usage;
             _names = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity.Name);
@@ -79,7 +82,25 @@ public static class BpmnStage
             Guid id = document.Identity.WorkflowId;
             // The short verdict, because the header note is read at a glance; the caveat behind it is in the guide.
             return new DiagramFacts(Role(id), Family(id), UsageStage.ShortVerdict(document.Identity, _usage) is { Length: > 0 } verdict ? verdict : null,
-                _drifted.Contains(id));
+                _drifted.Contains(id), Called(document));
+        }
+
+        /// <summary>
+        /// The addresses behind the custom activities THIS workflow calls. Only those: a diagram should carry the
+        /// endpoints of its own steps, not the estate's.
+        /// </summary>
+        private IReadOnlyDictionary<string, string> Called(WorkflowIr document)
+        {
+            Dictionary<string, string> called = new(StringComparer.Ordinal);
+            foreach (string activity in document.Dependencies.CustomActivities)
+            {
+                string type = activity.Split(',')[0].Trim();
+                if (_addresses.TryGetValue(type, out string? addresses))
+                {
+                    called[type] = addresses;
+                }
+            }
+            return called;
         }
 
         /// <summary>Whether this diagram can be read on its own, or is one piece of something bigger.</summary>

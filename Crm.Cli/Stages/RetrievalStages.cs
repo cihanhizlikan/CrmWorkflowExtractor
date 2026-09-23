@@ -34,6 +34,21 @@ public static class RetrievalStages
 
         try
         {
+            // The code registered in CRM: which custom activity is still registered, what else reaches outside, and
+            // the addresses written inside the assemblies a workflow's activities come from (§3.5).
+            PluginRegistry plugins = await new PluginRegistryRetriever(client, settings.Crm.Value.PageSize).RetrieveAsync(token);
+            await folder.WriteJsonAsync(PluginRegistryRetriever.IndexFile, plugins, token);
+            state.Counts["plugins.assemblies"] = plugins.Assemblies.Count;
+            state.Counts["plugins.steps"] = plugins.Steps.Count;
+            state.StagesRun.Add(RunStages.Plugins);
+        }
+        catch (CrmRequestException error)
+        {
+            state.Warnings.Add("Eklenti kayıtları alınamadı; özel etkinliklerin derlemelerindeki adresler görünmeyecek: " + error.Message);
+        }
+
+        try
+        {
             IReadOnlyList<ProcessStage> stages = await new ProcessStageRetriever(client, settings.Crm.Value.PageSize).RetrieveAsync(token);
             await folder.WriteJsonAsync(ProcessStageRetriever.IndexFile, stages, token);
             state.Counts["processStages"] = stages.Count;

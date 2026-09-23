@@ -555,3 +555,22 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Security, found on the way:** `UserName`, `PassWord` and `FtpUserID` appear as workflow arguments — credentials
   written into definitions. The column now shows which activity carries them; the values stay in the restricted
   report. The guide says to pass this to the security team.
+### Where a service call goes (2026-09-23) — committed, awaiting merge
+- **Maintainer:** I am after the URLs, not the credentials — show the called service's URL on the service-call steps
+  if it can be done at all.
+- **It can, from one place only.** The URL is in no workflow record: not in the arguments (proved by the parameter
+  sweep), not in the activity's registration (workflow activities have no registration step — that mechanism is
+  the plug-in pipeline's, and the earlier note saying otherwise was wrong). It is written inside the activity's
+  own assembly, and CRM stores that assembly as a field. So: read the registry, download only the assemblies that
+  back a workflow's custom activities, scan their string constants, keep the addresses and drop the bytes.
+- **Said honestly everywhere it appears:** "the code this step runs contains these addresses", never "this step
+  calls this address". A literal built at run time or read from a settings record is not there at all.
+- **Where it shows:** `dis-sistemler.xlsx` → Dış bağımlılıklar gains `derlemedeki_adresler` and `kayitli` (a
+  workflow calling a type CRM no longer has is a broken integration); the diagram carries it on the step's own
+  label (`… → https://…`) and in the header note.
+- **What came with it:** plug-in steps — code CRM runs on a message. They are not processes, never entered the
+  inventory, and are a whole integration surface the migration would have missed. New `Eklentiler` page, with the
+  addresses in their unsecure registration configuration. The secure configuration is not read: that is where
+  credentials live and the maintainer is after URLs.
+- **The browser export does the scan in the browser** and sends only the extracted text, so a multi-megabyte DLL
+  never travels in the export file or lands on a machine.

@@ -1,12 +1,18 @@
+using System.Text;
 using System.Text.RegularExpressions;
+using Crm.Extract.Metadata;
 using Crm.Ir.Model;
 using Crm.Ir.Parsing;
 using Crm.Ir.Reports;
 
 namespace Crm.Cli.Reports;
 
-/// <summary>One custom activity, every workflow that calls it, and the names it is called with.</summary>
-public sealed record ExternalDependency(string Activity, string Assembly, IReadOnlyList<string> Workflows, IReadOnlyList<string> Parameters);
+/// <summary>
+/// One custom activity: every workflow that calls it, the names it is called with, and the addresses written
+/// inside the assembly it comes from. The last of those is the only record anywhere of where the call goes.
+/// </summary>
+public sealed record ExternalDependency(string Activity, string Assembly, IReadOnlyList<string> Workflows,
+    IReadOnlyList<string> Parameters, IReadOnlyList<string> Addresses, bool? Registered);
 
 /// <summary>One address written into a workflow's definition, and the workflow that carries it.</summary>
 public sealed record ExternalAddress(string Host, string Address, string Workflow);
@@ -28,6 +34,12 @@ public static partial class ExternalSystems
 {
     public static IReadOnlyList<ExternalDependency> Dependencies(IReadOnlyList<WorkflowIr> documents)
     {
+        return Dependencies(documents, PluginRegistry.Empty);
+    }
+
+    public static IReadOnlyList<ExternalDependency> Dependencies(IReadOnlyList<WorkflowIr> documents, PluginRegistry plugins)
+    {
+        PluginIndex registered = new(plugins);
         Dictionary<string, List<string>> callers = new(StringComparer.Ordinal);
         Dictionary<string, List<string>> parameters = new(StringComparer.Ordinal);
         foreach (WorkflowIr document in documents)
@@ -65,7 +77,8 @@ public static partial class ExternalSystems
         return
         [
             .. callers.Select(entry => new ExternalDependency(ShortName(entry.Key), AssemblyOf(entry.Key),
-                    [.. entry.Value.Order(StringComparer.Ordinal)], [.. parameters[entry.Key].Order(StringComparer.Ordinal)]))
+                    [.. entry.Value.Order(StringComparer.Ordinal)], [.. parameters[entry.Key].Order(StringComparer.Ordinal)],
+                    registered.AddressesOf(entry.Key), registered.IsRegistered(entry.Key)))
                 .OrderByDescending(dependency => dependency.Workflows.Count)
                 .ThenBy(dependency => dependency.Activity, StringComparer.Ordinal)
         ];
@@ -89,13 +102,36 @@ public static partial class ExternalSystems
         return [.. found.DistinctBy(address => address.Address)];
     }
 
-    public static Sheet BuildDependencies(IReadOnlyList<WorkflowIr> documents)
+    public static Sheet BuildDependencies(IReadOnlyList<WorkflowIr> documents, PluginRegistry plugins)
     {
-        Sheet sheet = new(SheetNames.ExternalDependencies, "etkinlik", "cagiran_is_akisi_sayisi", "parametreler", "cagiran_is_akislari", "derleme");
-        foreach (ExternalDependency dependency in Dependencies(documents))
+        Sheet sheet = new(SheetNames.ExternalDependencies, "etkinlik", "derlemedeki_adresler", "cagiran_is_akisi_sayisi",
+            "parametreler", "cagiran_is_akislari", "derleme", "kayitli");
+        foreach (ExternalDependency dependency in Dependencies(documents, plugins))
         {
-            sheet.Row(dependency.Activity, dependency.Workflows.Count, string.Join(" | ", dependency.Parameters),
-                string.Join(" | ", dependency.Workflows), dependency.Assembly);
+            sheet.Row(dependency.Activity, string.Join(" | ", dependency.Addresses), dependency.Workflows.Count,
+                string.Join(" | ", dependency.Parameters), string.Join(" | ", dependency.Workflows), dependency.Assembly,
+                dependency.Registered);
+        }
+        return sheet;
+    }
+
+    /// <summary>
+    /// Every plug-in step CRM runs: code on a message, outside any workflow. They are not in the process inventory
+    /// and never will be — they are not processes — but they are the other half of what this CRM reaches outside.
+    /// </summary>
+    public static Sheet BuildPlugins(PluginRegistry plugins)
+    {
+        Dictionary<Guid, PluginType> types = plugins.Types.ToDictionary(type => type.TypeId);
+        Dictionary<Guid, PluginAssembly> assemblies = plugins.Assemblies.ToDictionary(assembly => assembly.AssemblyId);
+        Sheet sheet = new(SheetNames.Plugins, "kod", "adim", "durum", "mod", "konfigurasyondaki_adresler", "derleme");
+        foreach (PluginStep step in plugins.Steps.OrderBy(step => step.Name, StringComparer.Ordinal))
+        {
+            PluginType? type = step.TypeId is Guid id ? types.GetValueOrDefault(id) : null;
+            PluginAssembly? assembly = type?.AssemblyId is Guid owner ? assemblies.GetValueOrDefault(owner) : null;
+            sheet.Row(ShortName(type?.TypeName ?? ""), step.Name, step.State == 0 ? "etkin" : "devre dışı",
+                step.Mode == 1 ? "eşzamansız" : "eşzamanlı",
+                string.Join(" | ", AssemblyStrings.Addresses(Encoding.UTF8.GetBytes(step.Configuration ?? ""))),
+                assembly?.Name ?? "");
         }
         return sheet;
     }
@@ -112,6 +148,60 @@ public static partial class ExternalSystems
             sheet.Row(address.Host, address.Address, address.Workflow);
         }
         return sheet;
+    }
+
+    /// <summary>
+    /// Every registered workflow activity that has an address behind it, by type name: what the diagrams need to
+    /// put an endpoint on a step. Activities whose assembly holds no address are left out rather than listed empty.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> AddressesByActivity(PluginRegistry plugins)
+    {
+        Dictionary<Guid, PluginAssembly> assemblies = plugins.Assemblies.ToDictionary(assembly => assembly.AssemblyId);
+        Dictionary<string, string> addresses = new(StringComparer.Ordinal);
+        foreach (PluginType type in plugins.Types.Where(type => type.AssemblyId is not null))
+        {
+            if (assemblies.TryGetValue(type.AssemblyId!.Value, out PluginAssembly? assembly) && assembly.Addresses.Count > 0)
+            {
+                addresses[type.TypeName] = string.Join(" · ", assembly.Addresses);
+            }
+        }
+        return addresses;
+    }
+
+    /// <summary>
+    /// The registered types by name, so a workflow's activity can be matched to the assembly it comes from. The
+    /// workflow carries an assembly-qualified name; CRM's registration carries the type name alone.
+    /// </summary>
+    private sealed class PluginIndex
+    {
+        private readonly Dictionary<string, PluginType> _types = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<Guid, PluginAssembly> _assemblies;
+
+        public PluginIndex(PluginRegistry plugins)
+        {
+            _assemblies = plugins.Assemblies.ToDictionary(assembly => assembly.AssemblyId);
+            foreach (PluginType type in plugins.Types)
+            {
+                _types[type.TypeName] = type;
+            }
+        }
+
+        public IReadOnlyList<string> AddressesOf(string assemblyQualifiedName)
+        {
+            PluginType? type = _types.GetValueOrDefault(TypeNameOf(assemblyQualifiedName));
+            return type?.AssemblyId is Guid id && _assemblies.TryGetValue(id, out PluginAssembly? assembly) ? assembly.Addresses : [];
+        }
+
+        /// <summary>Null when nothing was retrieved: "not registered" would be a claim the run cannot make.</summary>
+        public bool? IsRegistered(string assemblyQualifiedName)
+        {
+            return _types.Count == 0 ? null : _types.ContainsKey(TypeNameOf(assemblyQualifiedName));
+        }
+
+        private static string TypeNameOf(string assemblyQualifiedName)
+        {
+            return assemblyQualifiedName.Split(',')[0].Trim();
+        }
     }
 
     private static IEnumerable<StepNode> Walk(IReadOnlyList<StepNode> steps)

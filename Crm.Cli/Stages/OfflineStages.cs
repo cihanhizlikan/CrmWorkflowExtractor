@@ -16,6 +16,7 @@ public static class OfflineStages
     public static async Task RunAsync(RunFolder folder, RunState state, ExtractorSettings settings, DateTimeOffset extractedAt, ILogger logger, CancellationToken token)
     {
         UsageEvidence? usage = await UsageStage.LoadAsync(folder, state, settings.Run.Value.UsageFile, logger, token);
+        state.Plugins = PluginStage.Load(folder, state);
         IReadOnlyList<WorkflowIr> documents = await IrStage.RunAsync(folder, state, extractedAt, logger, token);
         state.Documents = documents;
         UsageStage.Summarize(state, documents, usage);
@@ -52,17 +53,12 @@ public static class OfflineStages
         state.Sheets[SheetNames.Trees] = calls.BuildTrees();
         state.Sheets[SheetNames.DataFootprint] = DataFootprint.Build(documents);
         state.Sheets[SheetNames.Cascades] = DataFootprint.BuildCascades(documents);
-        state.Sheets[SheetNames.ExternalDependencies] = ExternalSystems.BuildDependencies(documents);
+        ExternalSheets(state, documents);
         state.Sheets[SheetNames.Unmapped] = QualitySheets.Unmapped(state.Coverage, state.BpmnFiles);
         if (state.Drift is not null)
         {
             state.Sheets[SheetNames.Drift] = QualitySheets.Drift(state.Drift, inPlan);
         }
-        state.Sheets[SheetNames.Addresses] = ExternalSystems.BuildAddresses(state.Addresses);
-
-        state.Counts["external.activities"] = ExternalSystems.Dependencies(documents).Count;
-        state.Counts["external.addresses"] = state.Addresses.Select(address => address.Address).Distinct(StringComparer.OrdinalIgnoreCase).Count();
-        state.Counts["external.hosts"] = state.Addresses.Select(address => address.Host).Distinct(StringComparer.OrdinalIgnoreCase).Count();
         state.Counts["callGraph.entryPoints"] = documents.Count(document => calls.RoleOf(document.Identity.WorkflowId) == CallGraph.EntryPoint);
         state.Counts["callGraph.buildingBlocks"] = calls.CalledBy.Count;
         state.Counts["data.fields"] = DataFootprint.Fields(documents).Count;
@@ -92,9 +88,10 @@ public static class OfflineStages
             Count(state, "data.cascades"), Count(state, "data.cascadePairs"));
         await WriteWorkbookAsync(folder, state, RunPaths.DataWorkbook, [SheetNames.Guide, SheetNames.DataFootprint, SheetNames.Cascades], token);
 
-        state.Sheets[SheetNames.Guide] = Guides.External(Count(state, "external.activities"), Count(state, "external.addresses"), Count(state, "external.hosts"));
+        state.Sheets[SheetNames.Guide] = Guides.External(Count(state, "external.activities"), Count(state, "external.addresses"),
+            Count(state, "external.hosts"), Count(state, "external.assemblyAddresses"), state.Plugins.Steps.Count);
         await WriteWorkbookAsync(folder, state, RunPaths.ExternalSystemsWorkbook,
-            [SheetNames.Guide, SheetNames.ExternalDependencies, SheetNames.Addresses], token);
+            [SheetNames.Guide, SheetNames.ExternalDependencies, SheetNames.Addresses, SheetNames.Plugins], token);
 
         // Written last of all: it quotes the numbers and names a real workflow from everything above it.
         if (AnalystGuide.Build(state, documents, usage, logoFile) is byte[] guide)
@@ -106,6 +103,27 @@ public static class OfflineStages
             state.Warnings.Add($"{RunPaths.AnalystGuide} yazılamadı: bu makinede Türkçe harfleri taşıyan ve gömülmesine izin veren bir yazı tipi bulunamadı.");
         }
         state.StagesRun.Add(RunStages.MigrationPlan);
+    }
+
+    /// <summary>
+    /// Everything the run knows about what these workflows reach outside CRM. Gathered in one place because it is
+    /// the one question whose answer comes from three different sources: the definitions, the registered code, and
+    /// the assemblies behind it.
+    /// </summary>
+    private static void ExternalSheets(RunState state, IReadOnlyList<WorkflowIr> documents)
+    {
+        IReadOnlyList<ExternalDependency> dependencies = ExternalSystems.Dependencies(documents, state.Plugins);
+        state.Sheets[SheetNames.ExternalDependencies] = ExternalSystems.BuildDependencies(documents, state.Plugins);
+        state.Sheets[SheetNames.Addresses] = ExternalSystems.BuildAddresses(state.Addresses);
+        if (state.Plugins.Steps.Count > 0)
+        {
+            state.Sheets[SheetNames.Plugins] = ExternalSystems.BuildPlugins(state.Plugins);
+        }
+        state.Counts["external.activities"] = dependencies.Count;
+        state.Counts["external.assemblyAddresses"] = dependencies.SelectMany(dependency => dependency.Addresses)
+            .Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        state.Counts["external.addresses"] = state.Addresses.Select(address => address.Address).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        state.Counts["external.hosts"] = state.Addresses.Select(address => address.Host).Distinct(StringComparer.OrdinalIgnoreCase).Count();
     }
 
     private static int Count(RunState state, string key)

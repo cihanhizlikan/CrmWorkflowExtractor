@@ -81,6 +81,7 @@ public static class BrowserExportImport
         IReadOnlyList<XamlEntry> entries = await WriteXamlAsync(folder, state, root, records, token);
         await RetrievalStages.RouteAndDriftAsync(folder, state, entries, token);
         await WriteOptionSetsAsync(folder, state, root, token);
+        await WritePluginsAsync(folder, state, root, token);
         await WriteProcessStagesAsync(folder, state, root, token);
         logger.LogInformation("Imported {Records} workflow records and {Xaml} XAML files from {File}", records.Count, entries.Count, file);
         return records;
@@ -177,6 +178,21 @@ public static class BrowserExportImport
         }
         state.Counts["metadata.entities"] = entities;
         state.StagesRun.Add(RunStages.Metadata);
+    }
+
+    /// <summary>
+    /// The plug-in registry as the browser export sends it. The export scans each assembly in the browser and
+    /// sends only the addresses it found, so a multi-megabyte DLL never travels in the file.
+    /// </summary>
+    private static async Task WritePluginsAsync(RunFolder folder, RunState state, JsonElement root, CancellationToken token)
+    {
+        PluginRegistry plugins = root.TryGetProperty("plugins", out JsonElement registry) && registry.ValueKind == JsonValueKind.Object
+            ? PluginRegistryRetriever.Parse(registry)
+            : PluginRegistry.Empty;
+        await folder.WriteJsonAsync(PluginRegistryRetriever.IndexFile, plugins, token);
+        state.Counts["plugins.assemblies"] = plugins.Assemblies.Count;
+        state.Counts["plugins.steps"] = plugins.Steps.Count;
+        state.StagesRun.Add(RunStages.Plugins);
     }
 
     private static async Task WriteProcessStagesAsync(RunFolder folder, RunState state, JsonElement root, CancellationToken token)

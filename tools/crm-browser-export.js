@@ -105,6 +105,59 @@
   const xaml = {};
   const xamlErrors = {};
   let done = 0;
+  // A CRM workflow cannot call a service; a custom activity can, and its endpoint is written in the activity's own
+  // assembly rather than passed in from the workflow. The assembly is a field on the record, so the addresses are
+  // read out of its string constants here, in the browser — only the extracted text travels, never the megabytes.
+  const FRAMEWORK_URL = /:\/\/(schemas\.|www\.w3\.org|www\.omg\.org|docs\.oasis|go\.microsoft\.com|tempuri\.org\/?$)/i;
+
+  function addressesIn(base64) {
+    const raw = atob(base64);
+    const found = new Set();
+    // Once as bytes and once with the zero bytes removed, because a .NET string constant is stored as UTF-16.
+    for (const text of [raw, raw.replace(/\0/g, "")]) {
+      for (const match of text.matchAll(/(https?|ftp|net\.tcp):\/\/[^\s"'<>\\\x00-\x1f]+/gi)) {
+        const address = match[0].replace(/[.,;)"']+$/, "");
+        if (!FRAMEWORK_URL.test(address)) {
+          found.add(address);
+        }
+      }
+    }
+    return [...found].sort();
+  }
+
+  async function readPlugins() {
+    let assemblies = [];
+    let types = [];
+    let steps = [];
+    try {
+      assemblies = await getAll("pluginassemblies?$select=pluginassemblyid,name,version,sourcetype,ismanaged");
+      types = await getAll("plugintypes?$select=plugintypeid,typename,friendlyname,isworkflowactivity,workflowactivitygroupname,_pluginassemblyid_value");
+      steps = await getAll("sdkmessageprocessingsteps?$select=sdkmessageprocessingstepid,name,configuration,stage,mode,statecode,_plugintypeid_value");
+    } catch (error) {
+      log("Plug-in registry could not be read:", error.message);
+      return { assemblies: [], types: [], steps: [] };
+    }
+    // Only the assemblies a workflow's custom activities come from: the rest are plug-ins, whose own endpoints are
+    // not what the diagrams are missing.
+    const wanted = new Set(types.filter(type => type.isworkflowactivity).map(type => type._pluginassemblyid_value));
+    let scanned = 0;
+    for (const assembly of assemblies) {
+      if (!wanted.has(assembly.pluginassemblyid)) {
+        continue;
+      }
+      try {
+        const record = await get(`pluginassemblies(${assembly.pluginassemblyid})?$select=content`);
+        assembly.addresses = record.content ? addressesIn(record.content) : [];
+      } catch (error) {
+        assembly.addresses = [];
+        log(`Assembly ${assembly.name} could not be read:`, error.message);
+      }
+      scanned++;
+      log(`Assemblies scanned ${scanned}/${wanted.size}`);
+    }
+    return { assemblies, types, steps };
+  }
+
   async function fetchXaml(row) {
     try {
       const record = await get(`workflows(${row.workflowid})?$select=xaml`);
@@ -135,6 +188,9 @@
   }
   log(`Option-set metadata for ${entities.length} entities`);
 
+  const plugins = await readPlugins();
+  log(`Plug-in registry: ${plugins.assemblies.length} assemblies, ${plugins.types.length} types, ${plugins.steps.length} steps`);
+
   let processStages = [];
   try {
     processStages = await getAll("processstages?$select=processstageid,stagename,stagecategory,_processid_value,primaryentitytypecode");
@@ -148,7 +204,7 @@
     startedAtUtc: started.toISOString(),
     webApiRoot: WEB_API,
     whoAmI, user, privileges, userPrivileges, workflowAttributes,
-    count, rawCount, countSource, columns, workflows, xaml, xamlErrors, optionSets, processStages
+    count, rawCount, countSource, columns, workflows, xaml, xamlErrors, optionSets, processStages, plugins
   };
   const stamp = started.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
   const link = document.createElement("a");

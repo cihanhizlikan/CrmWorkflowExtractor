@@ -115,11 +115,13 @@ public static class AnalystGuide
             + "görünmez; yalnızca burada vardır.", 26);
         pdf.Step(6, "dis-sistemler.xlsx — entegrasyon yükü",
             "CRM dışına uzanan çağrılar. Buradaki her etkinlik, yeni üründe ayrı bir iş kalemidir.");
-        pdf.Bullet("Dış bağımlılıklar — çağrılan kod, onu çağıran akışlar ve çağrının parametre adları. Parametreler "
-            + "arkadaki operasyonu tarif eder: entegrasyon maddelerinizi bu sütundan çıkarın. Kodun içinde ne olduğunu "
-            + "yalnızca derlemenin sahibi söyleyebilir.", 26);
+        pdf.Bullet("Dış bağımlılıklar — çağrılan kod, onu çağıran akışlar, çağrının parametre adları ve "
+            + "derlemedeki_adresler: kodun içinde yazılı endpoint'ler. Aradığınız servis adresi genellikle oradadır, "
+            + "çünkü iş akışı onu geçirmez. kayitli sütunu hayır ise akış artık var olmayan bir koda gidiyor demektir.", 26);
         pdf.Bullet("Adresler — tanımın metnine yazılmış adresler, sunucusuyla birlikte. Boş olması \"hiçbir yere bağlanmıyor\" "
-            + "demek değildir: adres çoğu zaman etkinliğin kendi kodundadır.", 26);
+            + "demek değildir: adres çoğu zaman etkinliğin kendi kodundadır ve orası Dış bağımlılıklar sayfasında.", 26);
+        pdf.Bullet("Eklentiler — iş akışı OLMAYAN, bir mesaj üzerinde çalışan kod. Taşıma planında hiç görünmezler ama "
+            + "yeni üründe karşılıkları kurulmalıdır; kayıt konfigürasyonlarındaki adresler de buradadır.", 26);
     }
 
     private static void Walkthrough(PdfDocument pdf, RunState state, UsageEvidence? usage, WorkflowIr? example)
@@ -196,10 +198,9 @@ public static class AnalystGuide
             + "değiştirir; bunu bilerek karar verin.");
         pdf.Bullet("Tetikleme zincirleri diyagramda görünmez. Bir akış, başka bir akışın izlediği alana yazdığı için "
             + "onu başlatıyor olabilir; bu bağ yalnızca veri-analizi.xlsx'tedir.");
-        pdf.Bullet("Özel etkinliklerin içi görünmez. Adresler sayfası yalnızca tanımın metnine yazılmış adresleri "
-            + "gösterir; çağrılan servisin adresi çoğu zaman etkinliğin kendi kodunda ya da konfigürasyonundadır ve "
-            + "oradan görünmez — onu derlemenin sahibi söyler. Eklentiler (plug-in) ise iş akışı değildir, bu "
-            + "envantere hiç girmezler.");
+        pdf.Bullet("Diyagramdaki \"→ adres\", o adımın çalıştırdığı KODUN İÇİNDE yazılı bir adrestir; adımın oraya "
+            + "gittiğinin kanıtı değildir. Kod adresi parçalardan birleştiriyorsa ya da bir ayar kaydından okuyorsa "
+            + "hiçbir yerde görünmez — o zaman cevabı derlemenin sahibi verir.");
         pdf.Bullet("Birleşik model bir öneridir, karar değil. Araç yalnızca benzerliği ölçer; aynı işi yapıp "
             + "yapmadıklarına insan karar verir.");
     }
