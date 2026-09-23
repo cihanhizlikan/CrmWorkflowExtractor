@@ -20,6 +20,12 @@
   const WEB_API = location.origin + "/api/data/v8.2/";   // IFD host: no organization segment. Change if needed.
   const PAGE_SIZE = 20;
   const PARALLEL_XAML = 4;
+  // No request waits forever. A locked-down 8.2 server can leave one pending with no answer and no error, and
+  // then the console shows nothing at all — which is what a reader takes for "the script is broken".
+  const TIMEOUT_MS = 120000;
+  // The count is the first thing asked and the least important: this server has already been seen answering it
+  // with -1, and there is a FetchXML aggregate behind it. It is not worth two minutes of anyone's morning.
+  const COUNT_TIMEOUT_MS = 20000;
 
   // The extractor's §3.1 inventory columns (everything except xaml). Checked against metadata below.
   const COLUMNS = ["workflowid", "name", "uniquename", "description", "category", "type", "mode", "scope", "statecode",
@@ -33,12 +39,20 @@
 
   const log = (...args) => console.log("%c[crm-export]", "color:#0a6", ...args);
 
-  async function get(path, prefer) {
+  async function get(path, prefer, timeoutMs) {
     const headers = { "Accept": "application/json", "OData-MaxVersion": "4.0", "OData-Version": "4.0" };
     if (prefer) {
       headers["Prefer"] = prefer;
     }
-    const response = await fetch(path.startsWith("http") ? path : WEB_API + path, { credentials: "include", headers });
+    let response;
+    try {
+      response = await fetch(path.startsWith("http") ? path : WEB_API + path,
+        { credentials: "include", headers, signal: AbortSignal.timeout(timeoutMs ?? TIMEOUT_MS) });
+    } catch (error) {
+      throw new Error(error.name === "TimeoutError"
+        ? `GET ${path} -> cevap gelmedi (${(timeoutMs ?? TIMEOUT_MS) / 1000} sn)`
+        : `GET ${path} -> ${error.message}`);
+    }
     const text = await response.text();
     if (!response.ok) {
       throw new Error(`GET ${path} -> ${response.status}: ${text.slice(0, 300)}`);
@@ -85,13 +99,19 @@
 
   // The production 8.2 server answers workflows/$count with -1 ("no count available"); fall back to a FetchXML
   // aggregate, which is also a GET. "count" stays -1 only if neither gives a number.
-  const rawCount = await get("workflows/$count");
+  log("Counting workflows…");
+  let rawCount = -1;
+  try {
+    rawCount = await get("workflows/$count", undefined, COUNT_TIMEOUT_MS);
+  } catch (error) {
+    log("$count did not answer; using the aggregate instead:", error.message);
+  }
   let count = rawCount;
   let countSource = "$count";
   if (rawCount < 0) {
     const fetchXml = '<fetch aggregate="true"><entity name="workflow"><attribute name="workflowid" alias="n" aggregate="count" /></entity></fetch>';
     try {
-      const aggregate = await get("workflows?fetchXml=" + encodeURIComponent(fetchXml));
+      const aggregate = await get("workflows?fetchXml=" + encodeURIComponent(fetchXml), undefined, COUNT_TIMEOUT_MS);
       count = aggregate.value.length === 1 && typeof aggregate.value[0].n === "number" ? aggregate.value[0].n : -1;
       countSource = "fetchXml aggregate";
     } catch (error) {

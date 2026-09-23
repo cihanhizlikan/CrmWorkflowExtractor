@@ -108,6 +108,23 @@ public sealed partial class BrowserExportImportTests
     }
 
     /// <summary>The bookmarklet page embeds the script. If someone edits the script and forgets to regenerate the page, the button runs old code.</summary>
+    /// <summary>
+    /// A request with no deadline is how an export dies silently: the production server left <c>workflows/$count</c>
+    /// pending, the script waited on it forever, and the console said nothing at all. Every request now has a
+    /// budget, and the count — which this server has already answered with -1 once — has a short one, because a
+    /// FetchXML aggregate stands behind it.
+    /// </summary>
+    [Fact]
+    public void The_Export_Script_Gives_Every_Request_A_Deadline()
+    {
+        string script = File.ReadAllText(Path.Combine(RepositoryTree.Root().FullName, "tools", "crm-browser-export.js"));
+
+        Assert.Contains("AbortSignal.timeout", script, StringComparison.Ordinal);
+        Assert.Contains("COUNT_TIMEOUT_MS", script, StringComparison.Ordinal);
+        // The count must not be the thing that stops the export: its failure falls through to the aggregate.
+        Assert.Contains("$count did not answer; using the aggregate instead", script, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("crm-browser-export.js", "crm-export.html")]
     [InlineData("crm-usage-export.js", "crm-usage.html")]

@@ -574,3 +574,15 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   credentials live and the maintainer is after URLs.
 - **The browser export does the scan in the browser** and sends only the extracted text, so a multi-megabyte DLL
   never travels in the export file or lands on a machine.
+### The export must not hang (2026-09-23) — committed, awaiting merge
+- **Maintainer:** renewed the export; `workflows/$count` stayed Pending in the Network tab. It did answer in the
+  end, after a very long wait — so the server is simply slow on that query, not broken.
+- **Not the plug-in change:** `readPlugins()` runs at line 191, the count at line 88. The count is the first thing
+  asked and nothing new touches it.
+- **The real defect:** no request in the export script had a deadline. A locked-down 8.2 server can leave one
+  pending with no answer and no error, and the console then prints nothing at all — which a reader takes for a
+  broken script. The usage export was given timeouts when it hung on the System Job table; this one was not.
+- **Built:** every request carries `AbortSignal.timeout`, 120 s by default. `workflows/$count` gets 20 s and its
+  failure is not fatal: it falls through to the FetchXML aggregate that already stood behind it, which is what
+  this server answers anyway, so nothing is lost by cutting the wait. A timeout is reported as a sentence rather
+  than an unhandled rejection, and the phase is logged before it starts so a stall is attributable.
