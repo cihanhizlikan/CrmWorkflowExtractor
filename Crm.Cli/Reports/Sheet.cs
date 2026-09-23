@@ -17,6 +17,8 @@ public static class SheetNames
     public const string Drafts = "Taslaklar";
     public const string Supplied = "Ürünle gelenler";
     public const string DataFootprint = "Veri ayak izi";
+    public const string ExternalDependencies = "Dış bağımlılıklar";
+    public const string Addresses = "Adresler";
     public const string Cascades = "Tetikleme zincirleri";
 }
 

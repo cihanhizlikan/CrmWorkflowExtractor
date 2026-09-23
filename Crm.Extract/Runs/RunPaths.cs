@@ -49,6 +49,11 @@ public static class RunPaths
 
     /// <summary>The data workbook: the field footprint and the cascades.</summary>
     public const string DataWorkbook = Reports + "/veri-analizi.xlsx";
+
+    /// <summary>What the workflows reach outside CRM: the custom activities they call, and the addresses they pass.</summary>
+    public const string ExternalSystemsWorkbook = Reports + "/dis-sistemler.xlsx";
+
+    public const string ExternalSystems = Reports + "/dis-sistemler.md";
     public const string CallGraph = Reports + "/cagri-agaci.md";
 
     public const string DataFootprint = Reports + "/veri-ayak-izi.md";

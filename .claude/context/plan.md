@@ -428,3 +428,18 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Verified:** the tests read the files back through the zip, and SheetJS — an independent reader — opened both
   workbooks in a browser: sheet names with Turkish characters intact, 46 rows, `öncelik` typed as a number.
 - **Unverified:** Excel itself, which is not on this machine. Nothing in the format is Excel-specific.
+
+### External systems (2026-09-23) — committed
+- **Maintainer:** are the web services the workflows call visible in the output?
+- **Answer, and what it rests on:** a CRM workflow cannot call a service itself; the only route is a **custom
+  activity** (compiled code registered in CRM). So each call was already in the diagrams as a service task with its
+  arguments — what was missing was the inverted view.
+- **Built:** `raporlar/dis-sistemler.xlsx` (**Dış bağımlılıklar**: activity, assembly, how many workflows call it,
+  which ones, any address passed to it · **Adresler**: every http/ftp/UNC address a workflow passes, with the
+  workflow, step and argument) and `dis-sistemler.md`, which states in its opening lines what cannot be seen.
+- **The limit, in the report itself:** what an activity does inside its own assembly is not in the XAML, so an
+  endpoint hardcoded in the code is invisible here; only its owner can say. Plug-ins registered on entity events
+  are not workflows and never enter this inventory at all.
+- **Acceptance — Do:** reprocess and open the workbook. **Pass:** the well-known integrations (Feniks, Nova, IGES,
+  Genesys, Docman, Pisano, North52 `ExecuteFormula`) appear with plausible caller counts. **Capture:** the two
+  summary bullets; the address sheet holds production URLs and stays on the company machine.

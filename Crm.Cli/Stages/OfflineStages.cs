@@ -31,20 +31,35 @@ public static class OfflineStages
         SimilarityResult families = await SimilarityStage.RunAsync(folder, state, runnable, drafts, supplied, usage, similarity, logger, token);
         await ConsolidationStage.RunAsync(folder, state, runnable, families, logger, token);
 
-        // Last, because it gathers what every stage before it learned into the one sheet the analysts work from.
+        await WriteAnalysisAsync(folder, state, documents, families, usage, token);
+    }
+
+    /// <summary>
+    /// Last, because it gathers what every stage before it learned. One workbook per question the reader has: what
+    /// the work is, which of these are the same, what touches what, and what reaches outside CRM.
+    /// </summary>
+    private static async Task WriteAnalysisAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents,
+        SimilarityResult families, UsageEvidence? usage, CancellationToken token)
+    {
         CallGraph calls = CallGraph.Build(documents);
         await folder.WriteTextAsync(RunPaths.CallGraph, calls.Markdown(), token);
         await folder.WriteTextAsync(RunPaths.DataFootprint, DataFootprint.Markdown(documents), token);
         await folder.WriteTextAsync(RunPaths.MigrationPlan, MigrationPlan.Markdown(state, documents, families), token);
+        await folder.WriteTextAsync(RunPaths.ExternalSystems, ExternalSystems.Markdown(documents), token);
 
-        // One workbook per question the reader has: what is the work, which of these are the same, what touches what.
         state.Sheets[SheetNames.Plan] = MigrationPlan.Build(state, documents, families, usage);
         state.Sheets[SheetNames.CallGraph] = calls.Build();
         state.Sheets[SheetNames.DataFootprint] = DataFootprint.Build(documents);
         state.Sheets[SheetNames.Cascades] = DataFootprint.BuildCascades(documents);
+        state.Sheets[SheetNames.ExternalDependencies] = ExternalSystems.BuildDependencies(documents);
+        state.Sheets[SheetNames.Addresses] = ExternalSystems.BuildAddresses(documents);
         await WriteWorkbookAsync(folder, state, RunPaths.PlanWorkbook, [SheetNames.Plan, SheetNames.Usage, SheetNames.CallGraph, SheetNames.Diagrams], token);
         await WriteWorkbookAsync(folder, state, RunPaths.FamilyWorkbook, [SheetNames.Families, SheetNames.Pairs, SheetNames.Drafts, SheetNames.Supplied], token);
         await WriteWorkbookAsync(folder, state, RunPaths.DataWorkbook, [SheetNames.DataFootprint, SheetNames.Cascades], token);
+        await WriteWorkbookAsync(folder, state, RunPaths.ExternalSystemsWorkbook, [SheetNames.ExternalDependencies, SheetNames.Addresses], token);
+
+        state.Counts["external.activities"] = ExternalSystems.Dependencies(documents).Count;
+        state.Counts["external.addresses"] = ExternalSystems.Addresses(documents).Select(address => address.Address).Distinct(StringComparer.OrdinalIgnoreCase).Count();
         state.Counts["callGraph.entryPoints"] = documents.Count(document => calls.RoleOf(document.Identity.WorkflowId) == CallGraph.EntryPoint);
         state.Counts["callGraph.buildingBlocks"] = calls.CalledBy.Count;
         state.Counts["data.sharedFields"] = DataFootprint.Fields(documents).Count(use => use.Writers.Count > 1);
