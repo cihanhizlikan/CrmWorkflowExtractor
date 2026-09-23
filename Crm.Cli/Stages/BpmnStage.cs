@@ -1,6 +1,5 @@
 using System.Xml.Linq;
 using Crm.Bpmn;
-using Crm.Cli.Reports;
 using Crm.Extract.Runs;
 using Crm.Ir.Model;
 using Microsoft.Extensions.Logging;
@@ -23,13 +22,10 @@ public static class BpmnStage
         Dictionary<Guid, string> fileNames = documents.ToDictionary(
             document => document.Identity.WorkflowId,
             document => $"{BpmnFileNames.Slug(document.Identity.Category)}/{BpmnFileNames.Slug(document.Identity.PrimaryEntity ?? "no entity")}/{stems[document.Identity.WorkflowId]}");
-        Sheet index = new(SheetNames.Diagrams, "bpmn_dosyasi", "is_akisi", "is_akisi_id", "kategori", "mod", "durum", "birincil_varlik");
         foreach (WorkflowIr document in documents)
         {
             XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(document, names), state.ToolVersion);
             string file = $"{RunPaths.Bpmn}/{fileNames[document.Identity.WorkflowId]}.bpmn";
-            WorkflowIdentity identity = document.Identity;
-            index.Row(fileNames[identity.WorkflowId] + ".bpmn", identity.Name, identity.WorkflowId, identity.Category, identity.Mode, identity.State, identity.PrimaryEntity);
             await folder.WriteBytesAsync(file, BpmnSerializer.ToBytes(xml), token);
 
             IReadOnlyList<string> errors = BpmnSchemaValidator.Validate(xml);
@@ -39,7 +35,6 @@ public static class BpmnStage
                 state.Fail(ExitCode.RunFailed, $"{file} ('{document.Identity.Name}') BPMN 2.0 şemasına uymuyor: {string.Join(" | ", errors.Take(3))}");
             }
         }
-        state.Sheets[SheetNames.Diagrams] = index;
         state.BpmnFiles = fileNames;
         state.Counts["bpmn.written"] = documents.Count;
         state.Counts["bpmn.invalid"] = invalid;

@@ -72,7 +72,7 @@ public sealed class ExternalSystemsTests
         Assert.True(code == ExitCode.Success, console);
         Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "dis-sistemler.xlsx"));
         Assert.Equal(["Nasıl okunur", "Dış bağımlılıklar", "Adresler"], workbook.Names);
-        Assert.Equal(["etkinlik", "derleme", "cagiran_is_akisi_sayisi", "gecen_adresler", "cagiran_is_akislari"],
+        Assert.Equal(["etkinlik", "cagiran_is_akisi_sayisi", "cagiran_is_akislari", "derleme"],
             workbook.Headers("Dış bağımlılıklar"));
         Assert.Contains(workbook.Rows("Dış bağımlılıklar"), row => row.Contains("NotifyPolicyService"));
         Assert.Contains(workbook.Rows("Nasıl okunur"), row => row.Any(cell => cell.Contains("Görülemeyen", StringComparison.Ordinal)));

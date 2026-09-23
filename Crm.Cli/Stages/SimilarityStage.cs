@@ -13,7 +13,7 @@ public static class SimilarityStage
     private const double RebuiltStructural = 0.95;
     private const double RebuiltLexical = 0.5;
 
-    public static async Task<SimilarityResult> RunAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, IReadOnlyList<WorkflowIr> drafts, IReadOnlyList<WorkflowIr> supplied,
+    public static async Task<SimilarityResult> RunAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents,
         UsageEvidence? usage, SimilarityOptions options, ILogger logger, CancellationToken token)
     {
         SimilarityResult result = new SimilarityEngine(options).Run(documents);
@@ -23,44 +23,24 @@ public static class SimilarityStage
 
         await folder.WriteJsonAsync(RunPaths.FamiliesJson, new { options, clusters = result.Clusters }, token);
 
-        Sheet clusters = new(SheetNames.Families, "aile_id", "aile_buyuklugu", "is_akisi", "is_akisi_id", "birincil_varlik", "kategori", "durum",
-            "baslangica_benzerlik", "baslangic_noktasi", "zayif_tutarlilik", "adi_deneme_gibi", "son_kayitli_calisma", "karar");
+        Sheet clusters = new(SheetNames.Families, "aile", "aile_buyuklugu", "is_akisi", "aile_rolu", "baslangica_benzerlik",
+            "zayif_tutarlilik", "birincil_varlik", "kategori", "son_kayitli_calisma", "karar", "is_akisi_id");
         foreach (WorkflowCluster cluster in result.Clusters)
         {
             foreach (ClusterMember member in cluster.Members)
             {
-                clusters.Row(cluster.ClusterId, cluster.Members.Count, member.Name, member.WorkflowId, member.PrimaryEntity, member.Category, member.State,
-                    member.ScoreToMedoid, member.WorkflowId == cluster.Medoid, cluster.LowCohesion, UsageStage.NameSuggestsTest(member.Name),
-                    LastLoggedRun(usage, member.WorkflowId), "");
+                clusters.Row(names.GetValueOrDefault(cluster.Medoid, cluster.ClusterId), cluster.Members.Count, member.Name,
+                    member.WorkflowId == cluster.Medoid ? "başlangıç noktası" : "üye", member.ScoreToMedoid, cluster.LowCohesion,
+                    member.PrimaryEntity, member.Category, LastLoggedRun(usage, member.WorkflowId), "", member.WorkflowId);
             }
         }
         state.Sheets[SheetNames.Families] = clusters;
 
-        Sheet held = new(SheetNames.Drafts, "is_akisi", "is_akisi_id", "birincil_varlik", "kategori", "adi_deneme_gibi", "degistirilme");
-        foreach (WorkflowIr draft in drafts.OrderBy(draft => draft.Identity.Name, StringComparer.Ordinal))
-        {
-            held.Row(draft.Identity.Name, draft.Identity.WorkflowId, draft.Identity.PrimaryEntity, draft.Identity.Category,
-                UsageStage.NameSuggestsTest(draft.Identity.Name), draft.Identity.ModifiedOn);
-        }
-        state.Sheets[SheetNames.Drafts] = held;
-        state.Counts["clusters.draftsHeldApart"] = drafts.Count;
-
-        Sheet shipped = new(SheetNames.Supplied, "is_akisi", "is_akisi_id", "birincil_varlik", "kategori", "durum", "degistirilme");
-        foreach (WorkflowIr document in supplied.OrderBy(document => document.Identity.Name, StringComparer.Ordinal))
-        {
-            shipped.Row(document.Identity.Name, document.Identity.WorkflowId, document.Identity.PrimaryEntity,
-                document.Identity.Category, document.Identity.State, document.Identity.ModifiedOn);
-        }
-        state.Sheets[SheetNames.Supplied] = shipped;
-        state.Counts["clusters.suppliedHeldApart"] = supplied.Count;
-
-        Sheet pairs = new(SheetNames.Pairs, "sol_id", "sol_ad", "sag_id", "sag_ad", "bilesik", "yapisal", "sozcuksel", "yol_jaccard", "parca_jaccard",
-            "ad_oneki", "sozcuk_jaccard", "jaro_winkler", "ayni_aile", "baska_adla_yeniden_yazilmis");
+        Sheet pairs = new(SheetNames.Pairs, "sol_ad", "sag_ad", "bilesik", "yapisal", "sozcuksel", "ayni_aile", "baska_adla_yeniden_yazilmis");
         foreach (PairScore pair in result.Pairs)
         {
-            pairs.Row(pair.Left, names[pair.Left], pair.Right, names[pair.Right], pair.Combined, pair.Structural, pair.Lexical, pair.PathJaccard,
-                pair.ShingleJaccard, pair.Prefix, pair.TokenJaccard, pair.JaroWinkler, clusterOf[pair.Left] == clusterOf[pair.Right],
-                pair.Structural >= RebuiltStructural && pair.Lexical < RebuiltLexical);
+            pairs.Row(names[pair.Left], names[pair.Right], pair.Combined, pair.Structural, pair.Lexical,
+                clusterOf[pair.Left] == clusterOf[pair.Right], pair.Structural >= RebuiltStructural && pair.Lexical < RebuiltLexical);
         }
         state.Sheets[SheetNames.Pairs] = pairs;
 

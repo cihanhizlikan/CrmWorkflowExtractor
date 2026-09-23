@@ -51,8 +51,11 @@ public static class ConsolidationStage
             }
         }
 
+        // A family is named after the workflow the analysts open first, not after its internal cluster id.
+        Dictionary<string, string> familyNames = similarity.Clusters
+            .ToDictionary(cluster => cluster.ClusterId, cluster => allNames.GetValueOrDefault(cluster.Medoid, cluster.ClusterId), StringComparer.Ordinal);
         state.CombinedFiles = fileNames;
-        state.Sheets[SheetNames.Consolidation] = BuildSheet(outcomes, byId, fileNames, state.BpmnFiles);
+        state.Sheets[SheetNames.Consolidation] = BuildSheet(outcomes, byId, familyNames, fileNames, state.BpmnFiles);
         state.Counts["consolidation.combined"] = outcomes.Count(outcome => outcome.Combined is not null);
         state.Counts["consolidation.skipped"] = outcomes.Count(outcome => outcome.Combined is null);
         state.Counts["consolidation.workflowsCombined"] = outcomes.Where(outcome => outcome.Combined is not null).Sum(outcome => outcome.Members.Count);
@@ -65,9 +68,9 @@ public static class ConsolidationStage
     /// diagram beside it, so a reader can open both and see whether they belong together.
     /// </summary>
     private static Sheet BuildSheet(IReadOnlyList<CombineOutcome> outcomes, IReadOnlyDictionary<Guid, WorkflowIr> documents,
-        IReadOnlyDictionary<string, string> fileNames, IReadOnlyDictionary<Guid, string> bpmnFiles)
+        IReadOnlyDictionary<string, string> familyNames, IReadOnlyDictionary<string, string> fileNames, IReadOnlyDictionary<Guid, string> bpmnFiles)
     {
-        Sheet sheet = new(SheetNames.Consolidation, "aile", "durum", "birlesik_dosya", "uye", "uye_bpmn", "tetikleyici", "cesitleme_sayisi", "mutabakat");
+        Sheet sheet = new(SheetNames.Consolidation, "aile", "durum", "uye", "cesitleme_sayisi", "mutabakat", "tetikleyici", "birlesik_dosya", "uye_bpmn");
         foreach (CombineOutcome outcome in outcomes)
         {
             string combinedFile = fileNames.TryGetValue(outcome.ClusterId, out string? stem) ? $"{RunPaths.Combined}/{stem}.bpmn" : "";
@@ -79,9 +82,9 @@ public static class ConsolidationStage
             foreach (Guid member in outcome.Members)
             {
                 WorkflowIr document = documents[member];
-                sheet.Row(outcome.ClusterId, state, combinedFile, document.Identity.Name,
-                    $"{RunPaths.Bpmn}/{bpmnFiles.GetValueOrDefault(member, member.ToString("D"))}.bpmn",
-                    TriggerText(document.Trigger), variants, reconciliation);
+                sheet.Row(familyNames.GetValueOrDefault(outcome.ClusterId, outcome.ClusterId), state, document.Identity.Name,
+                    variants, reconciliation, TriggerText(document.Trigger), combinedFile,
+                    $"{RunPaths.Bpmn}/{bpmnFiles.GetValueOrDefault(member, member.ToString("D"))}.bpmn");
             }
         }
         return sheet;

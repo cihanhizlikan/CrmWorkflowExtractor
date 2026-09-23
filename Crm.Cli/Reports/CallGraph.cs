@@ -105,13 +105,13 @@ public sealed class CallGraph
 
     public Sheet Build()
     {
-        Sheet csv = new(SheetNames.CallGraph, "is_akisi", "is_akisi_id", "rol", "cagirdigi", "cagiran", "alt_akislar", "cagiranlar");
+        Sheet csv = new(SheetNames.CallGraph, "is_akisi", "rol", "alt_akislar", "cagiranlar", "is_akisi_id");
         foreach ((Guid id, IReadOnlyList<Guid> children) in Calls.OrderBy(entry => Names[entry.Key], StringComparer.Ordinal))
         {
             IReadOnlyList<Guid> parents = CalledBy.GetValueOrDefault(id, []);
-            csv.Row(Names[id], id, RoleOf(id), children.Count, parents.Count,
+            csv.Row(Names[id], RoleOf(id),
                 string.Join(" | ", children.Select(child => Names.GetValueOrDefault(child, child.ToString("D")))),
-                string.Join(" | ", parents.Select(parent => Names[parent])));
+                string.Join(" | ", parents.Select(parent => Names[parent])), id);
         }
         return csv;
     }

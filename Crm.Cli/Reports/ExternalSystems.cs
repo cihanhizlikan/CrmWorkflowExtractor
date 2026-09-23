@@ -86,11 +86,10 @@ public static partial class ExternalSystems
 
     public static Sheet BuildDependencies(IReadOnlyList<WorkflowIr> documents)
     {
-        Sheet sheet = new(SheetNames.ExternalDependencies, "etkinlik", "derleme", "cagiran_is_akisi_sayisi", "gecen_adresler", "cagiran_is_akislari");
+        Sheet sheet = new(SheetNames.ExternalDependencies, "etkinlik", "cagiran_is_akisi_sayisi", "cagiran_is_akislari", "derleme");
         foreach (ExternalDependency dependency in Dependencies(documents))
         {
-            sheet.Row(dependency.Activity, dependency.Assembly, dependency.Workflows.Count,
-                string.Join(" | ", dependency.Addresses), string.Join(" | ", dependency.Workflows));
+            sheet.Row(dependency.Activity, dependency.Workflows.Count, string.Join(" | ", dependency.Workflows), dependency.Assembly);
         }
         return sheet;
     }

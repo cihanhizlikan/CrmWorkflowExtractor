@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Crm.Cli.Reports;
 using Crm.Extract.Runs;
 using Crm.Ir.Model;
 using Crm.Ir.Text;
@@ -149,19 +148,9 @@ public static partial class UsageStage
             : "Kayıtlı çalışma yok ve karşılaştırılacak hiç kayıt bulunamadı: kullanılmadığının KANITI DEĞİLDİR";
     }
 
-    public static async Task WriteReportAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage, CancellationToken token)
+    /// <summary>What the reports say about usage. The per-workflow verdict travels in the plan's own column.</summary>
+    public static void Summarize(RunState state, IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage)
     {
-        Sheet csv = new(SheetNames.Usage, "is_akisi", "bpmn_dosyasi", "is_akisi_id", "kategori", "mod", "durum", "adi_deneme_gibi", "son_kayitli_calisma", "kanit", "hukum");
-        foreach (WorkflowIr document in documents.OrderBy(document => document.Identity.Name, StringComparer.Ordinal))
-        {
-            WorkflowIdentity identity = document.Identity;
-            WorkflowUsage? found = usage?.Workflows.GetValueOrDefault(identity.WorkflowId);
-            string bpmn = state.BpmnFiles.TryGetValue(identity.WorkflowId, out string? stem) ? stem + ".bpmn" : "";
-            csv.Row(identity.Name, bpmn, identity.WorkflowId, identity.Category, identity.Mode, identity.State, NameSuggestsTest(identity.Name),
-                found?.LastLoggedRun is DateTimeOffset last ? Day(last) : "", found?.Source ?? "", Verdict(identity, usage));
-        }
-        state.Sheets[SheetNames.Usage] = csv;
-
         List<WorkflowIr> drafts = [.. documents.Where(document => document.Identity.State == DraftState)];
         List<WorkflowIr> testNamedActive = [.. documents.Where(document => document.Identity.State != DraftState && NameSuggestsTest(document.Identity.Name))];
         state.UsageVerdicts = documents.GroupBy(document => VerdictKind(Verdict(document.Identity, usage)))

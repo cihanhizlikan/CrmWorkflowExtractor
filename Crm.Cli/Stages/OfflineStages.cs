@@ -19,17 +19,20 @@ public static class OfflineStages
         IReadOnlyList<WorkflowIr> documents = await IrStage.RunAsync(folder, state, extractedAt, logger, token);
         state.Documents = documents;
         await BpmnStage.RunAsync(folder, state, documents, logger, token);
-        await UsageStage.WriteReportAsync(folder, state, documents, usage, token);
+        UsageStage.Summarize(state, documents, usage);
 
-        // Two kinds of workflow are not this company's to rebuild, and neither is grouped or combined: a Draft, which
-        // cannot start a run, and one CRM reports as part of a managed solution, which was shipped with the product.
-        // Both keep their IR and BPMN and are listed on their own. The split is by what CRM says, never by name.
-        List<WorkflowIr> supplied = [.. documents.Where(document => document.Identity.IsManaged == true)];
-        List<WorkflowIr> drafts = [.. documents.Where(document => document.Identity.IsManaged != true && document.Identity.State == UsageStage.DraftState)];
-        List<WorkflowIr> runnable = [.. documents.Where(document => document.Identity.IsManaged != true && document.Identity.State != UsageStage.DraftState)];
+        // What is not this company's to rebuild leaves the plan and every stage after it: a Draft, which cannot start
+        // a run; one CRM reports as part of a managed solution, which was shipped with the product; and one whose name
+        // reads like a test AND has no logged run. All three keep their IR and BPMN and are listed in their own book.
+        List<WorkflowIr> inScope = [.. MigrationPlan.InScope(documents, usage)];
+        state.Counts["clusters.suppliedHeldApart"] = documents.Count(document => document.Identity.IsManaged == true);
+        state.Counts["clusters.draftsHeldApart"] = documents.Count(document => document.Identity.IsManaged != true && document.Identity.State == UsageStage.DraftState);
+        state.Counts["plan.excluded"] = documents.Count - inScope.Count;
+        state.Counts["clusters.testNamedHeldApart"] = state.Counts["plan.excluded"]
+            - state.Counts["clusters.draftsHeldApart"] - state.Counts["clusters.suppliedHeldApart"];
         SimilarityOptions similarity = settings.Similarity?.Value ?? new SimilarityOptions();
-        SimilarityResult families = await SimilarityStage.RunAsync(folder, state, runnable, drafts, supplied, usage, similarity, logger, token);
-        await ConsolidationStage.RunAsync(folder, state, runnable, families, logger, token);
+        SimilarityResult families = await SimilarityStage.RunAsync(folder, state, inScope, usage, similarity, logger, token);
+        await ConsolidationStage.RunAsync(folder, state, inScope, families, logger, token);
 
         await WriteAnalysisAsync(folder, state, documents, families, usage, token);
     }
@@ -43,6 +46,7 @@ public static class OfflineStages
     {
         CallGraph calls = CallGraph.Build(documents);
         state.Sheets[SheetNames.Plan] = MigrationPlan.Build(state, documents, families, usage);
+        state.Sheets[SheetNames.Excluded] = MigrationPlan.BuildExcluded(state, documents, usage);
         state.Sheets[SheetNames.CallGraph] = calls.Build();
         state.Sheets[SheetNames.Trees] = calls.BuildTrees();
         state.Sheets[SheetNames.DataFootprint] = DataFootprint.Build(documents);
@@ -61,17 +65,21 @@ public static class OfflineStages
         state.Counts["data.cascadePairs"] = allCascades.Select(cascade => (cascade.Source, cascade.Target)).Distinct().Count();
 
         // Each workbook opens with its own guide, so a reader who has the file has everything the file needs.
-        state.Sheets[SheetNames.Guide] = Guides.Plan(state, documents.Count,
-            documents.Count(document => MigrationPlan.IsLiveProcess(document)), Count(state, "usage.drafts"),
-            Count(state, "clusters.suppliedHeldApart"), Count(state, "callGraph.buildingBlocks"));
+        int inScopeCount = documents.Count - Count(state, "plan.excluded");
+        state.Sheets[SheetNames.Guide] = Guides.Plan(inScopeCount,
+            MigrationPlan.InScope(documents, usage).Count(MigrationPlan.IsLiveProcess),
+            Count(state, "plan.excluded"), Count(state, "callGraph.buildingBlocks"));
         await WriteWorkbookAsync(folder, state, RunPaths.PlanWorkbook,
-            [SheetNames.Guide, SheetNames.Plan, SheetNames.Usage, SheetNames.CallGraph, SheetNames.Trees,
-             SheetNames.Diagrams, SheetNames.Unmapped, SheetNames.Constructs, SheetNames.Drift], token);
+            [SheetNames.Guide, SheetNames.Plan, SheetNames.CallGraph, SheetNames.Trees, SheetNames.Unmapped, SheetNames.Drift], token);
+
+        state.Sheets[SheetNames.Guide] = Guides.Excluded(Count(state, "plan.excluded"), Count(state, "usage.drafts"),
+            Count(state, "clusters.suppliedHeldApart"), documents.Count);
+        await WriteWorkbookAsync(folder, state, RunPaths.OutOfScopeWorkbook, [SheetNames.Guide, SheetNames.Excluded], token);
 
         state.Sheets[SheetNames.Guide] = Guides.Families(Count(state, "clusters.families"), Count(state, "consolidation.combined"),
-            Count(state, "consolidation.skipped"), Count(state, "usage.drafts"), Count(state, "clusters.suppliedHeldApart"));
+            Count(state, "consolidation.skipped"));
         await WriteWorkbookAsync(folder, state, RunPaths.FamilyWorkbook,
-            [SheetNames.Guide, SheetNames.Families, SheetNames.Consolidation, SheetNames.Pairs, SheetNames.Drafts, SheetNames.Supplied], token);
+            [SheetNames.Guide, SheetNames.Families, SheetNames.Consolidation, SheetNames.Pairs], token);
 
         state.Sheets[SheetNames.Guide] = Guides.Data(Count(state, "data.fields"), Count(state, "data.sharedFields"),
             Count(state, "data.cascades"), Count(state, "data.cascadePairs"));

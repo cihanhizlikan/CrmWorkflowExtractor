@@ -30,17 +30,21 @@ public sealed class UsageStageTests
         Assert.Equal(File.ReadAllBytes(Fixture("mock-usage-export.json")), File.ReadAllBytes(Path.Combine(runRoot, "ham", "kullanim-disa-aktarim.json")));
         Assert.Contains("1 sorgu başarısız oldu", console, StringComparison.Ordinal);
 
+        // The verdict travels in the plan's own row, beside the work it qualifies.
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        IReadOnlyList<IReadOnlyList<string>> usage = plan.Rows("Kullanım");
-        IReadOnlyList<string> ran = Assert.Single(usage, row => row.Contains(DefinitionThatRan.ToString("D")));
+        IReadOnlyList<IReadOnlyList<string>> work = plan.Rows("Taşıma planı");
+        IReadOnlyList<string> ran = Assert.Single(work, row => row.Contains(DefinitionThatRan.ToString("D")));
         Assert.Contains("2026-09-20", ran);
         Assert.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20 (sistem işi)", ran);
-        Assert.Contains(usage, row => row.Any(cell => cell.StartsWith("Kayıtlı çalışma yok; görülen en eski çalışma 2026-09-20", StringComparison.Ordinal)));
-        Assert.Contains(usage, row => row.Contains("Taslak: yeni çalıştırma başlatamaz"));
+        Assert.Contains(work, row => row.Any(cell => cell.StartsWith("Kayıtlı çalışma yok; görülen en eski çalışma 2026-09-20", StringComparison.Ordinal)));
 
-        // 44 drafts in the fixture, one without XAML (the simulated failure), so 43 IR documents: listed on their own, absent from clusters.csv, and the count chain still balances.
+        // 44 drafts in the fixture, one without XAML (the simulated failure), so 43 IR documents: out of the plan and
+        // into its counterpart book with the reason beside them, absent from the families, and the count chain still balances.
+        Workbook excluded = Workbook.Open(Path.Combine(runRoot, "raporlar", "kapsam-disi.xlsx"));
+        IReadOnlyList<IReadOnlyList<string>> out_ = excluded.Rows("Kapsam dışı");
+        Assert.Equal(43, out_.Skip(1).Count(row => row[0].StartsWith("taslak", StringComparison.Ordinal)));
+        Assert.All(out_.Skip(1), row => Assert.NotEmpty(row[0]));
         Workbook families = Workbook.Open(Path.Combine(runRoot, "raporlar", "aileler.xlsx"));
-        Assert.Equal(1 + 43, families.Rows("Taslaklar").Count);
         IReadOnlyList<IReadOnlyList<string>> clusters = families.Rows("Aileler");
         Assert.DoesNotContain(clusters, row => row.Any(cell => cell.StartsWith("Hasar Onay", StringComparison.Ordinal)));
         Assert.Contains(clusters, row => row.Contains("2026-09-20"));
@@ -60,7 +64,7 @@ public sealed class UsageStageTests
 
         Assert.True(code == ExitCode.Success, console);
         Workbook plan = Workbook.Open(Path.Combine(second, "raporlar", "tasima-plani.xlsx"));
-        Assert.Contains(plan.Rows("Kullanım"), row => row.Any(cell => cell.StartsWith("Kullanılıyor: son kayıtlı çalışma 2026-09-20", StringComparison.Ordinal)));
+        Assert.Contains(plan.Rows("Taşıma planı"), row => row.Any(cell => cell.StartsWith("Kullanılıyor: son kayıtlı çalışma 2026-09-20", StringComparison.Ordinal)));
     }
 
     /// <summary>Asking the server for the oldest record of all sorts the whole System Job table; production leaves it pending.</summary>

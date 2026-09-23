@@ -9,20 +9,16 @@ namespace Crm.Cli.Reports;
 public static class SheetNames
 {
     public const string Plan = "Taşıma planı";
-    public const string Usage = "Kullanım";
+    public const string Excluded = "Kapsam dışı";
     public const string CallGraph = "Çağrı ağacı";
-    public const string Diagrams = "BPMN dizini";
     public const string Families = "Aileler";
     public const string Pairs = "Çiftler";
-    public const string Drafts = "Taslaklar";
-    public const string Supplied = "Ürünle gelenler";
     public const string DataFootprint = "Veri ayak izi";
     public const string ExternalDependencies = "Dış bağımlılıklar";
     public const string Addresses = "Adresler";
     public const string Guide = "Nasıl okunur";
     public const string Trees = "Süreç ağaçları";
     public const string Unmapped = "Okunamayan yapılar";
-    public const string Constructs = "Yapı sıklığı";
     public const string Drift = "Sapma";
     public const string Consolidation = "Birleştirme";
     public const string Cascades = "Tetikleme zincirleri";

@@ -68,7 +68,6 @@ public static class IrStage
 
         await folder.WriteTextAsync(RunPaths.SensitiveLiterals, SensitiveLiteralScanner.Markdown(sensitive), token);
         state.Sheets[Reports.SheetNames.Unmapped] = Reports.QualitySheets.Unmapped(coverage);
-        state.Sheets[Reports.SheetNames.Constructs] = Reports.QualitySheets.Constructs(coverage);
         state.Counts["ir.documents"] = documents.Count;
         state.Counts["ir.noInventoryRecord"] = orphaned;
         state.Counts["xaml.definitions"] = XamlEntry.ReadIndex(folder.Root).Count(entry => entry.Kind == XamlEntry.KindDefinition);

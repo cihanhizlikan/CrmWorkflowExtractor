@@ -69,8 +69,8 @@ public sealed class DataFootprintTests
         Assert.Equal(1, starts[Creator]);
 
         Sheet cascades = DataFootprint.BuildCascades(documents);
-        Assert.Contains(cascades.Rows, row => row.Take(6).Select(cell => Sheet.Cell(cell)?.ToString()).SequenceEqual(
-            ["Closer", "alan güncellendi", "Watcher", "incident.statuscode", "Arka plan", "Gerçek zamanlı"]));
+        Assert.Contains(cascades.Rows, row => row.Take(7).Select(cell => Sheet.Cell(cell)?.ToString()).SequenceEqual(
+            ["Closer", "Watcher", "alan güncellendi", "incident.statuscode", "hayır", "Arka plan", "Gerçek zamanlı"]));
         Sheet fields = DataFootprint.Build(documents);
         Assert.Contains(fields.Rows, row => Sheet.Cell(row[0])?.ToString() == "incident" && Sheet.Cell(row[1])?.ToString() == "statuscode"
             && Sheet.Cell(row[2]) is 2);

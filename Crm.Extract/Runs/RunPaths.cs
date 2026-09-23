@@ -41,6 +41,9 @@ public static class RunPaths
     /// <summary>The grouping workbook: families, pair scores, drafts and what came with the product.</summary>
     public const string FamilyWorkbook = Reports + "/aileler.xlsx";
 
+    /// <summary>The plan's counterpart: what is not this company's to rebuild, so the plan itself needs no filtering.</summary>
+    public const string OutOfScopeWorkbook = Reports + "/kapsam-disi.xlsx";
+
     /// <summary>The data workbook: the field footprint and the cascades.</summary>
     public const string DataWorkbook = Reports + "/veri-analizi.xlsx";
 

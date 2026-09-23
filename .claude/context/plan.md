@@ -454,3 +454,20 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   `rapor.md`; the process trees became a sheet; the column legend became each workbook’s first sheet.
 - **Result:** `raporlar/` holds 2 pages and 4 workbooks. `rapor.md` is the entry point; `hassas-degerler.md` stays
   a separate file so a delivery can leave it out in one move.
+### Columns an analyst acts on, and a plan with no filtering (2026-09-23) — committed, awaiting merge
+- **Maintainer:** make sure every column of every workbook is one a System Analyst can use; put the more useful
+  ones first; columns that only confuse may go. Then: there is too much data — split what is not the work into its
+  own workbook so nobody has to filter.
+- **Built:** `kapsam-disi.xlsx`. A workflow leaves `tasima-plani.xlsx` on three CERTAIN grounds only — CRM's own
+  `ismanaged` flag, a Draft definition (cannot start a run), or a test-like name **with no logged run** — and lands
+  in the counterpart book with that reason in its first column, its verdict, its last run and its diagram beside it.
+  The name alone is never enough: the six activated `DRAFT_*` workflows that ran on export day stay in the plan.
+- **Columns:** every sheet reordered most-useful-first and trimmed. `aile` is now the family's starting workflow by
+  name, not a cluster id no reader can use; `gecen_adresler` (always empty, and read as "calls nothing"), the two
+  arithmetic flags in Veri ayak izi, the raw pair ids and the id columns moved last or deleted.
+- **Sheets deleted:** Kullanım (its verdict is a plan column), BPMN dizini (the plan carries the file name),
+  Yapı sıklığı (the parser's own diagnostic), Taslaklar and Ürünle gelenler (now rows of Kapsam dışı).
+- **Why not just an autofilter:** a filter is a state the reader has to notice and re-apply, and a saved filter in
+  .xlsx hides rows without saying so. A second file cannot be misread as the work.
+- **Count chain:** clustering now excludes the never-run test names too, so the `aileler` link gained a fourth
+  term (`clusters.testNamedHeldApart`); the chain still has to balance or the run fails.

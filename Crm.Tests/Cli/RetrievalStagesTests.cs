@@ -83,9 +83,8 @@ public sealed class RetrievalStagesTests
         Assert.Equal(3, counts["drift.pairsCompared"]);
         Assert.Equal(1, counts["drift.structureDiffers"]);
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        Assert.Contains(plan.Rows("Sapma"), row => row.Count > 4
-            && row[2] == FakeOrganization.WorkflowId(2).ToString("D") && row[3] == FakeOrganization.WorkflowId(3).ToString("D")
-            && row[4] == "evet");
+        Assert.Contains(plan.Rows("Sapma"), row => row.Count > 3
+            && row[2] == "evet" && row[3] == FakeOrganization.WorkflowId(2).ToString("D"));
     }
 
     [Fact]

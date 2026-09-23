@@ -31,8 +31,9 @@ public static class RunReport
 
         text.AppendLine("## Çalışma kitapları").AppendLine();
         text.AppendLine("Her kitabın ilk sayfası **Nasıl okunur**: sütunlar, uyarılar ve bu çalıştırmanın sayıları oradadır.").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.PlanWorkbook)}` — **işin kendisi.** Sayfalar: {SheetNames.Plan} (her iş akışı için bir satır, canlı süreçler başta) · {SheetNames.Usage} · {SheetNames.CallGraph} · {SheetNames.Trees} · {SheetNames.Diagrams} · {SheetNames.Unmapped} ({Count(state, "ir.workflowsWithUnmapped")} iş akışı) · {SheetNames.Constructs} · {SheetNames.Drift} (çalışan kopyası farklı {Count(state, "drift.structureDiffers")} tanım).");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.FamilyWorkbook)}` — **hangileri aynı.** Sayfalar: {SheetNames.Families} · {SheetNames.Consolidation} ({Count(state, "consolidation.workflowsCombined")} iş akışını kapsayan {Count(state, "consolidation.combined")} aile birleştirildi, {Count(state, "consolidation.skipped")} birleştirilmedi) · {SheetNames.Pairs} · {SheetNames.Drafts} ({Count(state, "usage.drafts")}) · {SheetNames.Supplied} ({Count(state, "clusters.suppliedHeldApart")}).");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.PlanWorkbook)}` — **işin kendisi.** Sayfalar: {SheetNames.Plan} (taşınacak her iş akışı için bir satır) · {SheetNames.CallGraph} · {SheetNames.Trees} · {SheetNames.Unmapped} ({Count(state, "ir.workflowsWithUnmapped")} iş akışı) · {SheetNames.Drift} (çalışan kopyası farklı {Count(state, "drift.structureDiffers")} tanım).");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.OutOfScopeWorkbook)}` — **planın dışında kalanlar:** {Count(state, "plan.excluded")} iş akışı ({Count(state, "usage.drafts")} taslak, {Count(state, "clusters.suppliedHeldApart")} ürünle gelen, kalanı adı deneme gibi olup hiç çalışmamış olanlar). Plan sayfasını süzmeye gerek yok.");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.FamilyWorkbook)}` — **hangileri aynı.** Sayfalar: {SheetNames.Families} · {SheetNames.Consolidation} ({Count(state, "consolidation.workflowsCombined")} iş akışını kapsayan {Count(state, "consolidation.combined")} aile birleştirildi, {Count(state, "consolidation.skipped")} birleştirilmedi) · {SheetNames.Pairs}.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.DataWorkbook)}` — **ne neye dokunuyor.** Birden fazla iş akışının yazdığı {Count(state, "data.sharedFields")} alan; {Count(state, "data.cascadePairs")} çift arasında {Count(state, "data.cascades")} tetikleme zinciri.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.ExternalSystemsWorkbook)}` — **CRM dışına ne uzanıyor.** {Count(state, "external.activities")} özel etkinlik; iş akışlarının geçirdiği {Count(state, "external.addresses")} farklı adres.");
         text.AppendLine();
@@ -80,7 +81,7 @@ public static class RunReport
             text.AppendLine(CultureInfo.InvariantCulture, $"| {verdict.Key} | {verdict.Value} |");
         }
         text.AppendLine().AppendLine(CultureInfo.InvariantCulture,
-            $"Adı taslak veya deneme gibi okunan {Count(state, "usage.testNamedActive")} etkin iş akışı var; bunlar üretimde çalışabilir, ada göre temizlik yapmayın. Listesi çalışma kitabının **{SheetNames.Usage}** sayfasındadır.").AppendLine();
+            $"Adı taslak veya deneme gibi okunan {Count(state, "usage.testNamedActive")} etkin iş akışı var; kayıtlı çalışması olanlar planda bırakıldı, ada göre temizlik yapmayın. Kalanlar `{Name(RunPaths.OutOfScopeWorkbook)}` kitabındadır.").AppendLine();
     }
 
     /// <summary>The file name on its own: inside raporlar/ the folder prefix is noise.</summary>

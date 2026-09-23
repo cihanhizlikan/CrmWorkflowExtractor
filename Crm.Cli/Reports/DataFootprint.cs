@@ -102,13 +102,12 @@ public static class DataFootprint
     public static Sheet Build(IReadOnlyList<WorkflowIr> documents)
     {
         Dictionary<Guid, string> names = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity.Name);
-        Sheet csv = new(SheetNames.DataFootprint, "varlik", "alan", "yazan", "okuyan", "bu_alanin_baslattigi",
-            "paylasilan_yazma", "is_akisi_baslatir", "yazanlar", "okuyanlar", "baslattiklari");
+        Sheet csv = new(SheetNames.DataFootprint, "varlik", "alan", "yazan", "bu_alanin_baslattigi", "okuyan",
+            "yazanlar", "baslattiklari", "okuyanlar");
         foreach (FieldUse use in Fields(documents).OrderByDescending(use => use.Writers.Count).ThenBy(use => use.Entity, StringComparer.Ordinal).ThenBy(use => use.Field, StringComparer.Ordinal))
         {
-            csv.Row(use.Entity, use.Field, use.Writers.Count, use.Readers.Count, use.TriggeredBy.Count,
-                use.Writers.Count > 1, use.TriggeredBy.Count > 0 && use.Writers.Count > 0,
-                Names(names, use.Writers), Names(names, use.Readers), Names(names, use.TriggeredBy));
+            csv.Row(use.Entity, use.Field, use.Writers.Count, use.TriggeredBy.Count, use.Readers.Count,
+                Names(names, use.Writers), Names(names, use.TriggeredBy), Names(names, use.Readers));
         }
         return csv;
     }
@@ -116,13 +115,13 @@ public static class DataFootprint
     public static Sheet BuildCascades(IReadOnlyList<WorkflowIr> documents)
     {
         Dictionary<Guid, WorkflowIdentity> byId = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity);
-        Sheet csv = new(SheetNames.Cascades, "baslatan", "nasil", "baslayan", "hangi_veri", "baslatan_modu", "baslayan_modu", "kendini_baslatiyor");
+        Sheet csv = new(SheetNames.Cascades, "baslatan", "baslayan", "nasil", "hangi_veri", "kendini_baslatiyor", "baslatan_modu", "baslayan_modu");
         foreach (Cascade cascade in Cascades(documents)
             .OrderBy(cascade => byId[cascade.Source].Name, StringComparer.Ordinal)
             .ThenBy(cascade => byId[cascade.Target].Name, StringComparer.Ordinal))
         {
-            csv.Row(byId[cascade.Source].Name, cascade.Kind, byId[cascade.Target].Name, cascade.Through,
-                byId[cascade.Source].Mode, byId[cascade.Target].Mode, cascade.Source == cascade.Target);
+            csv.Row(byId[cascade.Source].Name, byId[cascade.Target].Name, cascade.Kind, cascade.Through,
+                cascade.Source == cascade.Target, byId[cascade.Source].Mode, byId[cascade.Target].Mode);
         }
         return csv;
     }

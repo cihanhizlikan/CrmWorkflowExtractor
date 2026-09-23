@@ -17,7 +17,7 @@ public sealed class MigrationPlanTests
     }
 
     [Fact]
-    public async Task Diagrams_Are_Filed_By_Category_And_Entity_With_An_Index()
+    public async Task Diagrams_Are_Filed_By_Category_And_Entity()
     {
         using TemporaryOutput output = new();
 
@@ -29,9 +29,10 @@ public sealed class MigrationPlanTests
         Assert.True(File.Exists(Path.Combine(bpmn, "is-akisi", "new-claim", "hasar-onay-10.bpmn")));
         Assert.Empty(Directory.GetFiles(bpmn, "*.bpmn", SearchOption.TopDirectoryOnly));
 
+        // The plan carries the file beside the workflow, so no second index sheet has to be kept in step with it.
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        Assert.Contains(plan.Rows("BPMN dizini"), row => row.Count > 1
-            && row[0] == "is-akisi/new-policy/police-iptal-sureci-0.bpmn" && row[1] == "Poliçe İptal Süreci 0");
+        Assert.Contains(plan.Rows("Taşıma planı"), row => row.Count > 1 && row[1] == "Poliçe İptal Süreci 0"
+            && row.Contains("is-akisi/new-policy/police-iptal-sureci-0.bpmn"));
     }
 
     [Fact]
@@ -43,16 +44,14 @@ public sealed class MigrationPlanTests
             importFile: Fixture("mock-crm-export.json"), usageFile: Fixture("mock-usage-export.json"));
 
         Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        Assert.Equal(["Nasıl okunur", "Taşıma planı", "Kullanım", "Çağrı ağacı", "Süreç ağaçları", "BPMN dizini",
-        "Okunamayan yapılar", "Yapı sıklığı", "Sapma"], workbook.Names);
+        Assert.Equal(["Nasıl okunur", "Taşıma planı", "Çağrı ağacı", "Süreç ağaçları", "Okunamayan yapılar", "Sapma"], workbook.Names);
         // The guide travels inside the workbook, so a reader who has the file has the column meanings too.
         Assert.Contains(workbook.Rows("Nasıl okunur"), row => row.Count > 1 && row[0] == "Bu kitap ne işe yarar");
         IReadOnlyList<IReadOnlyList<string>> rows = workbook.Rows("Taşıma planı");
-        Assert.Equal(1 + 46, rows.Count);
-        Assert.Equal(["öncelik", "is_akisi", "bpmn_dosyasi"], rows[0].Take(3));
-        // Priority 1 is a live process; the 44 drafts (43 with XAML) sort last. The band is a number, so Excel sorts it.
+        Assert.Equal(["öncelik", "is_akisi", "kategori"], rows[0].Take(3));
+        // The plan is the work itself: nothing in it is a draft, and nobody has to filter it to find the real rows.
+        Assert.DoesNotContain(rows.Skip(1), row => row.Contains("Taslak"));
         Assert.Equal("1", rows[1][0]);
-        Assert.Equal("4", rows[^1][0]);
         Assert.True(workbook.IsNumeric("Taşıma planı", 1, 0));
         Assert.True(workbook.HasFrozenHeaderAndFilter("Taşıma planı"));
         Assert.Contains(rows, row => row.Any(cell => cell.Contains("Kullanılıyor: son kayıtlı çalışma 2026-09-20", StringComparison.Ordinal)));
@@ -91,12 +90,16 @@ public sealed class MigrationPlanTests
 
         Assert.True(code == ExitCode.Success, console);
         Workbook families = Workbook.Open(Path.Combine(runRoot, "raporlar", "aileler.xlsx"));
-        Assert.Contains(families.Rows("Ürünle gelenler"), row => row.Contains("Poliçe İptal Süreci 6"));
         Assert.DoesNotContain(families.Rows("Aileler"), row => row.Contains("Poliçe İptal Süreci 6"));
 
-        // It keeps its diagram and its row, marked, so nothing disappears silently.
+        // It leaves the plan for its counterpart book, with the reason beside it, and keeps its diagram: nothing
+        // disappears silently, and nobody has to filter the plan to find the work that is actually theirs.
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        Assert.Contains(plan.Rows("Taşıma planı"), row => row.Count > 1 && row[0] == "5" && row[1] == "Poliçe İptal Süreci 6");
+        Assert.DoesNotContain(plan.Rows("Taşıma planı"), row => row.Contains("Poliçe İptal Süreci 6"));
+        Workbook excluded = Workbook.Open(Path.Combine(runRoot, "raporlar", "kapsam-disi.xlsx"));
+        Assert.Equal(["Nasıl okunur", "Kapsam dışı"], excluded.Names);
+        IReadOnlyList<string> row6 = Assert.Single(excluded.Rows("Kapsam dışı"), row => row.Contains("Poliçe İptal Süreci 6"));
+        Assert.StartsWith("ürünle gelmiş", row6[0], StringComparison.Ordinal);
         Assert.True(File.Exists(Path.Combine(runRoot, "bpmn", "is-akisi", "new-policy", "police-iptal-sureci-6.bpmn")));
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
