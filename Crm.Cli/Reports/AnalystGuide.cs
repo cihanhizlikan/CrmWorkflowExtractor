@@ -115,8 +115,9 @@ public static class AnalystGuide
             + "görünmez; yalnızca burada vardır.", 26);
         pdf.Step(6, "dis-sistemler.xlsx — entegrasyon yükü",
             "CRM dışına uzanan çağrılar. Buradaki her etkinlik, yeni üründe ayrı bir iş kalemidir.");
-        pdf.Bullet("Dış bağımlılıklar — çağrılan kod ve onu çağıran akışlar, en çok akışı etkileyen üstte. "
-            + "Etkinliğin içinde ne olduğunu yalnızca derlemenin sahibi söyleyebilir.", 26);
+        pdf.Bullet("Dış bağımlılıklar — çağrılan kod, onu çağıran akışlar ve çağrının parametre adları. Parametreler "
+            + "arkadaki operasyonu tarif eder: entegrasyon maddelerinizi bu sütundan çıkarın. Kodun içinde ne olduğunu "
+            + "yalnızca derlemenin sahibi söyleyebilir.", 26);
         pdf.Bullet("Adresler — tanımın metnine yazılmış adresler, sunucusuyla birlikte. Boş olması \"hiçbir yere bağlanmıyor\" "
             + "demek değildir: adres çoğu zaman etkinliğin kendi kodundadır.", 26);
     }

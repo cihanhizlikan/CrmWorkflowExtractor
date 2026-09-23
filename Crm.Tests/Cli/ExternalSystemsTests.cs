@@ -42,6 +42,9 @@ public sealed class ExternalSystemsTests
         ExternalDependency dependency = Assert.Single(dependencies);
         Assert.Equal("NotifyPolicyService", dependency.Activity);
         Assert.Equal(["Hasar Onay", "Poliçe İptal"], dependency.Workflows);
+        // The names it is called with, gathered once across every call site: the closest thing to a signature CRM
+        // keeps, and the only thing in the record that says what the activity actually does.
+        Assert.Equal(["Credentials", "ServiceUrl"], dependency.Parameters);
     }
 
     /// <summary>
@@ -93,7 +96,7 @@ public sealed class ExternalSystemsTests
         Assert.True(code == ExitCode.Success, console);
         Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "dis-sistemler.xlsx"));
         Assert.Equal(["Nasıl okunur", "Dış bağımlılıklar", "Adresler"], workbook.Names);
-        Assert.Equal(["etkinlik", "cagiran_is_akisi_sayisi", "cagiran_is_akislari", "derleme"],
+        Assert.Equal(["etkinlik", "cagiran_is_akisi_sayisi", "parametreler", "cagiran_is_akislari", "derleme"],
             workbook.Headers("Dış bağımlılıklar"));
         Assert.Contains(workbook.Rows("Dış bağımlılıklar"), row => row.Contains("NotifyPolicyService"));
         Assert.Equal(["sunucu", "adres", "is_akisi"], workbook.Headers("Adresler"));

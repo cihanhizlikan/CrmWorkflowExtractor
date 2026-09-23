@@ -542,3 +542,16 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   twelve field names in one cell that veri-analizi.xlsx carries properly.
 - **Guide:** every column now has a line saying what a reader does because of it, every workbook lists its sheets
   in reading order, and the PDF walks file → sheet → column at each of its ten steps.
+### The call signature of a custom activity (2026-09-23) — committed, awaiting merge
+- **Maintainer:** we cannot find a ServiceUrl anywhere in the diagrams — can the tool not see web service calls?
+- **Answered from the data.** The parser captures the arguments (thousands of them across the estate; "no arguments"
+  appeared 11 times). There is no `ServiceUrl` parameter at all: the URL-shaped names that do exist — `TargetUrl`,
+  `CrmUrl`, `EntityURL`, `RecordUrl`, `*DynamicUrls` — are CRM's own addresses, record and dialog links. The
+  endpoints live inside the activities' assemblies, in no CRM record, and cannot be reached from here.
+- **What CRM does keep is the names.** `dis-sistemler.xlsx` → Dış bağımlılıklar gained a `parametreler` column: every
+  name an activity is called with, gathered across its call sites. `GetPersonEntityInformationRq`,
+  `ApproveClaimFundSellResult`, `ReversePendingCCPaymentsResult` — these name the back-end operation, which is what
+  an analyst needs to plan the integration. The address would not have told them that.
+- **Security, found on the way:** `UserName`, `PassWord` and `FtpUserID` appear as workflow arguments — credentials
+  written into definitions. The column now shows which activity carries them; the values stay in the restricted
+  report. The guide says to pass this to the security team.

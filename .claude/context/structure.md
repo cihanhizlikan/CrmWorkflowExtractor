@@ -45,7 +45,9 @@ it is easy to leave out of a delivery). `ExcelWorkbook` writes .xlsx by hand —
 Addresses in `dis-sistemler.xlsx` are read from every literal in the definition — the same text the sensitive
 scan reads — not from the arguments the parser captured on steps: on the real data every address sat somewhere
 else, and the delivered page came out empty while the restricted report was reporting embedded addresses. What a
-custom activity does inside its own assembly is still invisible, and most endpoints are there.
+custom activity does inside its own assembly is still invisible, and most endpoints are there. What CRM does keep
+is the names an activity is called with, gathered per activity as its `parametreler`: the closest thing to a
+signature, and the only record of which back-end operation a call stands for.
 
 **A column exists only if a line can be written in the workbook's guide saying what a reader does differently
 because of it**, and a page exists only if its rows are things to act on: the call pages carry only workflows that

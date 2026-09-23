@@ -5,8 +5,8 @@ using Crm.Ir.Reports;
 
 namespace Crm.Cli.Reports;
 
-/// <summary>One custom activity and every workflow that calls it.</summary>
-public sealed record ExternalDependency(string Activity, string Assembly, IReadOnlyList<string> Workflows);
+/// <summary>One custom activity, every workflow that calls it, and the names it is called with.</summary>
+public sealed record ExternalDependency(string Activity, string Assembly, IReadOnlyList<string> Workflows, IReadOnlyList<string> Parameters);
 
 /// <summary>One address written into a workflow's definition, and the workflow that carries it.</summary>
 public sealed record ExternalAddress(string Host, string Address, string Workflow);
@@ -29,6 +29,7 @@ public static partial class ExternalSystems
     public static IReadOnlyList<ExternalDependency> Dependencies(IReadOnlyList<WorkflowIr> documents)
     {
         Dictionary<string, List<string>> callers = new(StringComparer.Ordinal);
+        Dictionary<string, List<string>> parameters = new(StringComparer.Ordinal);
         foreach (WorkflowIr document in documents)
         {
             foreach (StepNode step in Walk(document.Steps).Where(step => step.Kind == StepKind.CustomActivity))
@@ -42,17 +43,29 @@ public static partial class ExternalSystems
                 {
                     workflows = [];
                     callers[type] = workflows;
+                    parameters[type] = [];
                 }
                 if (!workflows.Contains(document.Identity.Name, StringComparer.Ordinal))
                 {
                     workflows.Add(document.Identity.Name);
+                }
+                // The names the activity is called with, gathered across every call site: the closest thing to a
+                // signature that CRM keeps. They name the operation behind the activity, which the endpoint — sitting
+                // in the assembly, out of reach — never does.
+                foreach (NamedArgument argument in step.Arguments)
+                {
+                    if (!parameters[type].Contains(argument.Name, StringComparer.Ordinal))
+                    {
+                        parameters[type].Add(argument.Name);
+                    }
                 }
             }
         }
 
         return
         [
-            .. callers.Select(entry => new ExternalDependency(ShortName(entry.Key), AssemblyOf(entry.Key), [.. entry.Value.Order(StringComparer.Ordinal)]))
+            .. callers.Select(entry => new ExternalDependency(ShortName(entry.Key), AssemblyOf(entry.Key),
+                    [.. entry.Value.Order(StringComparer.Ordinal)], [.. parameters[entry.Key].Order(StringComparer.Ordinal)]))
                 .OrderByDescending(dependency => dependency.Workflows.Count)
                 .ThenBy(dependency => dependency.Activity, StringComparer.Ordinal)
         ];
@@ -78,10 +91,11 @@ public static partial class ExternalSystems
 
     public static Sheet BuildDependencies(IReadOnlyList<WorkflowIr> documents)
     {
-        Sheet sheet = new(SheetNames.ExternalDependencies, "etkinlik", "cagiran_is_akisi_sayisi", "cagiran_is_akislari", "derleme");
+        Sheet sheet = new(SheetNames.ExternalDependencies, "etkinlik", "cagiran_is_akisi_sayisi", "parametreler", "cagiran_is_akislari", "derleme");
         foreach (ExternalDependency dependency in Dependencies(documents))
         {
-            sheet.Row(dependency.Activity, dependency.Workflows.Count, string.Join(" | ", dependency.Workflows), dependency.Assembly);
+            sheet.Row(dependency.Activity, dependency.Workflows.Count, string.Join(" | ", dependency.Parameters),
+                string.Join(" | ", dependency.Workflows), dependency.Assembly);
         }
         return sheet;
     }

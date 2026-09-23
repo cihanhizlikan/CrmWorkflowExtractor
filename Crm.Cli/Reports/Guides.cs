@@ -139,6 +139,14 @@ public static class Guides
         sheet.Row("etkinlik · derleme", "Çağrılan kodun adı ve içinde bulunduğu derleme. Yeni üründe her birinin karşılığını kurmanız gerekir; "
             + "ne yaptığını yalnızca derlemenin sahibi söyleyebilir.");
         sheet.Row("cagiran_is_akisi_sayisi · cagiran_is_akislari", "Kaç akışı etkiliyor. Üstteki satırlar en çok akışı etkileyenlerdir: oradan başlayın.");
+        sheet.Row("parametreler",
+            "Etkinliğin iş akışından aldığı ve ona geri verdiği adların tamamı — CRM'in tuttuğu en yakın şey bir imzadır. "
+            + "Adresi söylemez ama ARKADAKİ OPERASYONU söyler: \"GetPersonEntityInformationRq\" ya da \"ApproveClaimFundSellResult\" "
+            + "gibi bir ad, yeni üründe hangi servis çağrısının kurulacağını tarif eder. Yeni tasarımın entegrasyon "
+            + "maddelerini bu sütundan çıkarın.");
+        sheet.Row("parametrelerde kimlik bilgisi",
+            "Bu sütunda UserName, PassWord, FtpUserID gibi bir ad görürseniz, kimlik bilgisi iş akışı tanımının içine "
+            + "yazılmış demektir. Değerleri kısıtlı rapordadır (hassas-degerler.md); bilgi güvenliği ekibine iletin.");
         sheet.Row("Görülemeyen",
             "Etkinliğin kendi derlemesi içinde ne yaptığı XAML'de yoktur: koda ya da konfigürasyona gömülü bir adres buradan "
             + "GÖRÜNMEZ ve çoğu adres oradadır. Ayrıca eklentiler (plug-in) iş akışı değildir; bu envantere hiç girmezler.");
