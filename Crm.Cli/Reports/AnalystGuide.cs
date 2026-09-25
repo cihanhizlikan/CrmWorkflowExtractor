@@ -155,7 +155,8 @@ public static class AnalystGuide
         pdf.Step(3, "Diyagramı açın",
             "bpmn_dosyasi sütunundaki dosyayı bpmn.io ya da Camunda Modeler ile açın. Üstteki not kutusunu okuyun: "
             + "künye, rol, aile, kullanım ve uyarılar oradadır. Sonra akışı soldan sağa izleyin; elmasların üzerindeki "
-            + "metin CRM'deki koşulun kendisidir.");
+            + "metin CRM'deki koşulun kendisidir. Solundaki ad çoğunlukla bir alandır (varlik.alan); bir özel etkinliğin "
+            + "döndürdüğü değer karşılaştırılıyorsa o etkinliğin adı ve çıktısı yazar (Etkinlik.Cikti).");
         pdf.Step(4, "Tetikleyiciyi karara bağlayın",
             "Akışı ne başlatıyor ve yeni üründe aynı olayın karşılığı var mı? Yoksa olayı kim üretecek? "
             + "Bu, tasarımın ilk kararıdır; cevabı yazmadan devam etmeyin.");

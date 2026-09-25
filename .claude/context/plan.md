@@ -640,3 +640,22 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   matters is already its own column. Every list cell in every workbook goes through it.
 - **What it does not fix:** the file already produced. Excel emptied that cell on open; the next run writes it
   properly.
+### The name behind the question mark (2026-09-25) — committed, awaiting merge
+- **Maintainer:** several `?` on the BPMNs where a parameter name should be; find the name and show it.
+- **Where it came from.** A condition's left side was printed as `entity.attribute` when a `GetEntityProperty`
+  filled the operand variable, and as a literal `?` when nothing did. Nothing does whenever the designer compares
+  what an activity handed back rather than a field — which is exactly the interesting case, and the one an
+  analyst redrawing the process most needs named.
+- **The name is in the definition.** `ExpressionIndex` now also indexes who WROTE each variable: an
+  `ActivityReference`'s keyed `OutArgument`s and a custom activity's own output property elements. A condition on
+  an activity output reads `CheckPolicyStatus.Durum Equal Aktif`. `ConvertCrmXrmTypes` is followed back the way a
+  literal already was, so the converter never takes the credit.
+- **No question mark is left anywhere.** When neither a read nor a writer is known the designer's own variable is
+  printed: a poor name, but a traceable one — it can be searched for in the XAML, which `?` cannot. The same goes
+  for the two halves of an `AND`/`OR`, and a missing comparison operator is now omitted rather than printed as a
+  `?` that looks like an operator.
+- **Not done:** relaxing `GetEntityProperty` to accept a read with no `EntityName`. It would name more subjects,
+  but no sample shows that shape exists, and a fixture invented to justify it would prove nothing.
+- **Acceptance on the company network — Do:** reprocess and search the BPMN folder for `?`. **Pass:** no
+  condition label contains one. **Capture:** the count of labels of the form `Activity.Argument`, and one example
+  label; no workflow names needed.

@@ -574,7 +574,7 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
                 Predicate? left = PredicateOf(logical.Left, path);
                 Predicate? right = PredicateOf(logical.Right, path);
                 string word = logical.Operator.ToUpperInvariant();
-                return new Predicate($"({left?.Text ?? "?"}) {word} ({right?.Text ?? "?"})", left?.Entity, left?.Attribute, logical.Operator,
+                return new Predicate($"({left?.Text ?? Subject(logical.Left)}) {word} ({right?.Text ?? Subject(logical.Right)})", left?.Entity, left?.Attribute, logical.Operator,
                     [.. (left?.Values ?? []).Concat(right?.Values ?? [])]);
             }
             if (!Index.Comparisons.TryGetValue(variable, out Comparison? comparison))
@@ -591,10 +591,27 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
             List<LiteralValue> values = [.. comparison.ParameterVariables
                 .SelectMany(Index.ValuesOf)
                 .Select(raw => new LiteralValue(raw, Labels.Resolve(read?.Entity, read?.Attribute, raw)))];
-            string subject = read is null ? "?" : $"{read.Entity}.{read.Attribute}";
             string shown = string.Join(", ", values.Select(value => value.Resolved is null ? value.Raw : $"{value.Resolved} ({value.Raw})"));
-            string text = values.Count == 0 ? $"{subject} {comparison.Operator}" : $"{subject} {comparison.Operator} {shown}";
+            string text = string.Join(" ", new[] { Subject(comparison.OperandVariable), comparison.Operator, shown }.Where(part => part.Length > 0));
             return new Predicate(text, read?.Entity, read?.Attribute, comparison.Operator, values);
+        }
+
+        /// <summary>
+        /// What a condition compares, named as well as the definition allows: the field it read, else the activity
+        /// and output argument that produced the value, else the designer's own variable. The variable is a poor
+        /// name but a traceable one — the diagram used to print a bare question mark here, which named nothing.
+        /// </summary>
+        private string Subject(string variable)
+        {
+            if (Index.Reads.GetValueOrDefault(variable) is AttributeRead read)
+            {
+                return $"{read.Entity}.{read.Attribute}";
+            }
+            if (Index.Writers.GetValueOrDefault(variable) is VariableSource source)
+            {
+                return source.Text;
+            }
+            return variable;
         }
     }
 }

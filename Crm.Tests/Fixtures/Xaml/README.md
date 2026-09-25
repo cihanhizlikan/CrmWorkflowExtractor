@@ -15,8 +15,9 @@ literals replaced) and keep this note accurate about which files are which.
 | `wait-timeout.xaml` | wait condition with a timeout |
 | `unknown-construct.xaml` | a Microsoft activity and an element the parser does not know |
 | `production-helpers.xaml` | the helper constructs the first production run reported as unmapped (`ConvertCrmXrmTypes`, `OptionSetValue`, `XrmTimeSpan`, `If`+`RetrieveEntity`, element-form `Postpone`). The construct **names** and where they sit come from that run's coverage report; the markup around them is still written from the documented shape |
+| `business-rule.xaml` | a business rule: condition, then show/hide + required level, otherwise error message + lock. **Construct names from the production coverage report; markup guessed** |
+| `dialog.xaml` | a dialog: data query, a page of two prompts, a child dialog call. **Construct names from the production coverage report; markup guessed** |
+| `condition-on-activity-output.xaml` | a condition that compares what a custom activity returned rather than a field, through a `ConvertCrmXrmTypes` — the case the diagram used to label with a bare question mark |
 
 Not covered yet, because their XAML shape could not be written credibly without a sample: Business Process Flow,
 Dialog, business rule.
-| `business-rule.xaml` | a business rule: condition, then show/hide + required level, otherwise error message + lock. **Construct names from the production coverage report; markup guessed** |
-| `dialog.xaml` | a dialog: data query, a page of two prompts, a child dialog call. **Construct names from the production coverage report; markup guessed** |

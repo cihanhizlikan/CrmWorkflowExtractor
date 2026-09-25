@@ -6,6 +6,19 @@ namespace Crm.Ir.Parsing;
 /// <summary>An attribute read into a variable by <c>GetEntityProperty</c>.</summary>
 internal sealed record AttributeRead(string Entity, string Attribute);
 
+/// <summary>
+/// The activity that wrote a variable and which of its output arguments did — <c>NotifyPolicyService.Sonuc</c>.
+/// A condition whose operand came from an activity rather than from a field has no attribute name to show, and
+/// this is the next best one: without it the diagram showed a bare question mark, which names nothing.
+/// </summary>
+internal sealed record VariableSource(string Activity, string Argument)
+{
+    public string Text
+    {
+        get { return Argument.Length == 0 ? Activity : $"{Activity}.{Argument}"; }
+    }
+}
+
 /// <summary>A comparison written by <c>EvaluateCondition</c>: operand variable, operator, parameter variables.</summary>
 internal sealed record Comparison(string OperandVariable, string Operator, IReadOnlyList<string> ParameterVariables);
 
@@ -23,6 +36,9 @@ internal sealed partial class ExpressionIndex
 
     public Dictionary<string, AttributeRead> Reads { get; } = new(StringComparer.Ordinal);
 
+    /// <summary>Variable → the activity and output argument that wrote it, for variables no field read fills.</summary>
+    public Dictionary<string, VariableSource> Writers { get; } = new(StringComparer.Ordinal);
+
     public Dictionary<string, IReadOnlyList<string>> Literals { get; } = new(StringComparer.Ordinal);
 
     public Dictionary<string, Comparison> Comparisons { get; } = new(StringComparer.Ordinal);
@@ -37,6 +53,7 @@ internal sealed partial class ExpressionIndex
         ExpressionIndex index = new();
         foreach (XElement element in root.Descendants())
         {
+            index.AddWriters(element);
             if (element.Name.LocalName == "GetEntityProperty")
             {
                 index.AddRead(element);
@@ -124,6 +141,42 @@ internal sealed partial class ExpressionIndex
         }
     }
 
+    /// <summary>
+    /// Every output argument this element writes. Two shapes carry one: an <c>ActivityReference</c> keys them inside
+    /// <c>.Arguments</c>, and a custom activity writes them as property elements of its own type. The first writer of
+    /// a variable is kept: a later assignment to the same designer variable belongs to a different step.
+    /// </summary>
+    private void AddWriters(XElement element)
+    {
+        string? aqn = XamlNames.AssemblyQualifiedName(element);
+        if (aqn is not null)
+        {
+            foreach (XElement argument in element.Elements().Where(child => child.Name.LocalName == "ActivityReference.Arguments")
+                .SelectMany(child => child.Elements()).Where(child => child.Name.LocalName is "OutArgument" or "InOutArgument"))
+            {
+                Write(VariableOf(argument.Value), XamlNames.ShortTypeName(aqn), XamlNames.Key(argument) ?? "");
+            }
+            return;
+        }
+        foreach (XElement property in element.Elements().Where(XamlNames.IsPropertyElement))
+        {
+            string local = property.Name.LocalName;
+            string name = local[(local.IndexOf('.', StringComparison.Ordinal) + 1)..];
+            foreach (XElement written in property.Descendants().Where(child => child.Name.LocalName is "OutArgument" or "InOutArgument"))
+            {
+                Write(VariableOf(written.Value), element.Name.LocalName, name);
+            }
+        }
+    }
+
+    private void Write(string? variable, string activity, string argument)
+    {
+        if (variable is not null)
+        {
+            Writers.TryAdd(variable, new VariableSource(activity, argument));
+        }
+    }
+
     private void AddExpression(XElement element)
     {
         string? result = VariableOf(ArgumentText(element, "Result"));
@@ -172,6 +225,10 @@ internal sealed partial class ExpressionIndex
             {
                 Reads.TryAdd(result, read);
             }
+            if (Writers.TryGetValue(current, out VariableSource? writer))
+            {
+                Writers[result] = writer;
+            }
         }
     }
 
@@ -181,7 +238,7 @@ internal sealed partial class ExpressionIndex
         string? operand = VariableOf(ArgumentText(element, "Operand"));
         if (result is not null && operand is not null)
         {
-            Comparisons[result] = new Comparison(operand, ArgumentText(element, "ConditionOperator")?.Trim() ?? "?", VariablesIn(ArgumentText(element, "Parameters")));
+            Comparisons[result] = new Comparison(operand, ArgumentText(element, "ConditionOperator")?.Trim() ?? "", VariablesIn(ArgumentText(element, "Parameters")));
         }
     }
 
