@@ -37,6 +37,9 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>The code registered in CRM, and the addresses found inside the assemblies. Empty when not retrieved.</summary>
     public Crm.Extract.Metadata.PluginRegistry Plugins { get; set; } = Crm.Extract.Metadata.PluginRegistry.Empty;
 
+    /// <summary>The security roles that may start a process by hand. Empty, with a note, when it was not read.</summary>
+    public Crm.Extract.Security.RunAuthority RunAuthority { get; set; } = Crm.Extract.Security.RunAuthority.Empty;
+
     /// <summary>What the parser read and could not read. The sheet is built later, beside the diagram file names.</summary>
     public IReadOnlyList<Crm.Ir.Reports.WorkflowCoverage> Coverage { get; set; } = [];
 

@@ -25,7 +25,10 @@ public static class WorkflowColumns
         "runas", "triggeroncreate", "triggerondelete", "triggeronupdateattributelist", "createstage", "updatestage",
         "deletestage", "businessprocesstype", "processorder", "languagecode", "iscrmuiworkflow", "ismanaged",
         "componentstate", "_parentworkflowid_value", "_activeworkflowid_value", "createdon", "modifiedon",
-        "_createdby_value", "_modifiedby_value", "_ownerid_value", "versionnumber"
+        "_createdby_value", "_modifiedby_value", "_ownerid_value", "versionnumber",
+        // Not in §3.1. The business unit owning the RECORD is what a security role's read depth is measured
+        // against, so without it "who can see this to run it" cannot be answered at all.
+        "_owningbusinessunit_value"
     ];
 
     /// <summary>A lookup column <c>_x_value</c> is the attribute <c>x</c> in metadata.</summary>

@@ -84,6 +84,12 @@ public sealed record WorkflowIdentity(
     /// partner solution, not written here. Null when the server did not answer the column.
     /// </summary>
     public bool? IsManaged { get; init; }
+
+    /// <summary>The owner's display name, as CRM formats the lookup. The owner may be a user or a team.</summary>
+    public string? OwnerName { get; init; }
+
+    /// <summary>The business unit owning the workflow RECORD: what a role's read depth is measured against.</summary>
+    public string? OwningBusinessUnit { get; init; }
 }
 
 public sealed record WorkflowTrigger(

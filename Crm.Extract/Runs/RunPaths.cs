@@ -53,6 +53,9 @@ public static class RunPaths
     /// <summary>What the workflows reach outside CRM: the custom activities they call, and the addresses they pass.</summary>
     public const string ExternalSystemsWorkbook = Reports + "/dis-sistemler.xlsx";
 
+    /// <summary>Who may start a process by hand, whose identity it runs under, and which roles carry the right.</summary>
+    public const string RunAuthorityWorkbook = Reports + "/calistirma-yetkisi.xlsx";
+
 
 
 

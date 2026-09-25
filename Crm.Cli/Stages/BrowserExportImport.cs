@@ -4,6 +4,7 @@ using Crm.Extract.Inventory;
 using Crm.Extract.Metadata;
 using Crm.Extract.Preflight;
 using Crm.Extract.Runs;
+using Crm.Extract.Security;
 using Crm.Extract.Xaml;
 using Microsoft.Extensions.Logging;
 
@@ -82,6 +83,7 @@ public static class BrowserExportImport
         await RetrievalStages.RouteAndDriftAsync(folder, state, entries, token);
         await WriteOptionSetsAsync(folder, state, root, token);
         await WritePluginsAsync(folder, state, root, token);
+        await WriteRunAuthorityAsync(folder, state, root, token);
         await WriteProcessStagesAsync(folder, state, root, token);
         logger.LogInformation("Imported {Records} workflow records and {Xaml} XAML files from {File}", records.Count, entries.Count, file);
         return records;
@@ -193,6 +195,24 @@ public static class BrowserExportImport
         state.Counts["plugins.assemblies"] = plugins.Assemblies.Count;
         state.Counts["plugins.steps"] = plugins.Steps.Count;
         state.StagesRun.Add(RunStages.Plugins);
+    }
+
+    /// <summary>
+    /// Who may start a process by hand. The export reduces it in the browser — roles with their holder COUNTS, never
+    /// a list of people — so no user name travels in the file and none can leak from it.
+    /// </summary>
+    private static async Task WriteRunAuthorityAsync(RunFolder folder, RunState state, JsonElement root, CancellationToken token)
+    {
+        RunAuthority authority = root.TryGetProperty("runAuthority", out JsonElement rows)
+            ? RoleRetriever.Parse(rows)
+            : RunAuthority.Empty with { Note = "Bu dışa aktarım çalıştırma yetkisini içermiyor; daha eski bir sürümle alınmış." };
+        await folder.WriteJsonAsync(RoleRetriever.IndexFile, authority, token);
+        state.Counts["roles.canRun"] = authority.Roles.Count;
+        state.StagesRun.Add(RunStages.Roles);
+        if (authority.Note is not null)
+        {
+            state.Warnings.Add("Çalıştırma yetkisi okunamadı: " + authority.Note);
+        }
     }
 
     private static async Task WriteProcessStagesAsync(RunFolder folder, RunState state, JsonElement root, CancellationToken token)

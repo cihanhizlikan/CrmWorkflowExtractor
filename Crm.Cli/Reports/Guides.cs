@@ -177,6 +177,55 @@ public static class Guides
         return sheet;
     }
 
+    public static Sheet RunAuthority(int roles, int users, int teams, int onDemand, int inPlan, string? note)
+    {
+        Sheet sheet = Empty();
+        sheet.Row("Bu kitap ne işe yarar", "Bir süreci kimin elle başlatabildiğini ve başladığında KİMİN yetkileriyle "
+            + "çalıştığını gösterir. İkincisi yeni tasarımda bir karardır: adımların hangi hesabın gözüyle okuyup yazacağı.");
+        sheet.Row("Önce şunu bilin",
+            "CRM'de \"şu rol şu iş akışını çalıştırabilir\" diye bir kayıt YOKTUR. Elle başlatma tek bir yetkiye bağlıdır "
+            + "(prvExecuteWorkflowJob) ve bu yetki bütün süreçler için aynı anda verilir. Bu yüzden cevap iki sayfaya "
+            + "bölünmüştür: yetkiyi taşıyan roller, ve iş akışı başına gerçekten değişen iki bilgi.");
+        sheet.Row("Sayfa sırası", "Çalıştırma yetkisi (yetkiyi kim taşıyor) → Kim çalıştırabilir (iş akışı başına: "
+            + "elle başlatılabilir mi, kimin kimliğiyle çalışır)");
+        sheet.Row("rol · kullanici_sayisi · ekipler",
+            "Elle çalıştırma yetkisini taşıyan güvenlik rolü ve onu taşıyan kişi sayısı ile ekipler. Sorduğunuz "
+            + "\"hangi kullanıcı grubu\" budur: ekip adları kullanıcı adlarından daha kullanışlıdır ve kalıcıdır. "
+            + "Kişi adları bu pakete hiç çıkarılmaz; yalnızca sayılır.");
+        sheet.Row("calistirma_derinligi",
+            "Yetkinin nereye kadar ulaştığı: Kullanıcı (yalnızca kendi kayıtları) · İş birimi · İş birimi ve altı · Kurum. "
+            + "Kurum dışındaki bir derinlik, rolün her süreci başlatamayacağı anlamına gelir.");
+        sheet.Row("surec_gorme_derinligi",
+            "Rolün kaç süreç kaydını GÖREBİLDİĞİ. Görülmeyen bir süreç elle başlatılamaz, yetki dursa bile. Bunu "
+            + "diğer sayfadaki kaydin_is_birimi sütunu ile birlikte okuyun.");
+        sheet.Row("elle_baslatilabilir",
+            "evet ise kullanıcı bu süreci arayüzden başlatabilir; yeni üründe bunun bir karşılığı (bir düğme, bir "
+            + "eylem) kurulmalıdır. \"hayır\" ise süreci kimse elle başlatmaz: yalnızca CRM tetikler, ve yeni tasarımda "
+            + "aranacak şey tetikleyicidir, yetki değil.");
+        sheet.Row("calisma_kimligi",
+            "Adımların KİMİN yetkileriyle çalıştığı. \"Sahip\" ise süreç her zaman sahibinin gözüyle çalışır — kullanıcı "
+            + "kim olursa olsun. \"Çağıran Kullanıcı\" ise süreci başlatanın yetkileriyle çalışır, ve yetkisi yetmeyen "
+            + "bir kullanıcıda ADIM BAŞARISIZ OLUR. İkisi farklı tasarımlardır; satırı yazmadan geçmeyin.");
+        sheet.Row("sahip · sahip_turu",
+            "calisma_kimligi \"Sahip\" olduğunda adımların kullandığı hesap. Yeni üründe bu hesabın karşılığı "
+            + "kurulmalıdır. sahip_turu ekip ise yetki bir kişiye değil bir ekibe bağlıdır; bu daha sağlamdır ve "
+            + "yeni tasarımda da tercih edilmelidir.");
+        sheet.Row("kaydin_is_birimi",
+            "Sürecin KAYDININ bağlı olduğu iş birimi. Rolün süreç görme derinliği buna göre ölçülür: \"İş birimi\" "
+            + "derinliğindeki bir rol yalnızca kendi birimindeki süreçleri görür.");
+        sheet.Row("Görülemeyen",
+            "Bir sürecin tek bir kullanıcıyla ya da ekiple PAYLAŞILMIŞ olması. Paylaşım kayıtları Web API üzerinden "
+            + "okunamaz; paylaşımla verilmiş bir erişim bu listede hiç görünmez. Bu listeyi \"en az bunlar\" diye okuyun.");
+        sheet.Row("Bu çalıştırma", string.Create(CultureInfo.InvariantCulture,
+            $"{roles} rol elle çalıştırma yetkisi taşıyor · bu rollerde {users} kullanıcı ve {teams} ekip üyeliği · "
+            + $"plandaki {inPlan} süreçten {onDemand} tanesi elle başlatılabiliyor"));
+        if (!string.IsNullOrEmpty(note))
+        {
+            sheet.Row("Eksik", note);
+        }
+        return sheet;
+    }
+
     private static Sheet Empty()
     {
         return new Sheet(SheetNames.Guide, "Konu", "Açıklama");

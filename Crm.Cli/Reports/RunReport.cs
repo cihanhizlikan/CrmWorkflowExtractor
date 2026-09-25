@@ -38,6 +38,7 @@ public static class RunReport
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.FamilyWorkbook)}` — **hangileri aynı.** Sayfalar: {SheetNames.Families} · {SheetNames.Consolidation} ({Count(state, "consolidation.workflowsCombined")} iş akışını kapsayan {Count(state, "consolidation.combined")} aile birleştirildi, {Count(state, "consolidation.skipped")} birleştirilmedi) · {SheetNames.Pairs}.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.DataWorkbook)}` — **ne neye dokunuyor.** Birden fazla iş akışının yazdığı {Count(state, "data.sharedFields")} alan; {Count(state, "data.cascadePairs")} çift arasında {Count(state, "data.cascades")} tetikleme zinciri.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.ExternalSystemsWorkbook)}` — **CRM dışına ne uzanıyor.** {Count(state, "external.activities")} özel etkinlik; iş akışlarının geçirdiği {Count(state, "external.addresses")} farklı adres.");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.RunAuthorityWorkbook)}` — **kim başlatır, kimin yetkisiyle çalışır.** Elle çalıştırma yetkisini taşıyan {Count(state, "roles.canRun")} güvenlik rolü; plandaki {Count(state, "roles.onDemand")} süreç elle başlatılabiliyor.");
         text.AppendLine();
         text.AppendLine("## Kısıtlı ve yardımcı dosyalar").AppendLine();
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.SensitiveLiterals)}` — {Count(state, "sensitive.findings")} bulgu. KISITLI: bilgi güvenliği ekibi içindir, pakete konmaz.");

@@ -17,6 +17,7 @@ public static class OfflineStages
     {
         UsageEvidence? usage = await UsageStage.LoadAsync(folder, state, settings.Run.Value.UsageFile, logger, token);
         state.Plugins = PluginStage.Load(folder, state);
+        state.RunAuthority = RoleStage.Load(folder, state);
         IReadOnlyList<WorkflowIr> documents = await IrStage.RunAsync(folder, state, extractedAt, logger, token);
         state.Documents = documents;
         UsageStage.Summarize(state, documents, usage);
@@ -93,6 +94,10 @@ public static class OfflineStages
         await WriteWorkbookAsync(folder, state, RunPaths.ExternalSystemsWorkbook,
             [SheetNames.Guide, SheetNames.ExternalDependencies, SheetNames.Addresses, SheetNames.Plugins], token);
 
+        AuthoritySheets(state, MigrationPlan.InScope(documents, usage));
+        await WriteWorkbookAsync(folder, state, RunPaths.RunAuthorityWorkbook,
+            [SheetNames.Guide, SheetNames.RunRoles, SheetNames.RunAuthority], token);
+
         // Written last of all: it quotes the numbers and names a real workflow from everything above it.
         if (AnalystGuide.Build(state, documents, usage, logoFile) is byte[] guide)
         {
@@ -124,6 +129,22 @@ public static class OfflineStages
             .Distinct(StringComparer.OrdinalIgnoreCase).Count();
         state.Counts["external.addresses"] = state.Addresses.Select(address => address.Address).Distinct(StringComparer.OrdinalIgnoreCase).Count();
         state.Counts["external.hosts"] = state.Addresses.Select(address => address.Host).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+    }
+
+    /// <summary>
+    /// Who may start a process by hand. Two sheets rather than one joined table, because CRM grants the right
+    /// estate-wide: a single "these people can run this workflow" column would read as a grant CRM never makes.
+    /// </summary>
+    private static void AuthoritySheets(RunState state, IEnumerable<WorkflowIr> inScope)
+    {
+        List<WorkflowIr> plan = [.. inScope];
+        state.Sheets[SheetNames.RunRoles] = RunAuthorityReport.Roles(state.RunAuthority);
+        state.Sheets[SheetNames.RunAuthority] = RunAuthorityReport.Authority(plan, state.RunAuthority, state.BpmnFiles);
+        int onDemand = plan.Count(document => document.Identity.IsOnDemand == true);
+        state.Counts["roles.onDemand"] = onDemand;
+        state.Sheets[SheetNames.Guide] = Guides.RunAuthority(state.RunAuthority.Roles.Count,
+            state.RunAuthority.Roles.Sum(role => role.Users), state.RunAuthority.Roles.Sum(role => role.Teams.Count),
+            onDemand, plan.Count, state.RunAuthority.Note);
     }
 
     private static int Count(RunState state, string key)

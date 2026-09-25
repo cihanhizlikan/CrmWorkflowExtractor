@@ -5,7 +5,7 @@ using Xunit;
 namespace Crm.Tests.Cli;
 
 /// <summary>
-/// What is handed to the analysts is a subset of the run folder: the four workbooks, the diagrams, the combined
+/// What is handed to the analysts is a subset of the run folder: the five workbooks, the diagrams, the combined
 /// models and the report. The evidence, the restricted findings and the out-of-scope book stay with Enterprise
 /// Architecture. A delivered file that names one of those sends a reader looking for something they do not have,
 /// which is worse than saying nothing — so no delivered file names one.
@@ -20,7 +20,7 @@ public sealed class DeliveryTests
 
     private static readonly string[] Delivered =
     [
-        "tasima-plani.xlsx", "aileler.xlsx", "veri-analizi.xlsx", "dis-sistemler.xlsx"
+        "tasima-plani.xlsx", "aileler.xlsx", "veri-analizi.xlsx", "dis-sistemler.xlsx", "calistirma-yetkisi.xlsx"
     ];
 
     [Fact]

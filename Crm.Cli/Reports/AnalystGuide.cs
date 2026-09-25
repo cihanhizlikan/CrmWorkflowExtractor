@@ -122,6 +122,14 @@ public static class AnalystGuide
             + "demek değildir: adres çoğu zaman etkinliğin kendi kodundadır ve orası Dış bağımlılıklar sayfasında.", 26);
         pdf.Bullet("Eklentiler — iş akışı OLMAYAN, bir mesaj üzerinde çalışan kod. Taşıma planında hiç görünmezler ama "
             + "yeni üründe karşılıkları kurulmalıdır; kayıt konfigürasyonlarındaki adresler de buradadır.", 26);
+        pdf.Step(7, "calistirma-yetkisi.xlsx — kim başlatır, kimin yetkisiyle çalışır",
+            "CRM'de \"şu rol şu akışı çalıştırabilir\" diye bir kayıt yoktur: elle başlatma tek bir yetkiye bağlıdır ve "
+            + "bütün süreçler için aynı anda verilir. Bu yüzden cevap iki sayfaya bölünmüştür.");
+        pdf.Bullet("Çalıştırma yetkisi — yetkiyi taşıyan güvenlik rolleri, her birini kaç kişinin taşıdığı ve hangi "
+            + "ekiplerin bağlı olduğu. \"Hangi kullanıcı grubu\" sorusunun cevabı ekip adlarıdır. Kişi adları bu pakette yoktur.", 26);
+        pdf.Bullet("Kim çalıştırabilir — akış başına gerçekten değişen iki bilgi: elle başlatılabiliyor mu (yeni üründe "
+            + "bir düğme gerekir mi), ve calisma_kimligi — adımların KİMİN yetkileriyle çalıştığı. \"Sahip\" ise her zaman "
+            + "o hesabın gözüyle; \"Çağıran Kullanıcı\" ise başlatanın gözüyle, ve yetkisi yetmeyen birinde adım başarısız olur.", 26);
     }
 
     private static void Walkthrough(PdfDocument pdf, RunState state, UsageEvidence? usage, WorkflowIr? example)
@@ -157,9 +165,11 @@ public static class AnalystGuide
             + "künye, rol, aile, kullanım ve uyarılar oradadır. Sonra akışı soldan sağa izleyin; elmasların üzerindeki "
             + "metin CRM'deki koşulun kendisidir. Solundaki ad çoğunlukla bir alandır (varlik.alan); bir özel etkinliğin "
             + "döndürdüğü değer karşılaştırılıyorsa o etkinliğin adı ve çıktısı yazar (Etkinlik.Cikti).");
-        pdf.Step(4, "Tetikleyiciyi karara bağlayın",
+        pdf.Step(4, "Tetikleyiciyi ve çalışma kimliğini karara bağlayın",
             "Akışı ne başlatıyor ve yeni üründe aynı olayın karşılığı var mı? Yoksa olayı kim üretecek? "
-            + "Bu, tasarımın ilk kararıdır; cevabı yazmadan devam etmeyin.");
+            + "Aynı satırı calistirma-yetkisi.xlsx → Kim çalıştırabilir sayfasında da bulun: elle başlatılabiliyorsa "
+            + "yeni üründe bir düğme gerekir, ve calisma_kimligi adımların kimin yetkisiyle çalışacağını söyler. "
+            + "Bunlar tasarımın ilk kararlarıdır; cevaplarını yazmadan devam etmeyin.");
         pdf.Step(5, "Beklemeleri işaretleyin",
             "Diyagramdaki bekleme adımları süreci açık tutar. Her biri için \"ne kadar\" ve \"neyi bekliyor\" sorularını "
             + "cevaplayın: yeni üründe karşılığı bir zamanlayıcı ya da bekleyen bir görevdir.");

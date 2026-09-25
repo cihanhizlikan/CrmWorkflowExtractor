@@ -5,6 +5,7 @@ using Crm.Extract.Http;
 using Crm.Extract.Inventory;
 using Crm.Extract.Metadata;
 using Crm.Extract.Runs;
+using Crm.Extract.Security;
 using Crm.Extract.Xaml;
 using Microsoft.Extensions.Logging;
 
@@ -45,6 +46,17 @@ public static class RetrievalStages
         catch (CrmRequestException error)
         {
             state.Warnings.Add("Eklenti kayıtları alınamadı; özel etkinliklerin derlemelerindeki adresler görünmeyecek: " + error.Message);
+        }
+
+        // Who may start a process by hand. Its own retriever swallows a refusal into a note rather than throwing,
+        // because a locked-down account is refused the security tables far more often than it is refused a workflow.
+        RunAuthority authority = await new RoleRetriever(client, settings.Crm.Value.PageSize).RetrieveAsync(token);
+        await folder.WriteJsonAsync(RoleRetriever.IndexFile, authority, token);
+        state.Counts["roles.canRun"] = authority.Roles.Count;
+        state.StagesRun.Add(RunStages.Roles);
+        if (authority.Note is not null)
+        {
+            state.Warnings.Add("Çalıştırma yetkisi okunamadı: " + authority.Note);
         }
 
         try

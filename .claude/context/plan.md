@@ -659,3 +659,31 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess and search the BPMN folder for `?`. **Pass:** no
   condition label contains one. **Capture:** the count of labels of the form `Activity.Argument`, and one example
   label; no workflow names needed.
+### Who may run which process (2026-09-26) — committed, awaiting merge
+- **Maintainer:** who, or which group of users, is authorized to run which workflow — can it be extracted and
+  presented as a list?
+- **The premise needed correcting first.** CRM has no per-workflow permission. There is no record saying "role X
+  may run workflow Y": starting one by hand needs `prvExecuteWorkflowJob`, which a role either carries or does
+  not, for every process at once. So the answer comes in two halves and the workbook keeps them apart — joining
+  them into one "these people can run this workflow" column would read as a grant CRM never makes.
+- **Built:** `RoleRetriever` (GET only) reads the roles holding `prvExecuteWorkflowJob` and `prvReadWorkflow`,
+  their depths, and who holds them; `calistirma-yetkisi.xlsx` carries **Çalıştırma yetkisi** (the roles) and **Kim
+  çalıştırabilir** (per workflow: `elle_baslatilabilir`, `calisma_kimligi`, `sahip`, `sahip_turu`,
+  `kaydin_is_birimi`). The browser export reads the same and is the path that will actually be used.
+- **No person is named.** Role holders are COUNTED and teams are NAMED — which is also the better answer to
+  "which group of users", and it keeps the staff list out of a file that leaves the building.
+- **The intersect tables' entity set names are asked of metadata**, not assumed: `roleprivileges` is not
+  `roleprivileges` in a URL and the spelling differs by version. Same reason `WorkflowColumns` checks its columns.
+- **`_owningbusinessunit_value` added to the inventory columns** (a deviation from §3.1, noted at the site): a
+  role's read depth is measured against the record's business unit, so without it nothing can be said at all.
+- **Dropped as duplication:** a `RunAs` on `WorkflowIdentity`. `WorkflowTrigger` already carries it.
+- **Cannot be seen, and the guide says so:** a process SHARED with one user or team. `principalobjectaccess` is
+  not exposed on the Web API, so a share grants access this list will never show. Read it as "at least these".
+- **Acceptance on the company network — Do:** re-drag the export bookmarklet, re-run it, then reprocess.
+  **Pass:** the console prints `Run authority: N role(s), …`; `calistirma-yetkisi.xlsx` opens with both pages
+  populated; no role on the roles page is one that can only READ processes. **Capture:** the `Run authority:` line,
+  the role count, and the "Bu çalıştırma" row from the workbook's Nasıl okunur sheet. No user names needed — the
+  export does not carry any.
+- **Unverified from here:** every query in it. The entity set names, the intersect key spellings and whether a
+  locked-down service account is allowed to read `roles` at all are settled only by the live server. A refusal is
+  caught and becomes a note on the sheet rather than a failed run.

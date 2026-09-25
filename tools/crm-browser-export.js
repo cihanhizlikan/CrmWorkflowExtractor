@@ -3,7 +3,11 @@
  *
  * WHAT IT DOES: reads, through YOUR signed-in CRM browser session, everything the extractor would fetch itself —
  * who you are, your privileges, the workflow inventory and its count, the XAML of every definition and activation,
- * option-set labels and Business Process Flow stages — and saves it as ONE file, crm-export-<time>.json.
+ * option-set labels, Business Process Flow stages and the security roles that may start a process by hand —
+ * and saves it as ONE file, crm-export-<time>.json.
+ *
+ * NO PERSON IS NAMED. The security part counts the holders of a role and names the TEAMS; it never sends a user
+ * name, a login or an id, so the file carries no personnel list.
  *
  * READ-ONLY: every request below is a GET (search this file for "method": there is none, so fetch defaults to GET).
  * Nothing is created, changed or deleted in CRM.
@@ -19,6 +23,9 @@
   "use strict";
   const WEB_API = location.origin + "/api/data/v8.2/";   // IFD host: no organization segment. Change if needed.
   const PAGE_SIZE = 20;
+  // The security tables are three or four columns wide, and there can be thousands of role memberships. At the
+  // inventory's page size that is hundreds of round trips for a few hundred kilobytes.
+  const THIN_PAGE_SIZE = 500;
   const PARALLEL_XAML = 4;
   // No request waits forever. A locked-down 8.2 server can leave one pending with no answer and no error, and
   // then the console shows nothing at all — which is what a reader takes for "the script is broken".
@@ -33,7 +40,9 @@
     "rank", "runas", "triggeroncreate", "triggerondelete", "triggeronupdateattributelist", "createstage", "updatestage",
     "deletestage", "businessprocesstype", "processorder", "languagecode", "iscrmuiworkflow", "ismanaged",
     "componentstate", "_parentworkflowid_value", "_activeworkflowid_value", "createdon", "modifiedon",
-    "_createdby_value", "_modifiedby_value", "_ownerid_value", "versionnumber"];
+    "_createdby_value", "_modifiedby_value", "_ownerid_value", "versionnumber",
+    // The business unit owning the RECORD: what a security role's read depth is measured against.
+    "_owningbusinessunit_value"];
   const PRIVILEGES = ["prvReadWorkflow", "prvReadProcessStage", "prvReadAsyncOperation", "prvReadPluginAssembly",
     "prvReadPluginType", "prvReadSdkMessageProcessingStep"];
 
@@ -60,8 +69,8 @@
     return path.endsWith("$count") ? Number(text.trim()) : JSON.parse(text);
   }
 
-  async function getAll(path) {
-    const prefer = `odata.maxpagesize=${PAGE_SIZE},odata.include-annotations="OData.Community.Display.V1.FormattedValue"`;
+  async function getAll(path, pageSize) {
+    const prefer = `odata.maxpagesize=${pageSize ?? PAGE_SIZE},odata.include-annotations="OData.Community.Display.V1.FormattedValue"`;
     const rows = [];
     const seen = new Set();
     let next = path;
@@ -211,6 +220,110 @@
   const plugins = await readPlugins();
   log(`Plug-in registry: ${plugins.assemblies.length} assemblies, ${plugins.types.length} types, ${plugins.steps.length} steps`);
 
+  // WHO MAY START A PROCESS BY HAND.
+  //
+  // CRM has no per-workflow permission: there is no record saying "role X may run workflow Y". Starting one by
+  // hand needs prvExecuteWorkflowJob, which a security role either carries or does not, plus the right to read
+  // the process record (prvReadWorkflow). So what is read here is the ROLES and how many hold them; what varies
+  // per workflow — the on-demand flag, the run-as setting, the owner — is already in the inventory above.
+  //
+  // The intersect tables' entity SET names are not their logical names and differ by version, so they are asked
+  // for rather than assumed. Users are counted, never listed: the question is which group, and a list of every
+  // person in the company answers nothing while carrying all of their names out of the building.
+  async function readRunAuthority() {
+    const RUN = "prvExecuteWorkflowJob";
+    const READ = "prvReadWorkflow";
+    try {
+      const wanted = ["roleprivileges", "systemuserroles", "teamroles"];
+      const definitions = await get("EntityDefinitions?$select=LogicalName,EntitySetName&$filter="
+        + encodeURIComponent(wanted.map(name => `LogicalName eq '${name}'`).join(" or ")));
+      const sets = {};
+      for (const row of definitions.value) {
+        sets[row.LogicalName] = row.EntitySetName;
+      }
+      const absent = wanted.filter(name => !sets[name]);
+      if (absent.length) {
+        return { roles: [], teams: [], note: "Bu sunucu şu tabloları bildirmiyor: " + absent.join(", ") + "." };
+      }
+
+      const privileges = await get("privileges?$select=privilegeid,name&$filter="
+        + encodeURIComponent(`name eq '${RUN}' or name eq '${READ}'`));
+      const idOf = name => (privileges.value.find(row => row.name === name) || {}).privilegeid;
+      const runId = idOf(RUN);
+      const readId = idOf(READ);
+      if (!runId) {
+        return { roles: [], teams: [], note: `'${RUN}' bu kurulumda yok; elle çalıştırma yetkisi okunamadı.` };
+      }
+
+      const lookup = (row, name) => row[name] ?? row["_" + name + "_value"];
+      const grantFilter = [runId, readId].filter(Boolean).map(id => `privilegeid eq ${id}`).join(" or ");
+      const grants = await getAll(`${sets.roleprivileges}?$filter=${encodeURIComponent(grantFilter)}`, THIN_PAGE_SIZE);
+      const runRoles = [...new Set(grants.filter(row => lookup(row, "privilegeid") === runId).map(row => lookup(row, "roleid")).filter(Boolean))];
+      const teamRows = await getAll("teams?$select=teamid,name,teamtype", THIN_PAGE_SIZE);
+      const teams = teamRows.map(row => ({ teamid: row.teamid, name: row.name, teamtype: row.teamtype }));
+      if (!runRoles.length) {
+        return { roles: [], teams, note: `Hiçbir güvenlik rolü '${RUN}' taşımıyor.` };
+      }
+
+      const roleFilter = encodeURIComponent(runRoles.map(id => `roleid eq ${id}`).join(" or "));
+      const roles = await getAll("roles?$select=roleid,name,_businessunitid_value", THIN_PAGE_SIZE);
+      const userRoles = await getAll(`${sets.systemuserroles}?$filter=${roleFilter}`, THIN_PAGE_SIZE);
+      const teamRoles = await getAll(`${sets.teamroles}?$filter=${roleFilter}`, THIN_PAGE_SIZE);
+      log(`Run authority: ${runRoles.length} role(s), ${userRoles.length} user membership(s), ${teamRoles.length} team membership(s)`);
+
+      const named = {};
+      for (const row of roles) {
+        named[row.roleid] = { name: row.name, unit: row["_businessunitid_value@OData.Community.Display.V1.FormattedValue"] || null };
+      }
+      const teamName = {};
+      for (const team of teams) {
+        teamName[team.teamid] = team.name;
+      }
+      const deepest = (privilegeId) => {
+        const best = {};
+        for (const row of grants) {
+          if (lookup(row, "privilegeid") !== privilegeId) {
+            continue;
+          }
+          const role = lookup(row, "roleid");
+          best[role] = Math.max(best[role] || 0, row.privilegedepthmask || 0);
+        }
+        return best;
+      };
+      const runDepth = deepest(runId);
+      const readDepth = readId ? deepest(readId) : {};
+      const users = {};
+      for (const row of userRoles) {
+        const role = lookup(row, "roleid");
+        users[role] = (users[role] || 0) + 1;
+      }
+      const byRole = {};
+      for (const row of teamRoles) {
+        const role = lookup(row, "roleid");
+        const team = lookup(row, "teamid");
+        (byRole[role] = byRole[role] || []).push(teamName[team] || team);
+      }
+      return {
+        roles: runRoles.map(id => ({
+          roleId: id,
+          name: (named[id] || {}).name || "",
+          businessUnit: (named[id] || {}).unit || null,
+          runDepthMask: runDepth[id] || 0,
+          processDepthMask: readDepth[id] || 0,
+          users: users[id] || 0,
+          teams: (byRole[id] || []).sort()
+        })).sort((left, right) => right.users - left.users || left.name.localeCompare(right.name)),
+        teams,
+        note: null
+      };
+    } catch (error) {
+      log("Run authority could not be read:", error.message);
+      return { roles: [], teams: [], note: String(error.message || error) };
+    }
+  }
+
+  const runAuthority = await readRunAuthority();
+
   let processStages = [];
   try {
     processStages = await getAll("processstages?$select=processstageid,stagename,stagecategory,_processid_value,primaryentitytypecode");
@@ -224,7 +337,8 @@
     startedAtUtc: started.toISOString(),
     webApiRoot: WEB_API,
     whoAmI, user, privileges, userPrivileges, workflowAttributes,
-    count, rawCount, countSource, columns, workflows, xaml, xamlErrors, optionSets, processStages, plugins
+    count, rawCount, countSource, columns, workflows, xaml, xamlErrors, optionSets, processStages, plugins,
+    runAuthority
   };
   const stamp = started.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
   const link = document.createElement("a");

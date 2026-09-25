@@ -174,7 +174,9 @@ public static class IrStage
             record.TryGetProperty("versionnumber", out JsonElement version) && long.TryParse(version.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long number) ? number : null,
             Bool(record, "iscrmuiworkflow"))
         {
-            IsManaged = Bool(record, "ismanaged")
+            IsManaged = Bool(record, "ismanaged"),
+            OwnerName = Label(record, "_ownerid_value"),
+            OwningBusinessUnit = Label(record, "_owningbusinessunit_value")
         };
     }
 
@@ -190,6 +192,13 @@ public static class IrStage
             OptionOrNull(record, "deletestage"),
             Option(record, "runas"),
             Bool(record, "ondemand") == true);
+    }
+
+    /// <summary>The server's own display text for a lookup, which is the only place a name comes from: the
+    /// inventory selects ids, and the FormattedValue annotation rides along with every paged request.</summary>
+    private static string? Label(JsonElement record, string property)
+    {
+        return Text(record, property + "@OData.Community.Display.V1.FormattedValue");
     }
 
     private static string? Text(JsonElement record, string property)

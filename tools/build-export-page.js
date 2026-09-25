@@ -11,9 +11,10 @@ const pages = [
     page: "crm-export.html",
     title: "CRM Export",
     colour: "#0b6a3b",
-    what: `Reads every workflow definition and activation (with XAML), your privileges, option-set labels and process stages
-through <b>your own signed-in CRM session</b>, and saves them as one file <code>crm-export-&lt;time&gt;.json</code>.
-Every request is a read (GET); nothing in CRM is changed.`,
+    what: `Reads every workflow definition and activation (with XAML), your privileges, option-set labels, process stages
+and the security roles that may start a process by hand, through <b>your own signed-in CRM session</b>, and saves
+them as one file <code>crm-export-&lt;time&gt;.json</code>. Every request is a read (GET); nothing in CRM is changed.
+No person is named: role holders are counted and teams are named, but no user name leaves the server.`,
     file: "crm-export-&lt;time&gt;.json",
     duration: "It takes a few minutes",
     setting: `<code>"Run": { "ImportFile": "&lt;full path to that file&gt;" }</code>`,

@@ -21,14 +21,15 @@ The stages after retrieval read only the run folder, never the network.
 out/runs/<yyyyMMdd-HHmmss>/   manifest.json (written LAST — its presence seals the run)
   ham/  ara-model/  aileler/  birlesik/  elle-inceleme/  raporlar/  gunlukler/
   bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn
-  raporlar/  nasil-kullanilir.pdf · rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · kapsam-disi.xlsx · aileler.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx
+  raporlar/  nasil-kullanilir.pdf · rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · kapsam-disi.xlsx · aileler.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx · calistirma-yetkisi.xlsx
 out/cache/metadata/           shared across runs, copied into each run's ham/ust-veri/
 ```
 
-**Every table is a sheet in a workbook, and no table is also a file.** Five workbooks, one per question the reader
+**Every table is a sheet in a workbook, and no table is also a file.** Six workbooks, one per question the reader
 has: `tasima-plani.xlsx` (what the work is), `kapsam-disi.xlsx` (what is NOT the work: drafts, product-supplied and
 never-run test names, so the plan itself needs no filtering), `aileler.xlsx` (which of these are the same),
-`veri-analizi.xlsx` (what touches what), `dis-sistemler.xlsx` (what reaches outside CRM). Each opens with a **Nasıl okunur** sheet
+`veri-analizi.xlsx` (what touches what), `dis-sistemler.xlsx` (what reaches outside CRM),
+`calistirma-yetkisi.xlsx` (who may start one by hand, and whose identity it then runs under). Each opens with a **Nasıl okunur** sheet
 carrying the columns, the caveats and that run's numbers, so a reader who has the file needs nothing beside it.
 **The package opens with a PDF.** `nasil-kullanilir.pdf` is the one document an analyst who has never seen this
 CRM reads first: what the package is, which file to open in which order, and how to work a single workflow from
@@ -58,7 +59,15 @@ and sends only the text. What this says is "the code this step runs contains the
 calls this address" — and it is said that way on the sheet, in the guide and on the diagram. Plug-in steps come
 with it: code CRM runs on a message, not a process, invisible to the plan and listed on its own page.
 
-**What is delivered names only what is delivered.** The analysts get the four workbooks, the diagrams, the
+**CRM has no per-workflow permission.** There is no record saying "role X may run workflow Y": starting a
+process by hand needs one estate-wide privilege, `prvExecuteWorkflowJob`, plus the right to read the process
+record. `RoleRetriever` reads the roles holding those two and how many hold each — counted, never named, so no
+staff list leaves the building — and `calistirma-yetkisi.xlsx` keeps the two halves apart: the roles on one page,
+and on the other the facts that really do vary per workflow, its on-demand flag and its run-as identity. A record
+SHARED with one user or team grants access none of this can see: `principalobjectaccess` is not on the Web API,
+and the guide says so. The intersect tables’ entity set names are asked of metadata rather than assumed.
+
+**What is delivered names only what is delivered.** The analysts get the five workbooks, the diagrams, the
 combined models and `rapor.md`; the evidence, the restricted findings and `kapsam-disi.xlsx` stay with Enterprise
 Architecture. A delivered file that names one of those sends a reader looking for what they do not have, so none
 does — `DeliveryTests` opens every delivered workbook and fails on any cell that mentions something left behind.

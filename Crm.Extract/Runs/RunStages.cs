@@ -15,6 +15,7 @@ public static class RunStages
     public const string Drift = "sapma";
     public const string Metadata = "üst veri";
     public const string Plugins = "eklenti kayıtları";
+    public const string Roles = "güvenlik rolleri";
 
     public const string ProcessStages = "süreç aşamaları";
     public const string Usage = "kullanım";
