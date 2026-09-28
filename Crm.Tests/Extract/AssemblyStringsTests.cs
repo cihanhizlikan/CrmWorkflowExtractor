@@ -36,6 +36,21 @@ public sealed class AssemblyStringsTests
         Assert.Empty(AssemblyStrings.Addresses(assembly));
     }
 
+    /// <summary>
+    /// tempuri.org is .NET's default SOAP namespace, so "http://tempuri.org/AHECancelPolicyRq" is the NAME OF AN
+    /// OPERATION, not a place anything connects to. One assembly on the TEST estate carried 463 of them against
+    /// 28 real addresses; reported as addresses they drowned the sheet and made a diagram label of thirty
+    /// thousand characters. The real address beside them still comes through.
+    /// </summary>
+    [Fact]
+    public void A_Soap_Action_Under_Tempuri_Is_Not_An_Address()
+    {
+        byte[] assembly = Encoding.Unicode.GetBytes(
+            "http://tempuri.org/AHECancelPolicyRq http://tempuri.org/AHEContactRegisterRq https://nova.ornek.local/imza/v2");
+
+        Assert.Equal("https://nova.ornek.local/imza/v2", Assert.Single(AssemblyStrings.Addresses(assembly)));
+    }
+
     [Fact]
     public void Bytes_That_Are_Not_An_Assembly_Yield_Nothing()
     {

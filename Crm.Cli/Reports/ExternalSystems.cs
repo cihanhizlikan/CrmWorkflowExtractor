@@ -162,7 +162,10 @@ public static partial class ExternalSystems
         {
             if (assemblies.TryGetValue(type.AssemblyId!.Value, out PluginAssembly? assembly) && assembly.Addresses.Count > 0)
             {
-                addresses[type.TypeName] = string.Join(" · ", assembly.Addresses);
+                // The DIAGRAM gets the hosts and nothing more. One assembly here holds nearly five hundred
+                // addresses across three hosts, and the full list belongs on the sheet, where it already is.
+                addresses[type.TypeName] = Sheet.List(
+                    assembly.Addresses.Select(HostOf).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase), 4);
             }
         }
         return addresses;

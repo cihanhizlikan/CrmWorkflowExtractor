@@ -751,3 +751,24 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Not touched:** `BpmnStage` fails the whole run when one diagram does not validate against the BPMN 2.0
   schema. On 1531 definitions that is a wider net than it was on production's, but it is a correctness gate and
   weakening it on suspicion would be wrong. If it fires, it names the file and the error.
+### A diagram has to stay a diagram (2026-09-28) — committed, awaiting merge
+- **Maintainer:** some BPMN files will not open; the conditional diamonds say only "Koşul" and never what the
+  condition is. One unopenable file supplied.
+- **Why it would not open.** One `serviceTask` carried a `name` of **30,730 characters** and the header note
+  31,199: the whole address list of the assembly behind its custom activity — **494 addresses**, of which **463
+  were `tempuri.org`**. The label was built as `Truncate(verb + subject, 80) + Target(...)`, so the target was
+  appended AFTER the cut and bounded by nothing.
+- **Three changes, one story.** `tempuri.org` is .NET's default SOAP namespace, so those 463 are operation NAMES,
+  not places — the filter excluded only its root and now excludes it whole, on both the C# scanner and the
+  browser export. The diagram now carries the HOSTS (four at most, three on this estate) and the full list stays
+  on `dis-sistemler.xlsx`, where it already was. And no label may exceed `MaxLabel` however much a later change
+  appends to it.
+- **The diamond now asks a question.** It named the field when the definition gave one and said "Koşul" — the
+  word "condition" — otherwise. It now names whatever the condition is about, including an activity output
+  (`CheckPolicyStatus.Durum?`), and the gateway's documentation carries every branch's condition in full, which
+  it never did.
+- **Superseded test, changed deliberately:** `ExternalSystemsTests` asserted the full ADDRESS on the diagram.
+  That is the behaviour that broke the file; it now asserts the host on the diagram and the address on the sheet.
+- **Acceptance on the company network — Do:** reprocess and open the same file in Camunda Modeler. **Pass:** it
+  opens; the custom-activity step reads `… → paygate.com.tr · www.fadata.bg`; the diamond asks a named question.
+  **Capture:** the longest `name=` in the folder — a one-line PowerShell over the BPMN files will do.

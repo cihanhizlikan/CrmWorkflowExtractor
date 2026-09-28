@@ -176,12 +176,28 @@ public sealed partial class BpmnBuilder
         {
             return step.DisplayName;
         }
-        Predicate? first = step.Branches.Select(branch => branch.Predicate).FirstOrDefault(predicate => predicate is not null);
-        if (first is { Entity: string entity, Attribute: string attribute })
+        if (step.Branches.Select(branch => branch.Predicate).FirstOrDefault(predicate => predicate is not null) is Predicate first)
         {
-            return $"{entity}.{attribute}?";
+            return Asked(first) + "?";
         }
         return step.Kind == StepKind.Variant ? "Üyeler ayrışıyor" : "Koşul";
+    }
+
+    /// <summary>
+    /// What the diamond asks about. The field when the definition named one, and otherwise whatever the condition
+    /// compares, taken from the text up to the operator: the designer's own variable is a poor name but a real
+    /// one, and the diamond used to say "Koşul" — the word "condition" — which asks nothing at all.
+    /// </summary>
+    private static string Asked(Predicate predicate)
+    {
+        if (predicate is { Entity: string entity, Attribute: string attribute })
+        {
+            return $"{entity}.{attribute}";
+        }
+        int operatorAt = predicate.Operator is { Length: > 0 } comparison
+            ? predicate.Text.IndexOf(" " + comparison, StringComparison.Ordinal)
+            : -1;
+        return operatorAt > 0 ? predicate.Text[..operatorAt] : predicate.Text;
     }
 
     /// <summary>A single wait is one conditional catch event; a wait with several outcomes (e.g. a timeout) is an event-based gateway.</summary>
@@ -261,6 +277,11 @@ public sealed partial class BpmnBuilder
         {
             text.Append(" Bağımsız değişken: ").Append(argument.Name).Append(" = ").Append(argument.Value).Append('.');
         }
+        foreach (Branch branch in step.Branches.Where(branch => branch.Predicate is not null))
+        {
+            // The full condition, which the diamond has no room for and the branch's own arrow shows only once.
+            text.Append(" Dal '").Append(branch.Label).Append("': ").Append(branch.Predicate!.Text).Append('.');
+        }
         text.Append(" Kaynak: ").Append(string.Join("; ", step.Sources.Select(source => $"{_memberNames.GetValueOrDefault(source.WorkflowId, _workflowName)} ({source.WorkflowId:D}) adım {source.Path}"))).Append('.');
         return text.ToString();
     }
@@ -311,7 +332,9 @@ public sealed partial class BpmnBuilder
             _ => step.Kind.ToString()
         };
         string subject = Subject(step);
-        return Truncate(subject.Length == 0 ? verb : $"{verb}: {subject}", 80) + Target(step, subject);
+        // Cut AROUND the target, not before it. The target used to be appended after the cut and carried whatever
+        // the assembly scan had found: one label reached thirty thousand characters and no modeller would open it.
+        return Truncate(Truncate(subject.Length == 0 ? verb : $"{verb}: {subject}", 80) + Target(step, subject), MaxLabel);
     }
 
     /// <summary>
@@ -330,7 +353,7 @@ public sealed partial class BpmnBuilder
             string full = type.Split(',')[0].Trim();
             string name = full[(full.LastIndexOf('.') + 1)..];
             string code = name.Length == 0 || subject.Contains(name, StringComparison.Ordinal) ? "" : $" ({name})";
-            return _activityAddresses.TryGetValue(full, out string? host) ? code + " → " + host : code;
+            return _activityAddresses.TryGetValue(full, out string? host) ? code + " → " + Truncate(host, 60) : code;
         }
         return "";
     }
@@ -499,6 +522,13 @@ public sealed partial class BpmnBuilder
     /// <summary>CRM's own step id when the author gave the step no name: <c>UpdateStep3</c>, <c>ConditionBranchStep12</c>.</summary>
     [GeneratedRegex(@"^[A-Za-z]+Step\d+$")]
     private static partial Regex InternalStepId();
+
+    /// <summary>
+    /// The most any element label may carry. A diagram label is read at a glance and drawn in a box; what does
+    /// not fit in one is in the element's documentation and on the sheets. Beyond a few hundred characters a
+    /// modeller stops being able to draw the file at all.
+    /// </summary>
+    public const int MaxLabel = 200;
 
     private static string Truncate(string text, int length)
     {

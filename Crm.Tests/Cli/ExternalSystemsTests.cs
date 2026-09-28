@@ -109,10 +109,14 @@ public sealed class ExternalSystemsTests
         // reaches outside is listed on its own page.
         Assert.Contains(workbook.Rows("Eklentiler"), line => line.Contains("https://kuyruk.ornek.local/route"));
 
-        // And on the diagram, where the analyst actually is: on the step's own label and in the header note.
+        // And on the diagram, where the analyst actually is: on the step's own label and in the header note. The
+        // diagram carries the HOST, not the address — one assembly on the real estate holds nearly five hundred
+        // addresses, and putting them all on a label made a file no modeller could open. The full list is the
+        // sheet's job, which is what the rows above check.
         string diagram = File.ReadAllText(Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories)[0]);
-        Assert.Contains("→ " + FakeOrganization.AssemblyAddress, diagram, StringComparison.Ordinal);
-        Assert.Contains("Dış çağrı: NotifyPolicyService → " + FakeOrganization.AssemblyAddress, diagram, StringComparison.Ordinal);
+        Assert.Contains("→ nova.ornek.local", diagram, StringComparison.Ordinal);
+        Assert.Contains("Dış çağrı: NotifyPolicyService → nova.ornek.local", diagram, StringComparison.Ordinal);
+        Assert.DoesNotContain(FakeOrganization.AssemblyAddress, diagram, StringComparison.Ordinal);
     }
 
     [Fact]

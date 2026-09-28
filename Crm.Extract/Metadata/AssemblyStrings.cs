@@ -93,6 +93,9 @@ public static partial class AssemblyStrings
     private static partial Regex Address();
 
     /// <summary>Namespaces and schema URIs every .NET assembly carries; none of them is an endpoint.</summary>
-    [GeneratedRegex(@"://(schemas\.|www\.w3\.org|www\.omg\.org|docs\.oasis|go\.microsoft\.com|schemas\.microsoft\.com|tempuri\.org/?$)", RegexOptions.IgnoreCase)]
+    // tempuri.org is .NET's DEFAULT SOAP namespace: "http://tempuri.org/AHECancelPolicyRq" is the name of an
+    // operation, not a place. One assembly on the TEST estate carried 463 of them against 28 real addresses, and
+    // they drowned both the sheet and the diagram. Excluded whole, not just at its root.
+    [GeneratedRegex(@"://(schemas\.|www\.w3\.org|www\.omg\.org|docs\.oasis|go\.microsoft\.com|schemas\.microsoft\.com|tempuri\.org)", RegexOptions.IgnoreCase)]
     private static partial Regex Framework();
 }

@@ -137,7 +137,10 @@
   // A CRM workflow cannot call a service; a custom activity can, and its endpoint is written in the activity's own
   // assembly rather than passed in from the workflow. The assembly is a field on the record, so the addresses are
   // read out of its string constants here, in the browser — only the extracted text travels, never the megabytes.
-  const FRAMEWORK_URL = /:\/\/(schemas\.|www\.w3\.org|www\.omg\.org|docs\.oasis|go\.microsoft\.com|tempuri\.org\/?$)/i;
+  // tempuri.org is .NET's DEFAULT SOAP namespace: "http://tempuri.org/AHECancelPolicyRq" names an operation,
+  // not a place. One assembly on this estate carried 463 of them against 28 real addresses, and they drowned
+  // both the sheet and the diagram. Excluded whole, not just at its root, and AssemblyStrings does the same.
+  const FRAMEWORK_URL = /:\/\/(schemas\.|www\.w3\.org|www\.omg\.org|docs\.oasis|go\.microsoft\.com|tempuri\.org)/i;
 
   function addressesIn(base64) {
     const raw = atob(base64);
