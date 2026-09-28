@@ -37,6 +37,13 @@ public sealed class FlowNode(string id, FlowNodeType type, string name)
     /// <summary>For an exclusive split: the id of the flow taken when no condition holds.</summary>
     public string? DefaultFlow { get; set; }
 
+    /// <summary>
+    /// The caption owed to a default flow that does not exist yet. A split whose only continuing path is the
+    /// bypass needs no join gateway: the bypass IS the flow onwards, and that flow is made by the sequence around
+    /// the split, after the split itself was built. The first flow out of the split from then on takes this.
+    /// </summary>
+    public string? OwedDefaultLabel { get; set; }
+
     public IReadOnlyList<StepSource> Sources { get; init; } = [];
 
     /// <summary>For a custom activity: its assembly-qualified type, carried in the extension block.</summary>
@@ -110,6 +117,12 @@ public sealed class FlowGraph
     public FlowEdge Connect(string sourceId, string targetId, string? name = null, string? condition = null, string? discriminator = null)
     {
         string id = discriminator is null ? $"f_{sourceId}__{targetId}" : $"f_{sourceId}__{targetId}_{discriminator}";
+        if (name is null && _nodes.TryGetValue(sourceId, out FlowNode? source) && source.OwedDefaultLabel is string owed)
+        {
+            name = owed;
+            source.DefaultFlow = id;
+            source.OwedDefaultLabel = null;
+        }
         FlowEdge edge = new(id, sourceId, targetId, name, condition);
         _edges.Add(edge);
         return edge;

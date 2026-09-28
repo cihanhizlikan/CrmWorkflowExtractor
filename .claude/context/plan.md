@@ -772,3 +772,25 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess and open the same file in Camunda Modeler. **Pass:** it
   opens; the custom-activity step reads `… → paygate.com.tr · www.fadata.bg`; the diamond asks a named question.
   **Capture:** the longest `name=` in the folder — a one-line PowerShell over the BPMN files will do.
+### A gateway that decides nothing (2026-09-28) — committed, awaiting merge
+- **Maintainer:** a condition step on the diagram that does nothing and has only one path; and the diamonds now
+  carry a name but still not the comparison.
+- **The empty diamond.** A condition whose branch STOPS the process has nothing coming back to be joined, but the
+  join was drawn anyway: `SplitBlock` created one whenever ANY path continued, so the lone bypass arrived at a
+  diamond with one flow in and one out. On the supplied file two of the four joins were like that. A join is now
+  drawn only where two or more paths actually meet; below that the one continuing path IS the block's exit, and
+  where that path is the bypass the flow onward carries the bypass's own caption and stays the split's default.
+  Nothing is removed after the fact, so the layout reserves no room for a shape that is not there.
+- **The comparison.** The diamond asked about `ConditionBranchStep12_1` — the designer's generated variable, which
+  names nothing — while the comparison sat on the arrow alone. Where there is nothing to name (no field, and no
+  activity behind the value either) the diamond now carries the comparison and the arrows answer `evet` / `hayır`
+  rather than repeating it. Where the condition DOES name a field or an activity output, that stays the question
+  and each arrow keeps its own comparison: that case was already right and is left alone.
+- **Still not solved:** on the real data the operand of these conditions is written by something the parser does
+  not recognise, so the subject stays a generated variable. Diagnosing it needs the XAML of one such workflow,
+  which does not belong in a chat; the shapes of its `GetEntityProperty`/`EvaluateCondition` elements — names
+  only, no values — would settle it.
+- **Acceptance on the company network — Do:** reprocess and open `cti-telefon-gorusmelerini-kapat.bpmn`.
+  **Pass:** no diamond with a single flow in and out; the first diamond reads
+  `ConditionBranchStep12_1 NotEqual ps_activitytype` with `evet` / `hayır` on its arrows. **Capture:** a
+  screenshot of the first two gateways.

@@ -125,19 +125,39 @@ internal sealed class SplitBlock : Block
 {
     private readonly FlowNode _split;
     private readonly FlowNode? _join;
+    private readonly FlowNode? _exit;
     private readonly IReadOnlyList<SplitPath> _paths;
 
+    /// <summary>
+    /// A join gateway is worth drawing only where paths actually MEET. Where a condition's branch ends the
+    /// process — a Stop step — nothing comes back to be joined, and the join used to be drawn anyway: a diamond
+    /// with one flow in and one out, which decides nothing and which a reader has to stop and read to discover
+    /// that. Below two arriving paths there is no join, and the one path that carries on is the block's exit.
+    /// </summary>
     public SplitBlock(FlowGraph graph, FlowNode split, FlowNode joinCandidate, IReadOnlyList<SplitPath> paths)
     {
         _split = split;
         _paths = paths;
-        bool anyContinues = paths.Any(path => path.Content.IsEmpty || path.Content.Exit is not null);
-        _join = anyContinues ? graph.Add(joinCandidate) : null;
+        List<SplitPath> arriving = [.. paths.Where(path => path.Content.IsEmpty || path.Content.Exit is not null)];
+        _join = arriving.Count > 1 ? graph.Add(joinCandidate) : null;
+        SplitPath? alone = arriving.Count == 1 ? arriving[0] : null;
+
+        // The one arriving path leaves through the split itself when it is the bypass (there is nothing on it to
+        // pass through), and otherwise through its own last step.
+        _exit = _join ?? (alone is null ? null : alone.Content.IsEmpty ? split : alone.Content.Exit);
+        if (alone is not null && alone.Content.IsEmpty)
+        {
+            split.OwedDefaultLabel = alone.Label;
+        }
 
         for (int index = 0; index < paths.Count; index++)
         {
             SplitPath path = paths[index];
             string discriminator = "b" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (path == alone && path.Content.IsEmpty)
+            {
+                continue;   // Its flow is the one leaving the split, and the sequence around it makes that.
+            }
             FlowNode? target = path.Content.Entry ?? _join;
             if (target is null)
             {
@@ -182,7 +202,7 @@ internal sealed class SplitBlock : Block
 
     public override FlowNode? Exit
     {
-        get { return _join; }
+        get { return _exit; }
     }
 
     public override bool IsEmpty

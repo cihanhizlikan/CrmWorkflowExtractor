@@ -144,23 +144,30 @@ public sealed partial class BpmnBuilder
 
     private SplitBlock Split(StepNode step, FlowNodeType gatewayType, string? defaultLabel)
     {
-        FlowNode split = _graph.Add(new FlowNode(Id(step.Path, "split"), gatewayType, Truncate(GatewayName(step), 40))
+        FlowNode split = _graph.Add(new FlowNode(Id(step.Path, "split"), gatewayType, Truncate(GatewayName(step), 60))
         {
             Documentation = StepDocumentation(step),
             Sources = step.Sources
         });
         FlowNode join = new(Id(step.Path, "join"), FlowNodeType.ExclusiveGateway, "");
         List<SplitPath> paths = [];
+        bool asksTheComparison = AsksTheComparison(step);
         foreach (Branch branch in step.Branches)
         {
             bool isDefault = defaultLabel is not null && branch.Predicate is null && branch.Label == defaultLabel;
             string label = step.Kind == StepKind.Variant ? "Çeşitleme: " + branch.Label : branch.Label;
-            paths.Add(new SplitPath(Truncate(label, 60), label, isDefault, Sequence(branch.Steps)));
+            if (asksTheComparison)
+            {
+                // The diamond already says what is compared; repeating it on the arrow says it twice and leaves
+                // the reader looking for a difference between the two.
+                label = branch.Predicate is null ? "hayır" : "evet";
+            }
+            paths.Add(new SplitPath(Truncate(label, 60), branch.Predicate?.Text ?? label, isDefault, Sequence(branch.Steps)));
         }
         if (step.Kind == StepKind.Condition && !step.Branches.Any(branch => branch.Predicate is null && branch.Label == defaultLabel))
         {
             // A condition with no otherwise-branch continues when no branch holds: an explicit, labelled bypass.
-            paths.Add(new SplitPath("(hiçbir koşul sağlanmazsa)", null, true, new SequenceBlock(_graph, [])));
+            paths.Add(new SplitPath(asksTheComparison ? "hayır" : "(hiçbir koşul sağlanmazsa)", null, true, new SequenceBlock(_graph, [])));
         }
         return new SplitBlock(_graph, split, join, paths);
     }
@@ -178,9 +185,30 @@ public sealed partial class BpmnBuilder
         }
         if (step.Branches.Select(branch => branch.Predicate).FirstOrDefault(predicate => predicate is not null) is Predicate first)
         {
-            return Asked(first) + "?";
+            return AsksTheComparison(step) ? first.Text : Asked(first) + "?";
         }
         return step.Kind == StepKind.Variant ? "Üyeler ayrışıyor" : "Koşul";
+    }
+
+    /// <summary>
+    /// Whether the diamond should carry the whole comparison rather than name what is compared.
+    ///
+    /// <para>
+    /// It should only when there is NOTHING to name: no field, and no activity behind the value either, leaving
+    /// the designer's own generated variable — <c>ConditionBranchStep12_1</c> — which tells a reader nothing. The
+    /// operator and the value measured against are then the only real information, and they were on the arrow
+    /// alone. Where the condition names a field (<c>phonecall.statecode?</c>) or an activity's output
+    /// (<c>CheckPolicyStatus.Durum?</c>), that is the question and each arrow keeps its own comparison, which is
+    /// how a gateway is meant to read. Only for a single condition: with several, each arrow must say its own.
+    /// </para>
+    /// </summary>
+    private static bool AsksTheComparison(StepNode step)
+    {
+        return step.Kind == StepKind.Condition
+            && (step.DisplayName.Length == 0 || InternalStepId().IsMatch(step.DisplayName))
+            && step.Branches.Count(branch => branch.Predicate is not null) == 1
+            && step.Branches.Select(branch => branch.Predicate).FirstOrDefault(predicate => predicate is not null) is Predicate only
+            && DesignerVariable().IsMatch(Asked(only));
     }
 
     /// <summary>
@@ -522,6 +550,10 @@ public sealed partial class BpmnBuilder
     /// <summary>CRM's own step id when the author gave the step no name: <c>UpdateStep3</c>, <c>ConditionBranchStep12</c>.</summary>
     [GeneratedRegex(@"^[A-Za-z]+Step\d+$")]
     private static partial Regex InternalStepId();
+
+    /// <summary>The designer's own generated condition variable, e.g. <c>ConditionBranchStep12_1</c>: a name that names nothing.</summary>
+    [GeneratedRegex(@"^[A-Za-z]+Step\d+_[A-Za-z0-9_]+$")]
+    private static partial Regex DesignerVariable();
 
     /// <summary>
     /// The most any element label may carry. A diagram label is read at a glance and drawn in a box; what does

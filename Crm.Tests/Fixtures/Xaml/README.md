@@ -18,6 +18,7 @@ literals replaced) and keep this note accurate about which files are which.
 | `business-rule.xaml` | a business rule: condition, then show/hide + required level, otherwise error message + lock. **Construct names from the production coverage report; markup guessed** |
 | `dialog.xaml` | a dialog: data query, a page of two prompts, a child dialog call. **Construct names from the production coverage report; markup guessed** |
 | `condition-on-activity-output.xaml` | a condition that compares what a custom activity returned rather than a field, through a `ConvertCrmXrmTypes` — the case the diagram used to label with a bare question mark |
+| `condition-unnamed-then-stop.xaml` | a condition whose operand nothing in the definition writes, whose single branch STOPS the process: the two things the real TEST diagrams tripped over — a join gateway with one flow in and one out, and a diamond asking about the designer’s own generated variable |
 
 Not covered yet, because their XAML shape could not be written credibly without a sample: Business Process Flow,
 Dialog, business rule.
