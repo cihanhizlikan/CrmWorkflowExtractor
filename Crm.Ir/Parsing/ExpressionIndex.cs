@@ -97,6 +97,17 @@ internal sealed partial class ExpressionIndex
         return Identifier().IsMatch(trimmed) ? trimmed : null;
     }
 
+    /// <summary>
+    /// A variable REFERENCE and nothing else: <c>[ConditionBranchStep12_1]</c>. The brackets are what make it one.
+    /// Without them <c>Attribute="ps_activitytypeid"</c> is a plain identifier too, and reading it as a variable
+    /// indexed a field name as though it held the field's value — wrong, and quietly so.
+    /// </summary>
+    public static string? Bracketed(string raw)
+    {
+        string trimmed = raw.Trim();
+        return trimmed.StartsWith('[') && trimmed.EndsWith(']') ? VariableOf(trimmed) : null;
+    }
+
     /// <summary>Every variable an expression mentions, in order: <c>[New Object() { A_1, A_2 }]</c> → A_1, A_2.</summary>
     public static IReadOnlyList<string> VariablesIn(string? expression)
     {
@@ -128,13 +139,27 @@ internal sealed partial class ExpressionIndex
         return argument is null ? null : string.Concat(argument.DescendantNodesAndSelf().OfType<XText>().Select(text => text.Value));
     }
 
+    /// <summary>
+    /// The field a condition reads, whichever way the designer wrote it down. The variable it reads into is
+    /// normally a property ELEMENT — <c>&lt;GetEntityProperty.Value&gt;&lt;OutArgument&gt;…</c> — but this
+    /// organisation's definitions write it as an ATTRIBUTE of the same element instead, and reading only the
+    /// element form left every one of those conditions with no field to name. The diagram then asked about
+    /// <c>ConditionBranchStep15_1</c>, the designer's own generated slot, which names nothing.
+    ///
+    /// <para>
+    /// The attribute is found by SHAPE rather than by name, but the shape has to be <see cref="Bracketed"/>:
+    /// <c>Attribute="ps_activitytypeid"</c> is a perfectly good identifier too, and matching on that indexed a
+    /// field's NAME as the variable holding its value — which read plausibly and was wrong.
+    /// </para>
+    /// </summary>
     private void AddRead(XElement element)
     {
         string? entity = element.Attribute("EntityName")?.Value;
         string? attribute = element.Attribute("Attribute")?.Value;
         string? variable = element.Descendants().Where(child => child.Name.LocalName is "VisualBasicReference" or "OutArgument")
             .Select(child => VariableOf(child.Value))
-            .FirstOrDefault(name => name is not null);
+            .FirstOrDefault(name => name is not null)
+            ?? element.Attributes().Select(written => Bracketed(written.Value)).FirstOrDefault(name => name is not null);
         if (entity is not null && attribute is not null && variable is not null)
         {
             Reads[variable] = new AttributeRead(entity, attribute);
@@ -190,6 +215,15 @@ internal sealed partial class ExpressionIndex
         {
             // { WorkflowPropertyType.OptionSetValue, "100000003", "Picklist" } — the first quoted string is the value.
             IReadOnlyList<string> quoted = QuotedStrings(parameters);
+            if (quoted.Count > 1 && parameters.Contains("WorkflowPropertyType.EntityReference", StringComparison.Ordinal))
+            {
+                // A LOOKUP is written differently, and reading it like the rest reported the wrong thing entirely:
+                // { WorkflowPropertyType.EntityReference, "ps_activitytype", "INBOUND - GELEN ARAMA", <id>, "Lookup" }
+                // puts the TARGET TABLE first and the record second, so a condition against a lookup came out as
+                // "NotEqual ps_activitytype" — the name of a table, which the workflow never compares anything to.
+                Literals[result] = [quoted[1]];
+                return;
+            }
             Literals[result] = quoted.Count > 0 ? [quoted[0]] : [Dynamic];
             return;
         }

@@ -811,3 +811,25 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   say so in its own first row.
 - **Acceptance on the company network — Do:** re-drag the export bookmarklet, re-export, reprocess. **Pass:** the
   page lists roles. **Capture:** if it is still one row, that row — it now names which of the four causes it was.
+### The field was there all along (2026-09-29) — committed, awaiting merge
+- **Maintainer asked** whether `ConditionBranchStep15_1` was really the name of the variable tested, and then ran
+  a redacting one-liner over one definition's condition machinery (names and argument keys only, long and
+  URL/GUID-shaped literals masked). It settled both open questions at once.
+- **The read was there; the parser could not see it.** `GetEntityProperty` writes the variable it reads into as an
+  ATTRIBUTE on this organisation's definitions — `<GetEntityProperty Attribute="statecode" EntityName="phonecall"
+  Value="[ConditionBranchStep15_1]" />` — not as the `<GetEntityProperty.Value>` property element every fixture
+  had. `AddRead` looked only at descendants, so every such condition lost its field. It now also reads the
+  element's own attributes.
+- **And the trap inside that fix**, caught by the test before it was committed: matching any attribute that
+  parses as an identifier makes `Attribute="ps_activitytypeid"` win, indexing a field's NAME as the variable
+  holding its value. Only a `[Bracketed]` reference counts.
+- **A lookup names the table before the record.**
+  `{ WorkflowPropertyType.EntityReference, "ps_activitytype", "INBOUND - GELEN ARAMA", <id>, "Lookup" }` — taking
+  the first quoted string, right for every other type, reported the TABLE as the value compared against. That is
+  where `NotEqual ps_activitytype` came from. For an `EntityReference` the second is taken instead.
+- **What this is worth:** `ConditionBranchStep12_1 NotEqual ps_activitytype` becomes
+  `phonecall.ps_activitytypeid NotEqual INBOUND - GELEN ARAMA`. It also fixes the same wrong value wherever a
+  lookup is WRITTEN — `ps_activitysubresultid = ps_activitysubresult` was the table's name too.
+- **Acceptance on the company network — Do:** reprocess and reopen `cti-telefon-gorusmelerini-kapat.bpmn`.
+  **Pass:** the diamonds read `phonecall.<field>?` with the comparison on the arrows. **Capture:** the four
+  gateway names.
