@@ -45,14 +45,46 @@ public sealed class ReconciliationTests
         Assert.Contains(result.Failures, failure => failure.Contains("yinelenen kayıt", StringComparison.Ordinal));
     }
 
+    /// <summary>
+    /// Exactly at the ceiling the number decides nothing: it is either a true five thousand or the Web API
+    /// standing in for something larger, and there is no way to tell from here. Said, not acted on.
+    /// </summary>
     [Fact]
-    public void A_Count_At_The_Web_Api_Cap_Is_Not_Trusted()
+    public void A_Count_Exactly_At_The_Web_Api_Cap_Is_Warned_About_But_Does_Not_Stop_The_Run()
     {
         List<WorkflowInventoryRecord> records = [.. Enumerable.Range(0, InventoryReconciliation.CountCap).Select(index => Definition(index * 2, owner: index))];
 
         ReconciliationResult result = InventoryReconciliation.Evaluate(InventoryReconciliation.CountCap, records);
 
-        Assert.Contains(result.Failures, failure => failure.Contains("üst sınırı", StringComparison.Ordinal));
+        Assert.Contains(result.Warnings, warning => warning.Contains("üst sınırıdır", StringComparison.Ordinal));
+        Assert.True(result.Passed);
+    }
+
+    /// <summary>
+    /// The TEST organisation, 2026-09-28: 5978 counted, 5978 retrieved, and the run failed on the count being
+    /// "at or above the cap". A number above the ceiling cannot have come from the ceiling, and one that agrees
+    /// with what was retrieved is the best evidence an inventory can have — it is not a reason to stop.
+    /// </summary>
+    [Fact]
+    public void A_Count_Above_The_Cap_That_Agrees_With_The_Retrieval_Passes()
+    {
+        List<WorkflowInventoryRecord> records = [.. Enumerable.Range(0, 5978).Select(index => Definition(index * 2, owner: index))];
+
+        ReconciliationResult result = InventoryReconciliation.Evaluate(5978, records);
+
+        Assert.True(result.Passed, string.Join(" | ", result.Failures));
+        Assert.DoesNotContain(result.Warnings, warning => warning.Contains("üst sınır", StringComparison.Ordinal));
+    }
+
+    /// <summary>Above the ceiling the number is real, so a disagreement with it is a real fault and still stops the run.</summary>
+    [Fact]
+    public void A_Count_Above_The_Cap_That_Disagrees_With_The_Retrieval_Still_Fails()
+    {
+        List<WorkflowInventoryRecord> records = [.. Enumerable.Range(0, 5900).Select(index => Definition(index * 2, owner: index))];
+
+        ReconciliationResult result = InventoryReconciliation.Evaluate(5978, records);
+
+        Assert.Contains(result.Failures, failure => failure.Contains("5978 iş akışı bildirdi", StringComparison.Ordinal));
     }
 
     [Fact]

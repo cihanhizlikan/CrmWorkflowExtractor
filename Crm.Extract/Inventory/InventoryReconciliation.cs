@@ -29,7 +29,12 @@ public sealed record ReconciliationResult(InventoryCounts Counts, IReadOnlyList<
 /// </summary>
 public static class InventoryReconciliation
 {
-    /// <summary>The Web API caps <c>$count</c> at 5000; at or above it the number is no longer a count.</summary>
+    /// <summary>
+    /// The Web API's ceiling for <c>$count</c>: where a collection holds more, the endpoint answers with exactly
+    /// this number instead. So a count ABOVE it was not capped — it is a real number, wherever it came from — and
+    /// only a count EXACTLY at it is ambiguous, being either a true five thousand or a ceiling standing in for
+    /// something larger.
+    /// </summary>
     public const int CountCap = 5000;
 
     public static ReconciliationResult Evaluate(int apiCount, IReadOnlyList<WorkflowInventoryRecord> records)
@@ -53,9 +58,11 @@ public static class InventoryReconciliation
             // available". That is not a number to compare, and failing on it would fail every run on that server.
             warnings.Add(Invariant($"Sunucu bağımsız bir sayım vermedi ({apiCount} yanıtladı); alınan {records.Count} kayıt bir sayımla karşılaştırılamadı. Envanterin eksiksizliğine güvenmeden önce bir yöneticinin sayımıyla karşılaştırın."));
         }
-        else if (apiCount >= CountCap)
+        else if (apiCount == CountCap)
         {
-            failures.Add(Invariant($"$count {apiCount} döndürdü; bu, Web API üst sınırı {CountCap} değerinde veya üzerindedir: güvenilir bir sayım değildir."));
+            // Ambiguous by construction, so it cannot decide anything either way: a mismatch here is as likely to
+            // be the ceiling as a fault, and failing on it would stop a run that retrieved everything correctly.
+            warnings.Add(Invariant($"$count tam olarak {CountCap} döndürdü; bu Web API'nin üst sınırıdır, dolayısıyla gerçek bir sayım da olabilir, daha büyük bir sayının yerine geçen bir tavan da. {records.Count} kayıt alındı; bir yöneticinin sayımıyla karşılaştırın."));
         }
         else if (apiCount != records.Count)
         {

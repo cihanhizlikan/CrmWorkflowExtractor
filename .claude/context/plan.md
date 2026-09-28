@@ -733,3 +733,21 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** re-drag the bookmarklet, re-run against TEST. **Pass:** the console
   ends with `Download started.` then `Saved crm-export-….json.gz — NN MB`. **Capture:** the lines from
   `Assembling the file…` onwards. If it dies again, the last line printed now names the stage.
+### A count of 5978 is a count (2026-09-28) — committed, awaiting merge
+- **Maintainer:** the first TEST run produced no workbooks and no diagrams. It stopped at the inventory with
+  `$count 5978 döndürdü; bu, Web API üst sınırı 5000 değerinde veya üzerindedir: güvenilir bir sayım değildir.`
+- **The rule was wrong in two ways.** It read `apiCount >= CountCap`. But the Web API's ceiling works by
+  ANSWERING WITH THE CEILING: a collection larger than 5000 makes `/$count` reply 5000, so a reply of 5978 cannot
+  have come from a capped endpoint — it is a real number. And it was a real number that AGREED with the 5978
+  records retrieved, which is the strongest evidence an inventory can have. The run's own §8 count chain said so
+  on the line above — `kayıtlar: $count 5978 = alınan 5978 — uygun` — and the reconciliation failed anyway.
+- **Now:** only a count EXACTLY at the ceiling is ambiguous, and that is said as a warning rather than acted on,
+  because at that value a mismatch is as likely to be the ceiling as a fault. Above it the number is real and a
+  disagreement still fails the run, as it always did. Below it, unchanged.
+- **Written against production's shape.** The rule was fine while the organisation held 1437 workflows; the first
+  estate larger than five thousand was the first to meet it, and it stopped a run that had done everything right.
+- **Acceptance on the company network — Do:** re-run the extractor over the same export. **Pass:** exit code 0,
+  and `raporlar/` holds six workbooks and the PDF, with `bpmn/` populated. **Capture:** the summary block.
+- **Not touched:** `BpmnStage` fails the whole run when one diagram does not validate against the BPMN 2.0
+  schema. On 1531 definitions that is a wider net than it was on production's, but it is a correctness gate and
+  weakening it on suspicion would be wrong. If it fires, it names the file and the error.
