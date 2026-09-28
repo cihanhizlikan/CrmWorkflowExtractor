@@ -243,6 +243,7 @@
       }
       const absent = wanted.filter(name => !sets[name]);
       if (absent.length) {
+        log("Run authority: this server does not report", absent.join(", "));
         return { roles: [], teams: [], note: "Bu sunucu şu tabloları bildirmiyor: " + absent.join(", ") + "." };
       }
 
@@ -252,6 +253,7 @@
       const runId = idOf(RUN);
       const readId = idOf(READ);
       if (!runId) {
+        log(`Run authority: '${RUN}' does not exist in this organisation`);
         return { roles: [], teams: [], note: `'${RUN}' bu kurulumda yok; elle çalıştırma yetkisi okunamadı.` };
       }
 
@@ -262,6 +264,7 @@
       const teamRows = await getAll("teams?$select=teamid,name,teamtype", THIN_PAGE_SIZE);
       const teams = teamRows.map(row => ({ teamid: row.teamid, name: row.name, teamtype: row.teamtype }));
       if (!runRoles.length) {
+        log(`Run authority: no security role holds '${RUN}'`);
         return { roles: [], teams, note: `Hiçbir güvenlik rolü '${RUN}' taşımıyor.` };
       }
 
@@ -331,42 +334,96 @@
     log("Process stages could not be read:", error.message);
   }
 
-  // JSON.stringify builds ONE string, and a browser refuses past about 512 million characters. A TEST
-  // organisation with six thousand definitions passes that in XAML alone: the export read everything for twenty
-  // minutes and then died on its last line with "RangeError: Invalid string length", throwing the whole run away.
+  // THE DOCUMENT IS TOO BIG TO EXIST TWICE. Writing it has failed twice on the TEST organisation, and each
+  // failure cost a twenty-minute run:
+  //   JSON.stringify(whole document)  -> RangeError: Invalid string length. One string cannot hold 512 million
+  //                                      characters, and six thousand XAML documents pass that on their own.
+  //   an ARRAY of every piece         -> no error at all. The escaped copies sat beside the originals, about a
+  //                                      gigabyte of strings in one tab, and the page died between two lines
+  //                                      with no "Done", no "FAILED" and no file.
   //
-  // So the document is written as an ARRAY of pieces and handed to Blob, which joins them itself and never needs
-  // the whole thing as one string. Only the outer two levels are split — that is where the big collections are
-  // (xaml, workflows, optionSets) — and everything below is small enough to stringify in one go, which keeps the
-  // piece count in the tens of thousands rather than the millions.
-  function jsonPieces(value, depth, into) {
+  // So pieces are produced ONE AT A TIME and handed to the browser in segments. Each segment Blob moves its bytes
+  // out of the JavaScript heap the moment it is built, so the heap never holds more than one segment on top of
+  // what was retrieved — whatever the size of the organisation.
+  //
+  // Only the outer two levels are split; that is where the big collections are (xaml, workflows, optionSets) and
+  // everything below is small enough to stringify in one go.
+  function* jsonPieces(value, depth) {
     if (depth >= 2 || value === null || typeof value !== "object") {
-      into.push(JSON.stringify(value) ?? "null");
-      return into;
+      yield JSON.stringify(value) ?? "null";
+      return;
     }
     if (Array.isArray(value)) {
-      into.push("[");
+      yield "[";
       for (let index = 0; index < value.length; index++) {
         if (index) {
-          into.push(",");
+          yield ",";
         }
-        jsonPieces(value[index], depth + 1, into);
+        yield* jsonPieces(value[index], depth + 1);
       }
-      into.push("]");
-      return into;
+      yield "]";
+      return;
     }
-    into.push("{");
+    yield "{";
     let first = true;
     for (const key of Object.keys(value)) {
       if (value[key] === undefined) {
         continue;   // JSON.stringify drops such a key, and so must this.
       }
-      into.push((first ? "" : ",") + JSON.stringify(key) + ":");
+      yield (first ? "" : ",") + JSON.stringify(key) + ":";
       first = false;
-      jsonPieces(value[key], depth + 1, into);
+      yield* jsonPieces(value[key], depth + 1);
     }
-    into.push("}");
-    return into;
+    yield "}";
+  }
+
+  // Characters per segment. Small enough that the heap never grows with the organisation, large enough that a
+  // six-hundred-megabyte document is a few dozen segments rather than a few million.
+  const SEGMENT_CHARS = 8 * 1024 * 1024;
+
+  // Every step announces itself. The last failure printed nothing between "Plug-in registry" and silence, which
+  // told nobody where it died; whatever happens next, the last line printed names the stage it happened in.
+  async function writeDocument(document_, stamp) {
+    log("Assembling the file…");
+    const segments = [];
+    let buffer = [];
+    let held = 0;
+    for (const piece of jsonPieces(document_, 0)) {
+      buffer.push(piece);
+      held += piece.length;
+      if (held >= SEGMENT_CHARS) {
+        segments.push(new Blob(buffer));
+        buffer = [];
+        held = 0;
+      }
+    }
+    segments.push(new Blob(buffer));
+    let blob = new Blob(segments, { type: "application/json" });
+    let name = `crm-export-${stamp}.json`;
+    log(`Assembled ${(blob.size / 1048576).toFixed(0)} MB in ${segments.length} segment(s)`);
+
+    // Gzip when the browser has it. XAML compresses about tenfold, which turns a file nobody can move or keep
+    // into an ordinary one. The extractor recognises it by its first two bytes, not by its name.
+    if (typeof CompressionStream === "function") {
+      try {
+        blob = await new Response(blob.stream().pipeThrough(new CompressionStream("gzip"))).blob();
+        name += ".gz";
+        log(`Compressed to ${(blob.size / 1048576).toFixed(1)} MB`);
+      } catch (error) {
+        log("Compression failed; the file is saved uncompressed:", error.message);
+      }
+    } else {
+      log("This browser has no CompressionStream; the file is saved uncompressed.");
+    }
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    log("Download started.");
+    return { name, size: blob.size };
   }
 
   const exported = {
@@ -379,14 +436,7 @@
     runAuthority
   };
   const stamp = started.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
-  const pieces = jsonPieces(exported, 0, []);
-  const blob = new Blob(pieces, { type: "application/json" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `crm-export-${stamp}.json`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  const saved = await writeDocument(exported, stamp);
   log(`Done: ${workflows.length} workflows, ${Object.keys(xaml).length} XAML, ${Object.keys(xamlErrors).length} XAML errors.`);
-  log(`Saved ${link.download} — ${(blob.size / 1048576).toFixed(0)} MB`);
+  log(`Saved ${saved.name} — ${(saved.size / 1048576).toFixed(1)} MB`);
 })().catch(error => console.error("[crm-export] FAILED:", error));

@@ -67,6 +67,14 @@ and on the other the facts that really do vary per workflow, its on-demand flag 
 SHARED with one user or team grants access none of this can see: `principalobjectaccess` is not on the Web API,
 and the guide says so. The intersect tables’ entity set names are asked of metadata rather than assumed.
 
+**The export is written in one pass and never held twice.** Six thousand definitions are some six hundred
+megabytes of JSON, past what one JavaScript string may hold, and collecting the pieces into an array instead kept
+the escaped copies beside the originals until the tab died with no error at all. `crm-browser-export.js`
+therefore GENERATES pieces and hands them to the browser in segments that leave the JavaScript heap as they are
+made, then gzips the result where `CompressionStream` exists — about tenfold on XAML. `BrowserExportImport`
+recognises a compressed export by its first two bytes rather than its name, and keeps it verbatim in `ham/`
+under `.json.gz`. Every stage of the write announces itself, because the failure that cost a run printed nothing.
+
 **What is delivered names only what is delivered.** The analysts get the five workbooks, the diagrams, the
 combined models and `rapor.md`; the evidence, the restricted findings and `kapsam-disi.xlsx` stay with Enterprise
 Architecture. A delivered file that names one of those sends a reader looking for what they do not have, so none

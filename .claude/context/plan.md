@@ -712,3 +712,24 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   definition. Both want their own package and a real number from a TEST run first.
 - **Acceptance on the company network — Do:** re-drag the export bookmarklet, re-run against TEST. **Pass:** the
   console ends with `Saved crm-export-….json — NNN MB` and the file downloads. **Capture:** that line.
+### The export produced no file, and said nothing (2026-09-28) — committed, awaiting merge
+- **Maintainer:** the export ran to the end of the plug-in registry and stopped. No file, no error, no `Done`.
+- **What the silence meant.** The previous fix removed the `RangeError` by collecting every piece into an ARRAY,
+  which holds the escaped copies BESIDE the originals: about a gigabyte of strings in one tab for the TEST
+  organisation. Nothing threw — the page died between two lines, which is why `.catch` printed nothing. The last
+  line printed was the stage before the write, and the write stage printed nothing at all until it was over.
+- **Fixed by never holding it twice.** `jsonPieces` is now a GENERATOR, and the write loop hands the browser
+  8 MB segments whose bytes leave the JavaScript heap as each `Blob` is made. Measured against the shipping
+  source at 1500 / 3000 / 6000 definitions: **0 MB retained beyond the source document at every size**, where the
+  array held all 560 MB. The generator is still byte-identical to `JSON.stringify` on ten shapes.
+- **And by making it smaller.** Where `CompressionStream` exists the document is gzipped — XAML compresses about
+  tenfold, so ~560 MB becomes ~40 MB, a file that downloads and can be carried. `BrowserExportImport` recognises
+  it by its first two bytes, not its name, and keeps it verbatim in `ham/` as `.json.gz`. Three tests: a
+  compressed export imports to the same run as a plain one, the evidence stays verbatim, and one saved with the
+  wrong extension is still read. Checked by disabling the sniff — all three failed.
+- **Every stage of the write now announces itself** (`Assembling…`, `Assembled N MB in M segment(s)`,
+  `Compressed to N MB`, `Download started.`). The three silent early returns in `readRunAuthority` were also
+  given a line each — that stage decided something in both lost runs and said nothing either time.
+- **Acceptance on the company network — Do:** re-drag the bookmarklet, re-run against TEST. **Pass:** the console
+  ends with `Download started.` then `Saved crm-export-….json.gz — NN MB`. **Capture:** the lines from
+  `Assembling the file…` onwards. If it dies again, the last line printed now names the stage.

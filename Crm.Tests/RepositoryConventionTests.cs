@@ -58,11 +58,11 @@ public sealed partial class RepositoryConventionTests
     }
 
     /// <summary>
-    /// The export must never build its document as one string. A browser refuses a string past about 512 million
-    /// characters, and the TEST organisation passes that in XAML alone: on 2026-09-28 the export read for twenty
-    /// minutes and died on its last line with "RangeError: Invalid string length", losing the whole run. The fix
-    /// hands Blob an array of pieces, and the one call that would undo it is JSON.stringify over the whole
-    /// document — which is what this looks for, because it is a one-word edit away from coming back.
+    /// The export must never hold its document twice. Two runs were lost to this on the TEST organisation:
+    /// JSON.stringify over the whole thing threw "RangeError: Invalid string length" (one string cannot hold 512
+    /// million characters), and collecting every piece into an ARRAY instead kept the escaped copies beside the
+    /// originals until the page died silently. Both are one edit away, so both are named here: the pieces are
+    /// GENERATED, and handed to the browser in segments that leave the JavaScript heap as they are made.
     /// </summary>
     [Fact]
     public void The_Browser_Export_Never_Serializes_The_Whole_Document_As_One_String()
@@ -70,7 +70,8 @@ public sealed partial class RepositoryConventionTests
         string script = File.ReadAllText(Path.Combine(RepositoryTree.Root().FullName, "tools", "crm-browser-export.js"));
 
         Assert.DoesNotContain("JSON.stringify(exported)", script, StringComparison.Ordinal);
-        Assert.Contains("jsonPieces(exported", script, StringComparison.Ordinal);
+        Assert.Contains("function* jsonPieces(", script, StringComparison.Ordinal);
+        Assert.Contains("segments.push(new Blob(", script, StringComparison.Ordinal);
     }
 
     private static IEnumerable<FileInfo> SourceFiles(DirectoryInfo root)

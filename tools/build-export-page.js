@@ -13,13 +13,14 @@ const pages = [
     colour: "#0b6a3b",
     what: `Reads every workflow definition and activation (with XAML), your privileges, option-set labels, process stages
 and the security roles that may start a process by hand, through <b>your own signed-in CRM session</b>, and saves
-them as one file <code>crm-export-&lt;time&gt;.json</code>. Every request is a read (GET); nothing in CRM is changed.
+them as one file <code>crm-export-&lt;time&gt;.json.gz</code>. Every request is a read (GET); nothing in CRM is changed.
 No person is named: role holders are counted and teams are named, but no user name leaves the server.`,
-    file: "crm-export-&lt;time&gt;.json",
-    duration: "It takes a few minutes",
+    file: "crm-export-&lt;time&gt;.json.gz",
+    duration: "It takes several minutes on a large organisation, and the console names every stage as it goes",
     setting: `<code>"Run": { "ImportFile": "&lt;full path to that file&gt;" }</code>`,
     warning: `<b>The downloaded file contains production workflow definitions</b>, which may include URLs, user names or
-passwords. Keep it on the company computer; do not email it or paste it into a chat.`
+passwords. Keep it on the company computer; do not email it or paste it into a chat. Point the extractor at it as
+downloaded — do not unzip it first; it is read either way, by what it is rather than what it is called.`
   },
   {
     script: "crm-usage-export.js",

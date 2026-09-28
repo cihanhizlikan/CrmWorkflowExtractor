@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using Crm.Extract.Inventory;
@@ -27,6 +28,9 @@ public static class BrowserExportImport
     public const string EvidenceFile = RunPaths.RawBrowserExport;
     public const string SourceBrowserExport = "browser-export";
 
+    /// <summary>A gzip member starts with these two bytes. RFC 1952 §2.3.1.</summary>
+    private static readonly byte[] GzipMagic = [0x1f, 0x8b];
+
     public static async Task<IReadOnlyList<WorkflowInventoryRecord>> LoadAsync(RunFolder folder, RunState state, bool requireOrganizationRead, string path, ILogger logger, CancellationToken token)
     {
         string file = Path.IsPathRooted(path) ? path : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, path));
@@ -34,10 +38,10 @@ public static class BrowserExportImport
         {
             throw new InvalidOperationException($"Run:ImportFile '{file}' bulunamadı.");
         }
-        await folder.CopyVerbatimAsync(file, EvidenceFile, token);
+        bool compressed = await IsGzipAsync(file, token);
+        await folder.CopyVerbatimAsync(file, compressed ? EvidenceFile + ".gz" : EvidenceFile, token);
 
-        using FileStream stream = File.OpenRead(file);
-        using JsonDocument document = await JsonDocument.ParseAsync(stream, cancellationToken: token);
+        using JsonDocument document = await ReadAsync(file, compressed, token);
         JsonElement root = document.RootElement;
         if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("format", out JsonElement format) || format.GetString() != Format)
         {
@@ -87,6 +91,30 @@ public static class BrowserExportImport
         await WriteProcessStagesAsync(folder, state, root, token);
         logger.LogInformation("Imported {Records} workflow records and {Xaml} XAML files from {File}", records.Count, entries.Count, file);
         return records;
+    }
+
+    /// <summary>
+    /// The export, gzipped or not. The browser compresses it when it can — six thousand XAML documents are six
+    /// hundred megabytes of text and about forty compressed — and the file is recognised by its first two bytes
+    /// rather than its name, so renaming it does not change how it is read.
+    /// </summary>
+    private static async Task<JsonDocument> ReadAsync(string file, bool compressed, CancellationToken token)
+    {
+        await using FileStream stream = File.OpenRead(file);
+        if (!compressed)
+        {
+            return await JsonDocument.ParseAsync(stream, cancellationToken: token);
+        }
+        await using GZipStream plain = new(stream, CompressionMode.Decompress);
+        return await JsonDocument.ParseAsync(plain, cancellationToken: token);
+    }
+
+    private static async Task<bool> IsGzipAsync(string file, CancellationToken token)
+    {
+        await using FileStream stream = File.OpenRead(file);
+        byte[] head = new byte[GzipMagic.Length];
+        int read = await stream.ReadAtLeastAsync(head, head.Length, throwOnEndOfStream: false, token);
+        return read == head.Length && head.AsSpan().SequenceEqual(GzipMagic);
     }
 
     private static void ReadIdentity(JsonElement root, RunState state)
