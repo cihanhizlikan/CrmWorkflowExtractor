@@ -687,3 +687,28 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Unverified from here:** every query in it. The entity set names, the intersect key spellings and whether a
   locked-down service account is allowed to read `roles` at all are settled only by the live server. A refusal is
   caught and becomes a note on the sheet rather than a failed run.
+### The export died on its last line (2026-09-28) — committed, awaiting merge
+- **Maintainer:** data retrieval moved to the TEST organisation and the export failed —
+  `FAILED: RangeError: Invalid string length at JSON.stringify` after `XAML 5960/5960`.
+- **What happened.** TEST holds 5960 definitions and activations against production's 1437. A browser refuses a
+  single string past about 512 million characters, and 5960 XAML documents pass that on their own. The failure was
+  at the very last line, after twenty minutes of reading: everything retrieved, then thrown away.
+- **Fixed by never building that string.** `jsonPieces` writes the document as an ARRAY of pieces and hands it to
+  `Blob`, which joins them itself. Only the outer two levels are split — that is where the big collections are —
+  so the piece count stays in the tens of thousands rather than the millions.
+- **Checked against the real failure.** The function was lifted out of the shipping source and run over ten shapes
+  (undefined in an object and in an array, Turkish text, the characters JSON escapes, nesting past the split
+  depth, empty containers): byte-identical to `JSON.stringify` on every one. Then over a 540-million-character
+  document: `JSON.stringify` threw exactly `RangeError: Invalid string length`, while `jsonPieces` produced 12,007
+  pieces totalling 540 million characters, longest piece 90 thousand.
+- **The importer was measured at that size rather than assumed.** A 560 MB export parses in 845 ms with a peak
+  working set of about 1 GB, so no change was needed on the C# side. The run folder will hold a second copy of
+  the file in `ham/` plus 5960 XAML files.
+- **Guarded permanently.** `RepositoryConventionTests` fails if `JSON.stringify(exported)` comes back — it is a
+  one-word edit away, and the cost of it returning is another twenty-minute run lost.
+- **Left alone on purpose:** the file size itself. Roughly 560 MB will now download where nothing did before. If
+  carrying it is a problem, the next lever is gzip in the browser (`CompressionStream`) with the importer
+  detecting the magic bytes, or de-duplicating XAML by content hash — an activation is usually a copy of its
+  definition. Both want their own package and a real number from a TEST run first.
+- **Acceptance on the company network — Do:** re-drag the export bookmarklet, re-run against TEST. **Pass:** the
+  console ends with `Saved crm-export-….json — NNN MB` and the file downloads. **Capture:** that line.

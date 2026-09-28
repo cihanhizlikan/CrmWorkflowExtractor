@@ -331,6 +331,44 @@
     log("Process stages could not be read:", error.message);
   }
 
+  // JSON.stringify builds ONE string, and a browser refuses past about 512 million characters. A TEST
+  // organisation with six thousand definitions passes that in XAML alone: the export read everything for twenty
+  // minutes and then died on its last line with "RangeError: Invalid string length", throwing the whole run away.
+  //
+  // So the document is written as an ARRAY of pieces and handed to Blob, which joins them itself and never needs
+  // the whole thing as one string. Only the outer two levels are split — that is where the big collections are
+  // (xaml, workflows, optionSets) — and everything below is small enough to stringify in one go, which keeps the
+  // piece count in the tens of thousands rather than the millions.
+  function jsonPieces(value, depth, into) {
+    if (depth >= 2 || value === null || typeof value !== "object") {
+      into.push(JSON.stringify(value) ?? "null");
+      return into;
+    }
+    if (Array.isArray(value)) {
+      into.push("[");
+      for (let index = 0; index < value.length; index++) {
+        if (index) {
+          into.push(",");
+        }
+        jsonPieces(value[index], depth + 1, into);
+      }
+      into.push("]");
+      return into;
+    }
+    into.push("{");
+    let first = true;
+    for (const key of Object.keys(value)) {
+      if (value[key] === undefined) {
+        continue;   // JSON.stringify drops such a key, and so must this.
+      }
+      into.push((first ? "" : ",") + JSON.stringify(key) + ":");
+      first = false;
+      jsonPieces(value[key], depth + 1, into);
+    }
+    into.push("}");
+    return into;
+  }
+
   const exported = {
     format: "crm-browser-export/1",
     exportedAtUtc: new Date().toISOString(),
@@ -341,11 +379,14 @@
     runAuthority
   };
   const stamp = started.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
+  const pieces = jsonPieces(exported, 0, []);
+  const blob = new Blob(pieces, { type: "application/json" });
   const link = document.createElement("a");
-  link.href = URL.createObjectURL(new Blob([JSON.stringify(exported)], { type: "application/json" }));
+  link.href = URL.createObjectURL(blob);
   link.download = `crm-export-${stamp}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
-  log(`Done: ${workflows.length} workflows, ${Object.keys(xaml).length} XAML, ${Object.keys(xamlErrors).length} XAML errors. Saved ${link.download}`);
+  log(`Done: ${workflows.length} workflows, ${Object.keys(xaml).length} XAML, ${Object.keys(xamlErrors).length} XAML errors.`);
+  log(`Saved ${link.download} — ${(blob.size / 1048576).toFixed(0)} MB`);
 })().catch(error => console.error("[crm-export] FAILED:", error));

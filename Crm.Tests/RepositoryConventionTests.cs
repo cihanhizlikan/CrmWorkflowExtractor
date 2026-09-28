@@ -57,6 +57,22 @@ public sealed partial class RepositoryConventionTests
             + Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
 
+    /// <summary>
+    /// The export must never build its document as one string. A browser refuses a string past about 512 million
+    /// characters, and the TEST organisation passes that in XAML alone: on 2026-09-28 the export read for twenty
+    /// minutes and died on its last line with "RangeError: Invalid string length", losing the whole run. The fix
+    /// hands Blob an array of pieces, and the one call that would undo it is JSON.stringify over the whole
+    /// document — which is what this looks for, because it is a one-word edit away from coming back.
+    /// </summary>
+    [Fact]
+    public void The_Browser_Export_Never_Serializes_The_Whole_Document_As_One_String()
+    {
+        string script = File.ReadAllText(Path.Combine(RepositoryTree.Root().FullName, "tools", "crm-browser-export.js"));
+
+        Assert.DoesNotContain("JSON.stringify(exported)", script, StringComparison.Ordinal);
+        Assert.Contains("jsonPieces(exported", script, StringComparison.Ordinal);
+    }
+
     private static IEnumerable<FileInfo> SourceFiles(DirectoryInfo root)
     {
         return root.EnumerateFiles("*.cs", SearchOption.AllDirectories)
