@@ -31,11 +31,25 @@ public static class RunAuthorityReport
         };
     }
 
-    /// <summary>The roles that carry the right to start a process by hand, busiest first.</summary>
+    /// <summary>
+    /// The roles that carry the right to start a process by hand, busiest first.
+    ///
+    /// <para>
+    /// A page with no rows tells a reader nothing and looks like a fault in the file rather than in the run, so
+    /// where there are no roles the page says WHY on itself. The reason is also on the guide page, but a reader
+    /// who opened this tab is looking here, and sending them to another tab to find out that this one is empty
+    /// on purpose is the kind of thing that gets a whole workbook mistrusted.
+    /// </para>
+    /// </summary>
     public static Sheet Roles(RunAuthority authority)
     {
         Sheet sheet = new(SheetNames.RunRoles, "rol", "kullanici_sayisi", "ekip_sayisi", "ekipler",
             "calistirma_derinligi", "surec_gorme_derinligi", "rolun_is_birimi", "rol_id");
+        if (authority.Roles.Count == 0)
+        {
+            sheet.Row(authority.Note ?? "Elle çalıştırma yetkisini taşıyan rol bulunamadı.", 0, 0, "", "", "", "", "");
+            return sheet;
+        }
         foreach (RunRole role in authority.Roles)
         {
             sheet.Row(role.Name, role.Users, role.Teams.Count, Sheet.List(role.Teams),

@@ -95,11 +95,17 @@ public sealed class RoleRetriever(CrmHttpClient client, int pageSize)
     }
 
     /// <summary>Logical name → entity set name, for the intersect tables whose set name cannot be guessed.</summary>
+    /// <summary>
+    /// <c>EntityDefinitions</c> is asked for EVERY entity's set name and the three are picked here, rather than
+    /// filtered on the server. The metadata endpoint's <c>$filter</c> support is a narrow subset that differs by
+    /// version, and a filter it will not honour does not return the wrong rows — it returns none, which reads
+    /// exactly like "this server has no such table" and silently emptied the whole page. The unfiltered list is
+    /// two short columns for a few hundred entities: one request, and nothing to be wrong about.
+    /// </summary>
     private async Task<IReadOnlyDictionary<string, string>> EntitySetsAsync(CancellationToken token)
     {
-        string filter = string.Join(" or ", Intersects.Select(name => $"LogicalName eq '{name}'"));
         CrmResponse response = await client.GetAsync(
-            $"EntityDefinitions?$select=LogicalName,EntitySetName&$filter={Uri.EscapeDataString(filter)}", CrmPreferences.None, token);
+            "EntityDefinitions?$select=LogicalName,EntitySetName", CrmPreferences.None, token);
         Dictionary<string, string> sets = new(StringComparer.OrdinalIgnoreCase);
         using JsonDocument document = JsonDocument.Parse(response.Body);
         foreach (JsonElement row in document.RootElement.GetProperty("value").EnumerateArray())

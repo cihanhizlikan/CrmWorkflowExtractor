@@ -794,3 +794,20 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   **Pass:** no diamond with a single flow in and out; the first diamond reads
   `ConditionBranchStep12_1 NotEqual ps_activitytype` with `evet` / `hayır` on its arrows. **Capture:** a
   screenshot of the first two gateways.
+### An empty page is not an answer (2026-09-28) — committed, awaiting merge
+- **Maintainer:** the **Çalıştırma yetkisi** page of `calistirma-yetkisi.xlsx` is completely empty.
+- **Two faults, and only one of them is certain.** Certain: a page with no rows carried its reason on a DIFFERENT
+  tab. The reason was always written — as an `Eksik` row on **Nasıl okunur** and as a run warning — but a reader
+  who opened this tab sees headers and nothing, which reads as a broken file rather than a refused query. The
+  page now carries the reason on itself.
+- **Suspected, and removed as a class:** the entity-set names were resolved with
+  `EntityDefinitions?$filter=LogicalName eq 'roleprivileges' or …`. The metadata endpoint's `$filter` support is
+  a narrow subset that differs by version, and a filter it will not honour returns NO ROWS rather than an error —
+  which is indistinguishable from "this server has no such table" and takes the early exit that empties the page.
+  Both the extractor and the browser export now ask for every entity's set name (two short columns, one request)
+  and pick the three here. Nothing about it can be version-dependent any more.
+- **This server is known to differ on privilege names:** the same run reported `prvReadProcessStage` as absent,
+  so `prvExecuteWorkflowJob` being absent under that name is a live possibility too. If it is, the page will now
+  say so in its own first row.
+- **Acceptance on the company network — Do:** re-drag the export bookmarklet, re-export, reprocess. **Pass:** the
+  page lists roles. **Capture:** if it is still one row, that row — it now names which of the four causes it was.

@@ -237,9 +237,12 @@
     const RUN = "prvExecuteWorkflowJob";
     const READ = "prvReadWorkflow";
     try {
+      // EVERY entity's set name, picked from here rather than filtered on the server. The metadata endpoint's
+      // $filter support is a narrow subset that differs by version, and a filter it will not honour returns no
+      // rows rather than an error — which reads exactly like "this server has no such table" and empties the
+      // whole page silently. Two short columns for a few hundred entities: one request, nothing to be wrong about.
       const wanted = ["roleprivileges", "systemuserroles", "teamroles"];
-      const definitions = await get("EntityDefinitions?$select=LogicalName,EntitySetName&$filter="
-        + encodeURIComponent(wanted.map(name => `LogicalName eq '${name}'`).join(" or ")));
+      const definitions = await get("EntityDefinitions?$select=LogicalName,EntitySetName");
       const sets = {};
       for (const row of definitions.value) {
         sets[row.LogicalName] = row.EntitySetName;

@@ -74,6 +74,31 @@ public sealed class RunAuthorityReportTests
         Assert.Equal("kullanıcı", Rows(sheet)[1][kind]);
     }
 
+    /// <summary>
+    /// The first TEST run came back with this page empty — headers and nothing else — and the reason on a
+    /// different tab. An empty page reads as a broken file rather than a refused query, so it now carries the
+    /// reason on itself.
+    /// </summary>
+    [Fact]
+    public void A_Page_With_No_Roles_Says_Why_On_Itself()
+    {
+        RunAuthority refused = RunAuthority.Empty with { Note = "Bu sunucu şu tabloları bildirmiyor: roleprivileges." };
+
+        Sheet sheet = RunAuthorityReport.Roles(refused);
+
+        IReadOnlyList<object?> row = Assert.Single(sheet.Rows);
+        Assert.Equal("Bu sunucu şu tabloları bildirmiyor: roleprivileges.", row[0]);
+    }
+
+    /// <summary>No note and no roles is still an answer, and still not a blank page.</summary>
+    [Fact]
+    public void A_Page_With_No_Roles_And_No_Reason_Still_Says_Something()
+    {
+        Sheet sheet = RunAuthorityReport.Roles(RunAuthority.Empty);
+
+        Assert.Equal("Elle çalıştırma yetkisini taşıyan rol bulunamadı.", Assert.Single(sheet.Rows)[0]);
+    }
+
     /// <summary>CRM's depth mask, in the words CRM itself uses. A mask of 0 is "not held", not "Basic".</summary>
     [Theory]
     [InlineData(0, "yok")]
