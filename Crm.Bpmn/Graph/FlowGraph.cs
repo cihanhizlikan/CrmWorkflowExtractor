@@ -114,6 +114,59 @@ public sealed class FlowGraph
         return _nodes[id];
     }
 
+    /// <summary>
+    /// Folds a merge gateway into the merge it feeds. A condition nested inside another produces two of them back
+    /// to back — the inner one gathering its own branches, the outer gathering those plus its own — joined by a
+    /// single arrow. Along the path a reader follows, the second reads as a diamond with one arrow in and one
+    /// out: a decision shape that decides nothing, which has to be read before that is clear. Merging them loses
+    /// no path, because everything arriving at the first was already going on to the second.
+    ///
+    /// <para>
+    /// Only UNNAMED gateways joined by a bare flow are folded: a named one is a decision, and a flow carrying a
+    /// caption or a condition is carrying something a reader needs.
+    /// </para>
+    /// </summary>
+    public void FoldMergeGateways()
+    {
+        while (Fold())
+        {
+        }
+    }
+
+    private bool Fold()
+    {
+        foreach (FlowNode node in _order)
+        {
+            if (node.Type != FlowNodeType.ExclusiveGateway || node.Name.Length > 0)
+            {
+                continue;
+            }
+            List<FlowEdge> leaving = [.. _edges.Where(edge => edge.SourceId == node.Id)];
+            if (leaving.Count != 1 || leaving[0].Name is not null || leaving[0].Condition is not null)
+            {
+                continue;
+            }
+            if (!_nodes.TryGetValue(leaving[0].TargetId, out FlowNode? next)
+                || next.Type != FlowNodeType.ExclusiveGateway || next.Name.Length > 0 || next.Id == node.Id)
+            {
+                continue;
+            }
+            for (int index = 0; index < _edges.Count; index++)
+            {
+                if (_edges[index].TargetId == node.Id)
+                {
+                    // Retargeted rather than rebuilt: the flow keeps its id, so a split still points its default at it.
+                    _edges[index] = _edges[index] with { TargetId = next.Id };
+                }
+            }
+            _edges.Remove(leaving[0]);
+            _nodes.Remove(node.Id);
+            _order.Remove(node);
+            return true;
+        }
+        return false;
+    }
+
     public FlowEdge Connect(string sourceId, string targetId, string? name = null, string? condition = null, string? discriminator = null)
     {
         string id = discriminator is null ? $"f_{sourceId}__{targetId}" : $"f_{sourceId}__{targetId}_{discriminator}";

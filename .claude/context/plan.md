@@ -833,3 +833,28 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess and reopen `cti-telefon-gorusmelerini-kapat.bpmn`.
   **Pass:** the diamonds read `phonecall.<field>?` with the comparison on the arrows. **Capture:** the four
   gateway names.
+### A decision that says what it decides (2026-10-02) — committed, awaiting merge
+- **Maintainer, on `lead-lifecycle-appointment.bpmn`:** diamonds with one arrow in and one out still exist; the
+  caption `(hiçbir koşul sağlanmazsa)` makes no sense; and `lead.leadid?` does not say whether it is a null check.
+- **The diamond they saw is two merges back to back.** No gateway in that file is literally one-in-one-out — the
+  previous package's rule holds. A condition nested inside another produces an inner merge and an outer one
+  joined by a single arrow, and along the path a reader follows the second reads exactly like a shape that
+  decides nothing. `FoldMergeGateways` folds an unnamed merge into the unnamed merge it feeds; nothing is lost,
+  because everything arriving at the first was already going on to the second. Flows are RETARGETED, not rebuilt,
+  so a split still points its `default` at the right one.
+- **A pre-existing defect found while fixing it.** The builder decided which arrow was the default by matching
+  its caption against "Aksi hâlde"; the parser writes "Otherwise". So on EVERY condition with an explicit else,
+  the else lost its default marker and was given a second, unreachable "nothing matched" arrow beside it — which
+  then needed a join to arrive at. The default is now the branch with no condition on it, which is what it is.
+- **The captions.** `(hiçbir koşul sağlanmazsa)` described how this tool drew the picture. An arrow carries an
+  OUTCOME: `hayır` where there was one test, `diğer` where there were several.
+- **The question.** One test, and the diamond asks it in full — `lead.leadid NotNull` — with `evet` / `hayır` on
+  the arrows, which answers "is that a null check?" by looking at it. Several tests on one field, and the diamond
+  names the field once (`lead.prioritycode?`) while each arrow carries only its own operator and value
+  (`Equal Düşük (2)`), rather than repeating the field on every arrow leaving the diamond that just named it. An
+  author's own name for the step still wins over both.
+- **Reversal, said plainly:** two packages ago the subject was deliberately kept on the diamond and the
+  comparison on the arrow. The maintainer is right that it reads as a repetition and leaves the question
+  unanswered.
+- **Acceptance on the company network — Do:** reprocess, reopen the same file. **Pass:** one merge diamond where
+  there were two; no `(hiçbir koşul sağlanmazsa)`; the first diamond reads `lead.leadid NotNull`.

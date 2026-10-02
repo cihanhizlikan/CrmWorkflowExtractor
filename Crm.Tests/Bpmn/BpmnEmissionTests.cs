@@ -79,7 +79,16 @@ public sealed class BpmnEmissionTests
         XElement start = Assert.Single(process.Elements(BpmnSerializer.Model + "startEvent"));
         Assert.NotNull(start.Element(BpmnSerializer.Model + "conditionalEventDefinition"));
         Assert.Equal("false", process.Attribute("isExecutable")?.Value);
-        Assert.Equal(2, process.Elements(BpmnSerializer.Model + "exclusiveGateway").Count());
+        // ONE gateway: the split. Its else branch stops the process, so no path comes back to be joined and
+        // there is nothing for a join to merge. It used to be two, because the else was not recognised as the
+        // else — the builder matched it by caption against a word the parser never writes — and an unreachable
+        // "nothing matched" arrow was added beside it, which then needed a join to arrive at.
+        XElement gateway = Assert.Single(process.Elements(BpmnSerializer.Model + "exclusiveGateway"));
+        Assert.Equal(2, process.Elements(BpmnSerializer.Model + "sequenceFlow")
+            .Count(flow => flow.Attribute("sourceRef")?.Value == gateway.Attribute("id")?.Value));
+        Assert.Equal(gateway.Attribute("default")?.Value, process.Elements(BpmnSerializer.Model + "sequenceFlow")
+            .Single(flow => flow.Attribute("sourceRef")?.Value == gateway.Attribute("id")?.Value
+                && flow.Element(BpmnSerializer.Model + "conditionExpression") is null).Attribute("id")?.Value);
         XElement update = Assert.Single(process.Elements(BpmnSerializer.Model + "serviceTask"));
         Assert.Equal("n_0f0e0d0c0b0a09080706050403020100_0_0_0", update.Attribute("id")?.Value);
         XElement stop = Assert.Single(process.Elements(BpmnSerializer.Model + "endEvent"), end => end.Element(BpmnSerializer.Model + "terminateEventDefinition") is not null);

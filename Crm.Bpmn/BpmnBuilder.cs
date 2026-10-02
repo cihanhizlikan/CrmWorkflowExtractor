@@ -80,6 +80,7 @@ public sealed partial class BpmnBuilder
         }
         SequenceBlock process = new(builder._graph, parts);
         process.Connect();
+        builder._graph.FoldMergeGateways();
 
         // The note is a shape like any other, so the diagram starts below it and nothing is drawn over it.
         string note = HeaderNote(ir, name, facts);
@@ -112,8 +113,8 @@ public sealed partial class BpmnBuilder
         return step.Kind switch
         {
             StepKind.Sequence => Sequence([.. step.Branches.SelectMany(branch => branch.Steps)]),
-            StepKind.Condition => Split(step, FlowNodeType.ExclusiveGateway, "Aksi hâlde"),
-            StepKind.Variant => Split(step, FlowNodeType.ExclusiveGateway, null),
+            StepKind.Condition => Split(step, FlowNodeType.ExclusiveGateway),
+            StepKind.Variant => Split(step, FlowNodeType.ExclusiveGateway),
             StepKind.WaitCondition => Wait(step),
             _ => new NodeBlock(_graph.Add(Task(step)))
         };
@@ -142,7 +143,13 @@ public sealed partial class BpmnBuilder
         };
     }
 
-    private SplitBlock Split(StepNode step, FlowNodeType gatewayType, string? defaultLabel)
+    /// <summary>
+    /// A split and its branches. Which arrow is the DEFAULT is decided by a branch having no condition on it, not
+    /// by matching its caption: the caption looked for was "Aksi hâlde" and the parser writes "Otherwise", so an
+    /// explicit else was never recognised — it lost its default marker AND was given a second, unreachable
+    /// "nothing matched" arrow beside it, on every condition in the estate that had one.
+    /// </summary>
+    private SplitBlock Split(StepNode step, FlowNodeType gatewayType)
     {
         FlowNode split = _graph.Add(new FlowNode(Id(step.Path, "split"), gatewayType, Truncate(GatewayName(step), 60))
         {
@@ -152,24 +159,72 @@ public sealed partial class BpmnBuilder
         FlowNode join = new(Id(step.Path, "join"), FlowNodeType.ExclusiveGateway, "");
         List<SplitPath> paths = [];
         bool asksTheComparison = AsksTheComparison(step);
+        string? shared = SharedSubject(step);
         foreach (Branch branch in step.Branches)
         {
-            bool isDefault = defaultLabel is not null && branch.Predicate is null && branch.Label == defaultLabel;
-            string label = step.Kind == StepKind.Variant ? "Çeşitleme: " + branch.Label : branch.Label;
-            if (asksTheComparison)
-            {
-                // The diamond already says what is compared; repeating it on the arrow says it twice and leaves
-                // the reader looking for a difference between the two.
-                label = branch.Predicate is null ? "hayır" : "evet";
-            }
-            paths.Add(new SplitPath(Truncate(label, 60), branch.Predicate?.Text ?? label, isDefault, Sequence(branch.Steps)));
+            bool isDefault = step.Kind == StepKind.Condition && branch.Predicate is null;
+            paths.Add(new SplitPath(Truncate(BranchLabel(step, branch, asksTheComparison, shared, isDefault), 60),
+                branch.Predicate?.Text ?? branch.Label, isDefault, Sequence(branch.Steps)));
         }
-        if (step.Kind == StepKind.Condition && !step.Branches.Any(branch => branch.Predicate is null && branch.Label == defaultLabel))
+        if (step.Kind == StepKind.Condition && !step.Branches.Any(branch => branch.Predicate is null))
         {
-            // A condition with no otherwise-branch continues when no branch holds: an explicit, labelled bypass.
-            paths.Add(new SplitPath(asksTheComparison ? "hayır" : "(hiçbir koşul sağlanmazsa)", null, true, new SequenceBlock(_graph, [])));
+            // A condition with no otherwise-branch carries on when none held. That is an OUTCOME, so the arrow
+            // says what happened — "hayır", or "diğer" where there were several to fail — and not the machinery
+            // that produced it. "(hiçbir koşul sağlanmazsa)" described how this tool built the diagram, which is
+            // not something a reader of a process has any use for.
+            paths.Add(new SplitPath(Fallthrough(step), null, true, new SequenceBlock(_graph, [])));
         }
         return new SplitBlock(_graph, split, join, paths);
+    }
+
+    /// <summary>
+    /// What one outgoing arrow says. Its job is to carry the OUTCOME, and how much of the comparison it needs for
+    /// that depends on what the diamond already said: nothing, when the diamond carries the whole comparison and
+    /// the arrow is simply yes or no; the operator and value alone, when every branch tests the same field and the
+    /// diamond names it; and the whole condition otherwise.
+    /// </summary>
+    private static string BranchLabel(StepNode step, Branch branch, bool asksTheComparison, string? shared, bool isDefault)
+    {
+        if (step.Kind == StepKind.Variant)
+        {
+            return "Çeşitleme: " + branch.Label;
+        }
+        if (branch.Predicate is not Predicate predicate)
+        {
+            return isDefault || branch.Label.Length == 0 ? Fallthrough(step) : branch.Label;
+        }
+
+        if (asksTheComparison)
+        {
+            return "evet";
+        }
+        if (shared is not null && predicate.Text.StartsWith(shared + " ", StringComparison.Ordinal))
+        {
+            return predicate.Text[(shared.Length + 1)..];
+        }
+        return predicate.Text;
+    }
+
+    /// <summary>The arrow taken when nothing held: "no" where there was one test, "other" where there were several.</summary>
+    private static string Fallthrough(StepNode step)
+    {
+        return step.Branches.Count(branch => branch.Predicate is not null) > 1 ? "diğer" : "hayır";
+    }
+
+    /// <summary>
+    /// The field every branch of this split tests, when they all test the same one. Then the diamond can name it
+    /// once and each arrow carry only its own operator and value — <c>lead.prioritycode?</c> with "Equal Düşük
+    /// (2)" beside it, rather than that field's name repeated on every arrow leaving it.
+    /// </summary>
+    private static string? SharedSubject(StepNode step)
+    {
+        List<Predicate> predicates = [.. step.Branches.Select(branch => branch.Predicate).OfType<Predicate>()];
+        if (predicates.Count < 2)
+        {
+            return null;
+        }
+        string first = Asked(predicates[0]);
+        return predicates.All(predicate => Asked(predicate) == first) ? first : null;
     }
 
     /// <summary>
@@ -194,21 +249,19 @@ public sealed partial class BpmnBuilder
     /// Whether the diamond should carry the whole comparison rather than name what is compared.
     ///
     /// <para>
-    /// It should only when there is NOTHING to name: no field, and no activity behind the value either, leaving
-    /// the designer's own generated variable — <c>ConditionBranchStep12_1</c> — which tells a reader nothing. The
-    /// operator and the value measured against are then the only real information, and they were on the arrow
-    /// alone. Where the condition names a field (<c>phonecall.statecode?</c>) or an activity's output
-    /// (<c>CheckPolicyStatus.Durum?</c>), that is the question and each arrow keeps its own comparison, which is
-    /// how a gateway is meant to read. Only for a single condition: with several, each arrow must say its own.
+    /// It should wherever there is ONE test and the author did not name the step. <c>lead.leadid?</c> names the
+    /// field and leaves the reader asking what is being asked ABOUT it — is it a null check, a match, a range? —
+    /// while the answer, <c>lead.leadid NotNull</c>, sat on the arrow where it read as a repetition. The diamond
+    /// takes the whole comparison and the arrows become yes and no, which is what a reader of a decision expects
+    /// to find on them. With SEVERAL tests this cannot work: each arrow has its own, so the diamond names the
+    /// field they share and the arrows carry the rest. An author's own name for the step always wins over both.
     /// </para>
     /// </summary>
     private static bool AsksTheComparison(StepNode step)
     {
         return step.Kind == StepKind.Condition
             && (step.DisplayName.Length == 0 || InternalStepId().IsMatch(step.DisplayName))
-            && step.Branches.Count(branch => branch.Predicate is not null) == 1
-            && step.Branches.Select(branch => branch.Predicate).FirstOrDefault(predicate => predicate is not null) is Predicate only
-            && DesignerVariable().IsMatch(Asked(only));
+            && step.Branches.Count(branch => branch.Predicate is not null) == 1;
     }
 
     /// <summary>
