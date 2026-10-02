@@ -289,7 +289,7 @@ public sealed partial class BpmnBuilder
         if (step.Branches.Count <= 1)
         {
             Branch? only = step.Branches.FirstOrDefault();
-            FlowNode waitEvent = _graph.Add(new FlowNode(Id(step.Path), FlowNodeType.ConditionalCatchEvent, Truncate("Bekle: " + (only?.Label ?? step.DisplayName), 60))
+            FlowNode waitEvent = _graph.Add(new FlowNode(Id(step.Path), FlowNodeType.ConditionalCatchEvent, "Bekle: " + (only?.Label ?? step.DisplayName))
             {
                 Documentation = StepDocumentation(step),
                 Expression = only?.Predicate?.Text ?? only?.Label ?? "koşul",
@@ -305,7 +305,7 @@ public sealed partial class BpmnBuilder
             return waitSequence;
         }
 
-        FlowNode gateway = _graph.Add(new FlowNode(Id(step.Path, "split"), FlowNodeType.EventBasedGateway, Truncate(step.DisplayName, 60))
+        FlowNode gateway = _graph.Add(new FlowNode(Id(step.Path, "split"), FlowNodeType.EventBasedGateway, step.DisplayName)
         {
             Documentation = StepDocumentation(step),
             Sources = step.Sources
@@ -317,7 +317,7 @@ public sealed partial class BpmnBuilder
             bool timer = branch.Steps.Count > 0 && branch.Steps[0].Kind == StepKind.Timeout;
             IReadOnlyList<StepNode> rest = timer ? [.. branch.Steps.Skip(1)] : branch.Steps;
             FlowNode catchEvent = _graph.Add(new FlowNode(Id(step.Path, "b" + index.ToString(CultureInfo.InvariantCulture) + "_event"),
-                timer ? FlowNodeType.TimerCatchEvent : FlowNodeType.ConditionalCatchEvent, Truncate(branch.Label, 60))
+                timer ? FlowNodeType.TimerCatchEvent : FlowNodeType.ConditionalCatchEvent, branch.Label)
             {
                 Expression = timer ? branch.Steps[0].Detail : branch.Predicate?.Text ?? branch.Label,
                 Sources = timer ? branch.Steps[0].Sources : step.Sources
@@ -416,11 +416,11 @@ public sealed partial class BpmnBuilder
             _ => step.Kind.ToString()
         };
         string subject = Subject(step);
-        // Cut AROUND the target, not before it. The target used to be appended after the cut and carried whatever
-        // the assembly scan had found: one label reached thirty thousand characters and no modeller would open it.
-        // 140 and the 60 a target may add come to exactly MaxLabel. A custom activity's subject IS its signature
-        // now, and 80 cut the outputs off the end of it — the half a reader has least chance of guessing.
-        return Truncate(Truncate(subject.Length == 0 ? verb : $"{verb}: {subject}", 140) + Target(step, subject), MaxLabel);
+        // Not shortened to fit: the box is grown to hold it instead. What a step writes is the substance of the
+        // step, and "customer, prioritycode, ps_campaignresponseresultid, …" threw away seven of the ten fields
+        // that make it what it is. MaxLabel stays as a guard against a definition nobody has seen yet, far above
+        // anything the estate contains — it is not a style rule and no real label comes near it.
+        return Truncate((subject.Length == 0 ? verb : $"{verb}: {subject}") + Target(step, subject), MaxLabel);
     }
 
     /// <summary>
@@ -432,14 +432,14 @@ public sealed partial class BpmnBuilder
         if (step.Kind == StepKind.StartChildWorkflow && Guid.TryParse(step.Detail, out Guid child)
             && _workflowNames.GetValueOrDefault(child) is string target && !subject.Contains(target, StringComparison.Ordinal))
         {
-            return " → " + Truncate(target, 60);
+            return " → " + target;
         }
         if (step.Kind == StepKind.CustomActivity && step.Detail is string type)
         {
             string full = type.Split(',')[0].Trim();
             string name = full[(full.LastIndexOf('.') + 1)..];
             string code = name.Length == 0 || subject.Contains(name, StringComparison.Ordinal) ? "" : $" ({name})";
-            return _activityAddresses.TryGetValue(full, out string? host) ? code + " → " + Truncate(host, 60) : code;
+            return _activityAddresses.TryGetValue(full, out string? host) ? code + " → " + host : code;
         }
         return "";
     }
@@ -462,7 +462,7 @@ public sealed partial class BpmnBuilder
         }
         if (step.Fields.Count > 0)
         {
-            parts.Add(string.Join(", ", step.Fields.Take(3).Select(field => field.Field)) + (step.Fields.Count > 3 ? ", …" : ""));
+            parts.Add(string.Join(", ", step.Fields.Select(field => field.Field)));
         }
         if (parts.Count == 0 && step.Kind is StepKind.UserInteraction)
         {
@@ -501,8 +501,8 @@ public sealed partial class BpmnBuilder
         string name = full[(full.LastIndexOf('.') + 1)..];
         string takes = string.Join(", ", arguments.Where(argument => argument.Output != true).Select(argument => argument.Name));
         string gives = string.Join(", ", arguments.Where(argument => argument.Output == true).Select(argument => argument.Name));
-        string called = name + "(" + Truncate(takes, 60) + ")";
-        return gives.Length == 0 ? called : called + " → " + Truncate(gives, 50);
+        string called = name + "(" + takes + ")";
+        return gives.Length == 0 ? called : called + " → " + gives;
     }
 
     private static string StartName(WorkflowTrigger trigger)
@@ -646,11 +646,12 @@ public sealed partial class BpmnBuilder
     private static partial Regex DesignerVariable();
 
     /// <summary>
-    /// The most any element label may carry. A diagram label is read at a glance and drawn in a box; what does
-    /// not fit in one is in the element's documentation and on the sheets. Beyond a few hundred characters a
-    /// modeller stops being able to draw the file at all.
+    /// A guard, not a style rule. One label once reached thirty thousand characters — an assembly's whole address
+    /// list, poured into it — and no modeller would open the file. Everything that fed that is bounded at its
+    /// source now, and no label the estate produces comes within an order of magnitude of this; it stands only so
+    /// that a definition nobody has seen yet cannot make a file nobody can open.
     /// </summary>
-    public const int MaxLabel = 200;
+    public const int MaxLabel = 2000;
 
     private static string Truncate(string text, int length)
     {

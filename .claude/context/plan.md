@@ -917,3 +917,21 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess, reopen
   `create-campaign-response-for-phonecall.bpmn`. **Pass:** each `evet` sits on its own arrow between the diamond
   and the task; each `hayır` sits on the long arrow between diamonds; the diamonds read their conditions whole.
+### The box grows, the text stays (2026-10-02) — committed, awaiting merge
+- **Maintainer:** stop shortening what goes into steps as well; draw the boxes larger to hold it.
+- **What was being thrown away.** A create-record step writing ten fields was labelled
+  `campaignresponse · customer, prioritycode, ps_campaignresponseresultid, …` — seven of the ten gone, and those
+  fields are the substance of the step for anyone rebuilding it. Also cut: the step label at 140 characters, a
+  child workflow's name and an activity's host at 60, and a custom activity's signature at 60 in and 50 out.
+  All of them now arrive whole.
+- **The box is sized from its text instead.** `FlowNode.Size` takes the label: a task grows WIDER first, to 300,
+  then TALLER, in steps of ten pixels so the layout stays on a grid. Short steps keep the ordinary 130×70. The
+  block layout reads `Width`/`Height` already, so the diagram reflows around the bigger boxes on its own.
+- **Growing the text without growing the box would only have moved the problem** — the viewer draws the overflow
+  over whatever is below. A test checks every task in six fixtures can hold its own text at the width it was
+  given, and it was confirmed by pinning the box back to 130×70: two fixtures then needed 90 and 60 pixels of 54.
+- **`MaxLabel` raised to 2000 and re-described as what it is:** a guard against a definition nobody has seen,
+  not a style rule. Everything that once fed the thirty-thousand-character label is bounded at its source now,
+  and no label the estate produces comes within an order of magnitude of it.
+- **Acceptance on the company network — Do:** reprocess, open a create-record step with many fields.
+  **Pass:** every field it writes is named on the box, and the text sits inside the border.

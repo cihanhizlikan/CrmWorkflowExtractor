@@ -55,12 +55,12 @@ public sealed class FlowNode(string id, FlowNodeType type, string name)
 
     public double Width
     {
-        get { return Size(Type).Width; }
+        get { return Size(Type, Name).Width; }
     }
 
     public double Height
     {
-        get { return Size(Type).Height; }
+        get { return Size(Type, Name).Height; }
     }
 
     public bool IsEnd
@@ -68,15 +68,36 @@ public sealed class FlowNode(string id, FlowNodeType type, string name)
         get { return Type is FlowNodeType.EndEvent or FlowNodeType.TerminateEndEvent; }
     }
 
-    public static (double Width, double Height) Size(FlowNodeType type)
+    /// <summary>Room for a character of the label a viewer draws INSIDE a task, at the 12-pixel font it uses.</summary>
+    private const double Character = 6.6;
+
+    /// <summary>Padding inside a task box: the text is not drawn against its border.</summary>
+    private const double Padding = 10;
+
+    /// <summary>
+    /// How big a shape is drawn. An event or a gateway is a fixed glyph whose caption hangs OUTSIDE it, so its
+    /// size says nothing about its text. A task carries its text INSIDE, and the text is no longer shortened to
+    /// fit — the fields a step writes are the substance of it — so the box is grown to hold what it says: wider
+    /// first, up to a width that still reads as a box rather than a banner, and taller after that.
+    /// </summary>
+    public static (double Width, double Height) Size(FlowNodeType type, string name)
     {
-        return type switch
+        if (type is FlowNodeType.StartEvent or FlowNodeType.EndEvent or FlowNodeType.TerminateEndEvent
+            or FlowNodeType.ConditionalCatchEvent or FlowNodeType.TimerCatchEvent)
         {
-            FlowNodeType.StartEvent or FlowNodeType.EndEvent or FlowNodeType.TerminateEndEvent
-                or FlowNodeType.ConditionalCatchEvent or FlowNodeType.TimerCatchEvent => (36, 36),
-            FlowNodeType.ExclusiveGateway or FlowNodeType.EventBasedGateway => (50, 50),
-            _ => (130, 70)
-        };
+            return (36, 36);
+        }
+        if (type is FlowNodeType.ExclusiveGateway or FlowNodeType.EventBasedGateway)
+        {
+            return (50, 50);
+        }
+        const double narrowest = 130;
+        const double widest = 300;
+        const double shortest = 70;
+        double wanted = (name.Length * Character) + (Padding * 2);
+        double width = Math.Clamp(Math.Ceiling(wanted / 10) * 10, narrowest, widest);
+        double lines = Math.Max(1, Math.Ceiling((name.Length * Character) / (width - (Padding * 2))));
+        return (width, Math.Max(shortest, Math.Ceiling(((lines * 15) + (Padding * 2)) / 10) * 10));
     }
 }
 
