@@ -628,7 +628,7 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
             {
                 Predicate? left = PredicateOf(logical.Left, path);
                 Predicate? right = PredicateOf(logical.Right, path);
-                string word = logical.Operator.ToUpperInvariant();
+                string word = ConditionWords.Join(logical.Operator);
                 return new Predicate($"({left?.Text ?? Subject(logical.Left)}) {word} ({right?.Text ?? Subject(logical.Right)})", left?.Entity, left?.Attribute, logical.Operator,
                     [.. (left?.Values ?? []).Concat(right?.Values ?? [])]);
             }
@@ -647,8 +647,9 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
                 .SelectMany(Index.ValuesOf)
                 .Select(raw => new LiteralValue(raw, Labels.Resolve(read?.Entity, read?.Attribute, raw)))];
             string shown = string.Join(", ", values.Select(value => value.Resolved is null ? value.Raw : $"{value.Resolved} ({value.Raw})"));
-            string text = string.Join(" ", new[] { Subject(comparison.OperandVariable), comparison.Operator, shown }.Where(part => part.Length > 0));
-            return new Predicate(text, read?.Entity, read?.Attribute, comparison.Operator, values);
+            string subject = Subject(comparison.OperandVariable);
+            string text = string.Join(" ", new[] { subject, ConditionWords.Of(comparison.Operator), shown }.Where(part => part.Length > 0));
+            return new Predicate(text, read?.Entity, read?.Attribute, comparison.Operator, values) { Subject = subject };
         }
 
         /// <summary>

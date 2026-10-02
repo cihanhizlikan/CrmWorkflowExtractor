@@ -275,10 +275,7 @@ public sealed partial class BpmnBuilder
         {
             return $"{entity}.{attribute}";
         }
-        int operatorAt = predicate.Operator is { Length: > 0 } comparison
-            ? predicate.Text.IndexOf(" " + comparison, StringComparison.Ordinal)
-            : -1;
-        return operatorAt > 0 ? predicate.Text[..operatorAt] : predicate.Text;
+        return predicate.Subject.Length > 0 ? predicate.Subject : predicate.Text;
     }
 
     /// <summary>A single wait is one conditional catch event; a wait with several outcomes (e.g. a timeout) is an event-based gateway.</summary>

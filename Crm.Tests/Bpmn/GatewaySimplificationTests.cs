@@ -71,9 +71,9 @@ public sealed class GatewaySimplificationTests
         BpmnProcess process = Build("condition-unnamed-then-stop.xaml");
 
         FlowNode split = process.Graph.Nodes.Single(node => node.Type == FlowNodeType.ExclusiveGateway);
-        Assert.Equal("ConditionBranchStep12_1 NotEqual ps_activitytype", split.Name);
+        Assert.Equal("ConditionBranchStep12_1 ≠ ps_activitytype", split.Name);
 
         FlowEdge taken = process.Graph.Edges.Single(edge => edge.SourceId == split.Id && edge.Name == "evet");
-        Assert.Equal("ConditionBranchStep12_1 NotEqual ps_activitytype", taken.Condition);
+        Assert.Equal("ConditionBranchStep12_1 ≠ ps_activitytype", taken.Condition);
     }
 }

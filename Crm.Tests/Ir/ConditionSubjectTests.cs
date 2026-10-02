@@ -8,7 +8,7 @@ namespace Crm.Tests.Ir;
 /// <summary>
 /// What a condition compares, named. Not every condition reads a field: the designer can compare whatever a custom
 /// activity handed back, and then there is no entity and no attribute to print. The diagram used to print a bare
-/// question mark there — "? Equal Aktif" — which names nothing and sends the reader to the XAML. The activity and
+/// question mark there — "? = Aktif" — which names nothing and sends the reader to the XAML. The activity and
 /// the output argument it wrote are in the definition, and they are what a reader needs.
 /// </summary>
 public sealed class ConditionSubjectTests
@@ -24,7 +24,7 @@ public sealed class ConditionSubjectTests
         StepNode condition = Assert.Single(result.Steps);
         Predicate predicate = Assert.IsType<Predicate>(condition.Branches[0].Predicate);
 
-        Assert.Equal("CheckPolicyStatus.Durum Equal Aktif", predicate.Text);
+        Assert.Equal("CheckPolicyStatus.Durum = Aktif", predicate.Text);
         Assert.DoesNotContain("?", predicate.Text, StringComparison.Ordinal);
     }
 

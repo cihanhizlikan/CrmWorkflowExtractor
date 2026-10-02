@@ -24,8 +24,11 @@ public sealed class NestedConditionTests
 
     private static Predicate On(string attribute, string comparison, string value)
     {
-        return new Predicate($"lead.{attribute} {comparison}" + (value.Length == 0 ? "" : " " + value),
-            "lead", attribute, comparison, value.Length == 0 ? [] : [new LiteralValue(value, null)]);
+        return new Predicate($"lead.{attribute} {ConditionWords.Of(comparison)}" + (value.Length == 0 ? "" : " " + value),
+            "lead", attribute, comparison, value.Length == 0 ? [] : [new LiteralValue(value, null)])
+        {
+            Subject = "lead." + attribute
+        };
     }
 
     private static BpmnProcess Build()
@@ -84,7 +87,7 @@ public sealed class NestedConditionTests
     {
         BpmnProcess process = Build();
 
-        FlowNode gateway = Gateway(process, "lead.leadid NotNull");
+        FlowNode gateway = Gateway(process, "lead.leadid dolu");
         Assert.Equal(["evet", "hayır"], Arrows(process, gateway));
     }
 
@@ -98,7 +101,7 @@ public sealed class NestedConditionTests
         BpmnProcess process = Build();
 
         FlowNode gateway = Gateway(process, "lead.prioritycode?");
-        Assert.Equal(["Equal Düşük (2)", "Equal Yüksek (3)", "diğer"], Arrows(process, gateway));
+        Assert.Equal(["= Düşük (2)", "= Yüksek (3)", "diğer"], Arrows(process, gateway));
     }
 
     [Fact]

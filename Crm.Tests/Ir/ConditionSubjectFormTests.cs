@@ -47,7 +47,7 @@ public sealed class ConditionSubjectFormTests
         Predicate predicate = Condition();
 
         Assert.Equal("INBOUND - GELEN ARAMA", Assert.Single(predicate.Values).Raw);
-        Assert.Equal("phonecall.ps_activitytypeid NotEqual INBOUND - GELEN ARAMA", predicate.Text);
+        Assert.Equal("phonecall.ps_activitytypeid ≠ INBOUND - GELEN ARAMA", predicate.Text);
     }
 
     /// <summary>The types that were already right stay right: the first quoted string is the value for those.</summary>
@@ -60,6 +60,6 @@ public sealed class ConditionSubjectFormTests
         ParseResult result = new XamlWorkflowParser(labels).Parse(Id, XamlWorkflowParserTests.Fixture("condition-update-stop.xaml"));
         Predicate predicate = Assert.IsType<Predicate>(Assert.Single(result.Steps).Branches[0].Predicate);
 
-        Assert.Equal("new_policy.new_status Equal İptal Edildi (100000003)", predicate.Text);
+        Assert.Equal("new_policy.new_status = İptal Edildi (100000003)", predicate.Text);
     }
 }

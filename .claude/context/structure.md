@@ -86,9 +86,12 @@ are part of a call, Sapma only the definitions whose running copy really differs
 nearly became a family or carry one structure under two names. The diagrams are emitted AFTER grouping, because
 each one's header note carries what the rest of the run learned about it — role, family, usage, drift.
 
-**The output is Turkish** — folder names, file names and every word the tool writes. Three tables carry it:
+**The output is Turkish** — folder names, file names and every word the tool writes. Four tables carry it:
 `RunPaths` (paths), `RunStages` (stage names) and `ProcessLabels` (category, mode and state labels, which code also
-branches on). Names that come from CRM are never translated. A run made before this still reprocesses: its `raw/`
+branches on), and `ConditionWords` (CRM's condition operators: a diagram reading `lead.leadid NotNull` left a
+reader asking whether that was a null check, so it reads `lead.leadid dolu`; the operator's NAME stays on the
+predicate, where it is a comparison key, and one nobody translated keeps CRM's own word rather than a guess).
+Names that come from CRM are never translated. A run made before this still reprocesses: its `raw/`
 is read and copied forward as `ham/`.
 
 A sealed run folder is never modified. Unchanged XAML is reused from the newest sealed run; an unsealed (crashed)

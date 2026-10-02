@@ -48,7 +48,7 @@ public sealed class GatewayQuestionTests
         BpmnProcess process = Build("condition-update-stop.xaml", labels);
         FlowNode gateway = Gateway(process);
 
-        Assert.Equal("new_policy.new_status Equal İptal Edildi (100000003)", gateway.Name);
+        Assert.Equal("new_policy.new_status = İptal Edildi (100000003)", gateway.Name);
         Assert.Equal(["evet", "hayır"], Arrows(process, gateway));
     }
 
@@ -58,7 +58,7 @@ public sealed class GatewayQuestionTests
         BpmnProcess process = Build("condition-on-activity-output.xaml", new OptionLabels());
         FlowNode gateway = Gateway(process);
 
-        Assert.Equal("CheckPolicyStatus.Durum Equal Aktif", gateway.Name);
+        Assert.Equal("CheckPolicyStatus.Durum = Aktif", gateway.Name);
         Assert.Contains("evet", Arrows(process, gateway));
     }
 
@@ -84,6 +84,6 @@ public sealed class GatewayQuestionTests
 
         FlowNode gateway = Gateway(Build("condition-update-stop.xaml", labels));
 
-        Assert.Contains("new_policy.new_status Equal İptal Edildi (100000003)", gateway.Documentation, StringComparison.Ordinal);
+        Assert.Contains("new_policy.new_status = İptal Edildi (100000003)", gateway.Documentation, StringComparison.Ordinal);
     }
 }

@@ -36,7 +36,7 @@ public sealed class XamlWorkflowParserTests
         LiteralValue value = Assert.Single(predicate.Values);
         Assert.Equal("100000003", value.Raw);
         Assert.Equal("İptal Edildi", value.Resolved);
-        Assert.Equal("new_policy.new_status Equal İptal Edildi (100000003)", predicate.Text);
+        Assert.Equal("new_policy.new_status = İptal Edildi (100000003)", predicate.Text);
 
         StepNode update = Assert.Single(condition.Branches[0].Steps);
         Assert.Equal(StepKind.UpdateRecord, update.Kind);
@@ -89,7 +89,7 @@ public sealed class XamlWorkflowParserTests
         StepNode wait = Assert.Single(result.Steps);
         Assert.Equal(StepKind.WaitCondition, wait.Kind);
         Assert.Equal(2, wait.Branches.Count);
-        Assert.Equal("new_policy.new_paid Equal True", wait.Branches[0].Label);
+        Assert.Equal("new_policy.new_paid = True", wait.Branches[0].Label);
         Assert.Equal(StepKind.Timeout, Assert.Single(wait.Branches[1].Steps).Kind);
     }
 

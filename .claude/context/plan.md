@@ -880,3 +880,19 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess, open
   `checkretirementeligibilitybeforeemeklilikhakedis.bpmn`. **Pass:** the step reads
   `Özel etkinlik: Contact_CheckRetirementEligibilityByNova(…) → …` and the note carries a `Parametreler:` line.
+### Operators in the words a reader uses (2026-10-02) — committed, awaiting merge
+- **Maintainer:** render CRM's condition operators in Turkish across diagrams and sheets.
+- **`ConditionWords`** is the fourth table carrying the output's Turkish, beside `RunPaths`, `RunStages` and
+  `ProcessLabels`. It sits in `Crm.Ir` because the predicate's text is composed there and read from the diagram
+  and the sheets alike: `lead.leadid NotNull` becomes `lead.leadid dolu`, `Equal` becomes `=`, `In` becomes
+  `şunlardan biri:`, and `AND`/`OR` become `VE`/`VEYA`.
+- **The operator's NAME is untouched.** `Predicate.Operator` is a comparison key — two workflows testing the same
+  field the same way must still fold into one family whatever the wording is — so only the text a person reads
+  changes. A test pins both halves of that at once.
+- **An operator nobody translated keeps CRM's own word.** The list is CRM's and it can grow; a guessed Turkish
+  rendering would read as fact where the untranslated name reads as what it is.
+- **A fragile thing removed on the way.** `Asked` found the subject by searching the predicate's text for the
+  operator's name — which stops working the moment the operator is written in words. The subject is now carried
+  on the predicate, where it was computed anyway.
+- **Acceptance on the company network — Do:** reprocess. **Pass:** diamonds read `lead.leadid dolu`,
+  `lead.prioritycode?` with `= Düşük (2)` on its arrows. **Capture:** one diamond and its arrows.

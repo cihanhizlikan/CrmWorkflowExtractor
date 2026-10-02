@@ -38,7 +38,15 @@ public sealed record LiteralValue(string Raw, string? Resolved)
 }
 
 /// <summary>A resolved condition. <see cref="Text"/> is for people; the parts are for comparison.</summary>
-public sealed record Predicate(string Text, string? Entity, string? Attribute, string? Operator, IReadOnlyList<LiteralValue> Values);
+public sealed record Predicate(string Text, string? Entity, string? Attribute, string? Operator, IReadOnlyList<LiteralValue> Values)
+{
+    /// <summary>
+    /// What is being tested, on its own: the field, or whatever stood in for it. Carried rather than cut back out
+    /// of <see cref="Text"/> — the only way to find it there was to search for the operator's name, which stopped
+    /// working the moment the operator was written in words.
+    /// </summary>
+    public string Subject { get; init; } = "";
+}
 
 /// <summary>One outgoing path of a condition, wait or variant split.</summary>
 public sealed record Branch(string Label, Predicate? Predicate, IReadOnlyList<StepNode> Steps, IReadOnlyList<Guid> Members);

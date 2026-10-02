@@ -193,7 +193,7 @@ public sealed class WorkflowCombinerTests
 
     private static StepNode Condition(StepNode inside)
     {
-        Predicate predicate = new("new_policy.new_status Equal 1", "new_policy", "new_status", "Equal", [new LiteralValue("1", null)]);
+        Predicate predicate = new("new_policy.new_status = 1", "new_policy", "new_status", "Equal", [new LiteralValue("1", null)]);
         return new StepNode("", StepKind.Condition, "Durum?", null, [], [new Branch("cond", predicate, [inside], []), new Branch("Otherwise", null, [], [])], null, [], "ConditionSequence", []);
     }
 }

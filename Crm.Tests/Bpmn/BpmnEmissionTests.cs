@@ -94,7 +94,7 @@ public sealed class BpmnEmissionTests
         XElement stop = Assert.Single(process.Elements(BpmnSerializer.Model + "endEvent"), end => end.Element(BpmnSerializer.Model + "terminateEventDefinition") is not null);
         Assert.Contains("Canceled", Documentation(process, stop.Attribute("id")!.Value) + stop.Attribute("name")?.Value, StringComparison.Ordinal);
         Assert.Contains(process.Elements(BpmnSerializer.Model + "sequenceFlow"),
-            flow => flow.Element(BpmnSerializer.Model + "conditionExpression")?.Value == "new_policy.new_status Equal 100000003");
+            flow => flow.Element(BpmnSerializer.Model + "conditionExpression")?.Value == "new_policy.new_status = 100000003");
     }
 
     [Fact]
