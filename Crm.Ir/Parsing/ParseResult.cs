@@ -26,4 +26,8 @@ public sealed record ParseResult(
     DataTouched DataTouched,
     IReadOnlyList<ParseWarning> Warnings,
     IReadOnlyList<CoverageObservation> Coverage,
-    IReadOnlyList<XamlLiteral> Literals);
+    IReadOnlyList<XamlLiteral> Literals)
+{
+    /// <summary>What the workflow itself takes and returns, with CRM's plumbing left out.</summary>
+    public IReadOnlyList<WorkflowParameter> Parameters { get; init; } = [];
+}

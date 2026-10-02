@@ -69,7 +69,10 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
                 [.. context.FieldsWritten.Order(StringComparer.Ordinal)]),
             context.Warnings,
             coverage,
-            literals);
+            literals)
+        {
+            Parameters = DeclaredParameters(root)
+        };
     }
 
     private static CoverageObservation Observe(XElement element, string path, Context context)
@@ -371,15 +374,67 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
                 // ActivityReference form: <X.Arguments><InArgument x:Key="Url">…</InArgument></X.Arguments>
                 foreach (XElement argument in property.Elements().Where(argument => XamlNames.Key(argument) is not ("Activities" or "Variables")))
                 {
-                    arguments.Add(new NamedArgument(XamlNames.Key(argument) ?? argument.Name.LocalName, ArgumentValue(Flatten(argument), context)));
+                    arguments.Add(new NamedArgument(XamlNames.Key(argument) ?? argument.Name.LocalName, ArgumentValue(Flatten(argument), context))
+                    {
+                        Output = Writes(argument.Name.LocalName)
+                    });
                 }
                 continue;
             }
             // Element form: <partner:CallService.Url><InArgument>…</InArgument></partner:CallService.Url>
             string name = localName[(localName.IndexOf('.', StringComparison.Ordinal) + 1)..];
-            arguments.Add(new NamedArgument(name, ArgumentValue(Flatten(property), context)));
+            arguments.Add(new NamedArgument(name, ArgumentValue(Flatten(property), context))
+            {
+                Output = property.Elements().Select(child => Writes(child.Name.LocalName)).FirstOrDefault(known => known is not null)
+            });
         }
         return [.. arguments.OrderBy(argument => argument.Name, StringComparer.Ordinal)];
+    }
+
+    /// <summary>Which way an argument goes, from the element that carries it. Null where the shape does not say.</summary>
+    private static bool? Writes(string localName)
+    {
+        return localName switch
+        {
+            "OutArgument" or "InOutArgument" => true,
+            "InArgument" => false,
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// What the workflow ITSELF takes and returns, from the <c>x:Members</c> block every definition opens with.
+    /// On a plain workflow these are CRM's plumbing and are dropped; on an ACTION they are its signature — the
+    /// only description of what it is for that exists outside the compiled code it calls.
+    /// </summary>
+    private static IReadOnlyList<WorkflowParameter> DeclaredParameters(XElement root)
+    {
+        List<WorkflowParameter> parameters = [];
+        foreach (XElement property in root.Elements().Where(element => element.Name.LocalName == "Members")
+            .SelectMany(members => members.Elements().Where(element => element.Name.LocalName == "Property")))
+        {
+            string? name = property.Attribute("Name")?.Value;
+            string type = property.Attribute("Type")?.Value ?? "";
+            if (name is null || WorkflowPlumbing.Names.Contains(name))
+            {
+                continue;
+            }
+            bool output = type.StartsWith("OutArgument", StringComparison.Ordinal) || type.StartsWith("InOutArgument", StringComparison.Ordinal);
+            parameters.Add(new WorkflowParameter(name, ShortArgumentType(type), output));
+        }
+        return parameters;
+    }
+
+    /// <summary>
+    /// <c>InArgument(x:String)</c> → <c>String</c>. The wrapper says the direction, which is kept separately, and
+    /// the namespace prefix is XAML's own bookkeeping; what is left is the type a reader needs.
+    /// </summary>
+    private static string ShortArgumentType(string type)
+    {
+        int open = type.IndexOf('(', StringComparison.Ordinal);
+        string inner = open < 0 ? type : type[(open + 1)..].TrimEnd(')');
+        int colon = inner.LastIndexOf(':');
+        return colon < 0 ? inner : inner[(colon + 1)..];
     }
 
     /// <summary>An argument's text; when it has none (a literal written as attributes), its descendants' attributes.</summary>

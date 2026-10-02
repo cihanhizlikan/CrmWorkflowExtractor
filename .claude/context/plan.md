@@ -858,3 +858,25 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   unanswered.
 - **Acceptance on the company network — Do:** reprocess, reopen the same file. **Pass:** one merge diamond where
   there were two; no `(hiçbir koşul sağlanmazsa)`; the first diamond reads `lead.leadid NotNull`.
+### What a single-step diagram can be made to say (2026-10-02) — committed, awaiting merge
+- **Maintainer:** the estate has many one-step diagrams whose only label is an obscure name; are those method
+  calls, and can anything useful be extracted about what the step does?
+- **Not a method — a CLASS.** `GNB_Workflow.Contact_CheckRetirementEligibilityByNova` is a .NET type registered in
+  CRM as a custom workflow activity. CRM instantiates it and runs its fixed entry point; there is no method name
+  to show. What it does inside is compiled and cannot be read from the definition, and the label was spending its
+  whole budget on where that code LIVES — assembly, version, culture, public key token, cut off mid-word.
+- **What the definition does hold, and now shows:** the names it is called with and the names it writes back.
+  `CheckRetirementEligibility(ContactId) → CanProceed, WarningMessage` is the nearest thing to a description of a
+  step whose body is opaque, and it was already parsed — it sat in the documentation while the label carried the
+  token. Direction comes from the XAML (`OutArgument` against `InArgument`) and is NOT guessed where the shape
+  does not say it: an argument written as a plain attribute keeps neutral wording, because CRM does write back
+  through an attribute elsewhere.
+- **And for an Action, its own signature.** `x:Members` declares what the workflow takes and returns with TYPES;
+  CRM's plumbing (`InputEntities`, `CreatedEntities`, …) is dropped and whatever remains is the contract a caller
+  sees. On a one-step Action that is the only thing on the page worth reading, and nothing outside the compiled
+  code describes it. A plain workflow declares only plumbing and gains no line at all.
+- **Still not extractable:** which data a custom activity changes. It opens its own connection inside compiled
+  code; the definition cannot see it and neither can this tool. Said plainly rather than guessed at.
+- **Acceptance on the company network — Do:** reprocess, open
+  `checkretirementeligibilitybeforeemeklilikhakedis.bpmn`. **Pass:** the step reads
+  `Özel etkinlik: Contact_CheckRetirementEligibilityByNova(…) → …` and the note carries a `Parametreler:` line.

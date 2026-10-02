@@ -1,0 +1,25 @@
+<Activity x:Class="XrmWorkflow00000000000000000000000000000013" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mva="clr-namespace:Microsoft.VisualBasic.Activities;assembly=System.Activities, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:mxs="clr-namespace:Microsoft.Xrm.Sdk;assembly=Microsoft.Xrm.Sdk, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:mxswa="clr-namespace:Microsoft.Xrm.Sdk.Workflow.Activities;assembly=Microsoft.Xrm.Sdk.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:pca="clr-namespace:Partner.Crm.Activities;assembly=Partner.Crm.Activities, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" xmlns:s="clr-namespace:System;assembly=mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <x:Members>
+    <x:Property Name="InputEntities" Type="InArgument(scg:IDictionary(x:String, mxs:Entity))" />
+    <x:Property Name="CreatedEntities" Type="InArgument(scg:IDictionary(x:String, mxs:Entity))" />
+    <x:Property Name="ContactId" Type="InArgument(x:String)" />
+    <x:Property Name="CanProceed" Type="OutArgument(x:Boolean)" />
+    <x:Property Name="WarningMessage" Type="OutArgument(x:String)" />
+  </x:Members>
+  <mxswa:Workflow>
+    <Sequence DisplayName="CustomActivityStep1">
+      <pca:CheckRetirementEligibility DisplayName="CustomActivityStep1" ContactId="[DirectCast(CustomActivityStep1_1_converted, System.String)]">
+        <pca:CheckRetirementEligibility.CanProceed>
+          <OutArgument x:TypeArguments="x:Boolean">
+            <mva:VisualBasicReference x:TypeArguments="x:Boolean">CustomActivityStep1CanProceed_localParameter</mva:VisualBasicReference>
+          </OutArgument>
+        </pca:CheckRetirementEligibility.CanProceed>
+        <pca:CheckRetirementEligibility.WarningMessage>
+          <OutArgument x:TypeArguments="x:String">
+            <mva:VisualBasicReference x:TypeArguments="x:String">CustomActivityStep1WarningMessage_localParameter</mva:VisualBasicReference>
+          </OutArgument>
+        </pca:CheckRetirementEligibility.WarningMessage>
+      </pca:CheckRetirementEligibility>
+    </Sequence>
+  </mxswa:Workflow>
+</Activity>

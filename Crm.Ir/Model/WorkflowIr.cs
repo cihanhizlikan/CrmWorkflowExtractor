@@ -47,7 +47,22 @@ public sealed record Branch(string Label, Predicate? Predicate, IReadOnlyList<St
 public sealed record FieldWrite(string Field, IReadOnlyList<LiteralValue> Values);
 
 /// <summary>A named argument of a custom activity, captured verbatim (§4.2).</summary>
-public sealed record NamedArgument(string Name, string Value);
+public sealed record NamedArgument(string Name, string Value)
+{
+    /// <summary>
+    /// Whether the activity WRITES this one back. The difference between what a step is given and what it hands
+    /// back is the whole of its contract as far as anything outside the compiled code can see, and the XAML says
+    /// which is which: <c>OutArgument</c> against <c>InArgument</c>. Null where the shape does not say.
+    /// </summary>
+    public bool? Output { get; init; }
+}
+
+/// <summary>
+/// One argument the workflow ITSELF declares — what an Action takes and returns. For a plain workflow these are
+/// CRM's own plumbing; for an Action they are the signature a caller sees, and the only description of it that
+/// exists outside the compiled code.
+/// </summary>
+public sealed record WorkflowParameter(string Name, string Type, bool Output);
 
 public sealed record StepNode(
     string Path,
@@ -92,6 +107,15 @@ public sealed record WorkflowIdentity(
     public string? OwningBusinessUnit { get; init; }
 }
 
+/// <summary>CRM's own plumbing arguments, present on every definition and telling a reader nothing about it.</summary>
+public static class WorkflowPlumbing
+{
+    public static readonly IReadOnlySet<string> Names = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "InputEntities", "CreatedEntities", "UpdatedEntities", "DeletedEntities", "PrimaryEntity"
+    };
+}
+
 public sealed record WorkflowTrigger(
     bool OnCreate,
     bool OnDelete,
@@ -121,4 +145,8 @@ public sealed record WorkflowIr(
     WorkflowDependencies Dependencies,
     DataTouched DataTouched,
     IReadOnlyList<ParseWarning> Warnings,
-    IrProvenance Provenance);
+    IrProvenance Provenance)
+{
+    /// <summary>What this workflow itself takes and returns, with CRM's plumbing left out. Empty for most.</summary>
+    public IReadOnlyList<WorkflowParameter> Parameters { get; init; } = [];
+}

@@ -356,7 +356,8 @@ public sealed partial class BpmnBuilder
         }
         foreach (NamedArgument argument in step.Arguments)
         {
-            text.Append(" Bağımsız değişken: ").Append(argument.Name).Append(" = ").Append(argument.Value).Append('.');
+            text.Append(argument.Output switch { true => " Çıktı: ", false => " Girdi: ", _ => " Bağımsız değişken: " })
+                .Append(argument.Name).Append(" = ").Append(argument.Value).Append('.');
         }
         foreach (Branch branch in step.Branches.Where(branch => branch.Predicate is not null))
         {
@@ -415,7 +416,9 @@ public sealed partial class BpmnBuilder
         string subject = Subject(step);
         // Cut AROUND the target, not before it. The target used to be appended after the cut and carried whatever
         // the assembly scan had found: one label reached thirty thousand characters and no modeller would open it.
-        return Truncate(Truncate(subject.Length == 0 ? verb : $"{verb}: {subject}", 80) + Target(step, subject), MaxLabel);
+        // 140 and the 60 a target may add come to exactly MaxLabel. A custom activity's subject IS its signature
+        // now, and 80 cut the outputs off the end of it — the half a reader has least chance of guessing.
+        return Truncate(Truncate(subject.Length == 0 ? verb : $"{verb}: {subject}", 140) + Target(step, subject), MaxLabel);
     }
 
     /// <summary>
@@ -471,11 +474,33 @@ public sealed partial class BpmnBuilder
         {
             parts.Insert(0, _workflowNames.GetValueOrDefault(child, step.Detail));
         }
+        if (parts.Count == 0 && step.Kind == StepKind.CustomActivity && step.Detail is string activity)
+        {
+            parts.Add(Signature(activity, step.Arguments));
+        }
         if (parts.Count == 0 && step.Detail is not null && step.Kind is not (StepKind.FormAction or StepKind.StartChildWorkflow))
         {
             parts.Add(step.Detail);
         }
         return string.Join(" · ", parts);
+    }
+
+    /// <summary>
+    /// A custom activity as a signature: what it is called with, and what it hands back. The label used to carry
+    /// the assembly-qualified type — <c>GNB_Workflow.Contact_CheckRetirementEligibilityByNova, GNB_Workflow,
+    /// Version=1.0.0.0, Culture=neutral, PublicKeyToken=…</c> — which filled the box, was cut off mid-word, and
+    /// told a reader only where the code lives. What it DOES is compiled and unreadable from here, but the names
+    /// it is called with and writes back are in the definition, and they are the nearest thing to a description
+    /// of it that exists: ContactId in, CanProceed and WarningMessage out.
+    /// </summary>
+    private static string Signature(string activityType, IReadOnlyList<NamedArgument> arguments)
+    {
+        string full = activityType.Split(',')[0].Trim();
+        string name = full[(full.LastIndexOf('.') + 1)..];
+        string takes = string.Join(", ", arguments.Where(argument => argument.Output != true).Select(argument => argument.Name));
+        string gives = string.Join(", ", arguments.Where(argument => argument.Output == true).Select(argument => argument.Name));
+        string called = name + "(" + Truncate(takes, 60) + ")";
+        return gives.Length == 0 ? called : called + " → " + Truncate(gives, 50);
     }
 
     private static string StartName(WorkflowTrigger trigger)
@@ -546,6 +571,16 @@ public sealed partial class BpmnBuilder
                 : ir.Trigger.OnDemand ? "bir kullanıcı başlatır (istek üzerine)" : "başka bir iş akışı çağırır"),
             $"{steps} adım" + (unmapped > 0 ? $"; {unmapped} tanesini ayrıştırıcı okuyamadı — aşağıda OKUNAMADI olarak işaretli" : "")
         ];
+        if (ir.Parameters.Count > 0)
+        {
+            // For an ACTION this is the contract: what a caller passes and what comes back. Nothing else outside
+            // the compiled code describes it, and a one-step diagram of a single custom activity has nothing else
+            // on it at all.
+            string takes = string.Join(", ", ir.Parameters.Where(parameter => !parameter.Output).Select(parameter => $"{parameter.Name} ({parameter.Type})"));
+            string gives = string.Join(", ", ir.Parameters.Where(parameter => parameter.Output).Select(parameter => $"{parameter.Name} ({parameter.Type})"));
+            lines.Add("Parametreler: " + (takes.Length == 0 ? "girdi yok" : "girdi " + takes)
+                + (gives.Length == 0 ? "" : " · çıktı " + gives));
+        }
         if (facts?.Role is string role)
         {
             lines.Add("Rol: " + role);

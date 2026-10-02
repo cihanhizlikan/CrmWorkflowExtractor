@@ -111,7 +111,10 @@ public static class IrStage
     {
         string extracted = extractedAt.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
         return new WorkflowIr(identity, Trigger(record), result.Steps, result.Dependencies, result.DataTouched, result.Warnings,
-            new IrProvenance(entry.File, entry.Sha256, extracted, toolVersion));
+            new IrProvenance(entry.File, entry.Sha256, extracted, toolVersion))
+        {
+            Parameters = result.Parameters
+        };
     }
 
     public static Dictionary<Guid, JsonElement> ReadInventory(RunFolder folder)
