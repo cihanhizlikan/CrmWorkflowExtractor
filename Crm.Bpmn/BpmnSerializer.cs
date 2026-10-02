@@ -62,12 +62,12 @@ public static class BpmnSerializer
         foreach (FlowEdge edge in process.Graph.Edges)
         {
             XElement shape = new(Di + "BPMNEdge", new XAttribute("id", "edge_" + edge.Id), new XAttribute("bpmnElement", edge.Id));
-            FlowNode target = process.Graph.Node(edge.TargetId);
-            foreach ((double x, double y) in Waypoints(process.Graph.Node(edge.SourceId), target))
+            IReadOnlyList<(double X, double Y)> waypoints = Waypoints(process.Graph.Node(edge.SourceId), process.Graph.Node(edge.TargetId));
+            foreach ((double x, double y) in waypoints)
             {
                 shape.Add(new XElement(DdDi + "waypoint", Number("x", x), Number("y", y)));
             }
-            if (EdgeLabel(edge, target) is XElement edgeLabel)
+            if (EdgeLabel(edge, waypoints) is XElement edgeLabel)
             {
                 shape.Add(edgeLabel);
             }
@@ -254,17 +254,70 @@ public static class BpmnSerializer
     }
 
     /// <summary>
-    /// A branch condition, placed as a caption directly above the first shape of the branch it leads to — never over
-    /// the gateway, and never over the flow line.
+    /// A branch caption, placed on the FLOW it belongs to: at the middle of the line, just clear of it.
+    ///
+    /// <para>
+    /// It used to be placed against the TARGET shape — centred over it, above it — which put "evet" past the
+    /// arrowhead and floating over the task, and "hayır" at the far end of a flow three hundred pixels long,
+    /// beside the diamond it arrived at rather than the one it left. A caption belongs to its line, so it is
+    /// measured along the line: halfway by length, above a level run and beside an upright one.
+    /// </para>
     /// </summary>
-    private static XElement? EdgeLabel(FlowEdge edge, FlowNode target)
+    private static XElement? EdgeLabel(FlowEdge edge, IReadOnlyList<(double X, double Y)> waypoints)
     {
-        if (edge.Name is not string name || name.Length == 0)
+        if (edge.Name is not string name || name.Length == 0 || waypoints.Count < 2)
         {
             return null;
         }
         (double width, double height) = LabelSize(name);
-        return Label(target.X + (target.Width / 2) - (width / 2), target.Y - 8 - height, width, height);
+        (double x, double y, bool upright) = Middle(waypoints);
+        if (upright)
+        {
+            return Label(x + LabelGap, y - (height / 2), width, height);
+        }
+        return Label(x - (width / 2), y - LabelGap - height, width, height);
+    }
+
+    /// <summary>Clear of the line by this much, so the caption reads as beside it rather than written through it.</summary>
+    private const double LabelGap = 6;
+
+    /// <summary>
+    /// The point halfway ALONG a flow, measured by length rather than by counting corners — a flow that leaves a
+    /// gateway sideways and then runs level is two segments of very different sizes, and its middle is the point
+    /// a reader's eye follows, not the bend. Also reports whether the line is upright there, which decides
+    /// whether the caption sits above it or beside it.
+    /// </summary>
+    private static (double X, double Y, bool Upright) Middle(IReadOnlyList<(double X, double Y)> waypoints)
+    {
+        double total = 0;
+        for (int index = 1; index < waypoints.Count; index++)
+        {
+            total += Length(waypoints[index - 1], waypoints[index]);
+        }
+        double remaining = total / 2;
+        for (int index = 1; index < waypoints.Count; index++)
+        {
+            (double X, double Y) from = waypoints[index - 1];
+            (double X, double Y) to = waypoints[index];
+            double length = Length(from, to);
+            if (length <= 0)
+            {
+                continue;
+            }
+            if (remaining <= length)
+            {
+                double ratio = remaining / length;
+                return (from.X + ((to.X - from.X) * ratio), from.Y + ((to.Y - from.Y) * ratio),
+                    Math.Abs(to.X - from.X) < 0.5);
+            }
+            remaining -= length;
+        }
+        return (waypoints[^1].X, waypoints[^1].Y, false);
+    }
+
+    private static double Length((double X, double Y) from, (double X, double Y) to)
+    {
+        return Math.Abs(to.X - from.X) + Math.Abs(to.Y - from.Y);
     }
 
     private static XElement Label(double x, double y, double width, double height)
@@ -280,7 +333,9 @@ public static class BpmnSerializer
     private static (double Width, double Height) LabelSize(string text)
     {
         const double wrapWidth = 90;
-        double lines = Math.Min(5, Math.Ceiling(((text.Length * 6.2) + 4) / wrapWidth));
+        // Twelve lines rather than five: a condition is never shortened, so its box has to be able to hold one.
+        // Too few and the viewer draws the text outside the bounds it was given, over whatever is below.
+        double lines = Math.Min(12, Math.Ceiling(((text.Length * 6.2) + 4) / wrapWidth));
         return (wrapWidth, Math.Round((lines * 13) + 6));
     }
 

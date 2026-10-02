@@ -896,3 +896,24 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   on the predicate, where it was computed anyway.
 - **Acceptance on the company network — Do:** reprocess. **Pass:** diamonds read `lead.leadid dolu`,
   `lead.prioritycode?` with `= Düşük (2)` on its arrows. **Capture:** one diamond and its arrows.
+### A caption belongs to its line (2026-10-02) — committed, awaiting merge
+- **Maintainer:** the "evet" and "hayır" captions are way off; and never shorten a condition's text.
+- **They were placed against the TARGET shape** — centred over it, 8 above it — rather than against the flow they
+  belong to. So "evet" landed past the arrowhead, floating over the task it pointed at, and "hayır" at the far
+  end of a flow three hundred pixels long, beside the diamond it ARRIVED at rather than the one it left.
+  Measured on the reported file: 97 pixels from the line in the first case.
+- **A caption is now measured along its own flow:** halfway by LENGTH, not by counting corners — a flow that
+  leaves a gateway sideways and then runs level is two segments of very different sizes, and its middle is the
+  point an eye follows. Above a level run, beside an upright one.
+- **Conditions are no longer shortened at all.** The gateway name and the branch captions were cut at 60
+  characters, which is why a diamond read `(phonecall.ps_activitysubresultid = Satış Yapıldı) VE …` and hid the
+  half that decides. Everything else on a diagram may be cut back to what fits; the test a process turns on may
+  not. The ceiling that exists elsewhere is there because an ADDRESS LIST reached thirty thousand characters on
+  one label; a condition is bounded by the fields it names and cannot run away like that. The label box also
+  grows to twelve lines rather than five, so a long one is drawn inside its own bounds.
+- **The superseded test said the caption sits above its target shape** — the behaviour at fault. It now measures
+  the distance from the caption's centre to the nearest point on its own flow and fails past thirty pixels, which
+  is what "looks about right" failed to catch.
+- **Acceptance on the company network — Do:** reprocess, reopen
+  `create-campaign-response-for-phonecall.bpmn`. **Pass:** each `evet` sits on its own arrow between the diamond
+  and the task; each `hayır` sits on the long arrow between diamonds; the diamonds read their conditions whole.

@@ -88,10 +88,20 @@ public sealed class BpmnReadabilityTests
         Assert.DoesNotContain(labelled, shape => taskIds.Contains(shape.Attribute("bpmnElement")!.Value, StringComparer.Ordinal));
     }
 
-    [Fact]
-    public void A_Branch_Condition_Is_Captioned_Above_The_Branch_It_Leads_To()
+    /// <summary>
+    /// A caption belongs to its own flow and has to be found beside it. It used to be placed against the TARGET
+    /// shape — centred over it, above it — which left "evet" past the arrowhead and floating over the task it
+    /// pointed at, and "hayır" at the far end of a flow three hundred pixels long, beside the diamond it arrived
+    /// at rather than the one it left. Measured, because "looks about right" is what let that through.
+    /// </summary>
+    [Theory]
+    [InlineData("condition-update-stop.xaml")]
+    [InlineData("condition-unnamed-then-stop.xaml")]
+    [InlineData("condition-attribute-read-lookup.xaml")]
+    [InlineData("business-rule.xaml")]
+    public void A_Branch_Caption_Sits_On_Its_Own_Flow(string fixture)
     {
-        XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(BpmnEmissionTests.IrFor("condition-update-stop.xaml")), "test");
+        XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(BpmnEmissionTests.IrFor(fixture)), "test");
 
         List<XElement> named = [.. xml.Descendants(BpmnSerializer.Model + "sequenceFlow").Where(flow => flow.Attribute("name") is not null)];
         Assert.NotEmpty(named);
@@ -99,11 +109,29 @@ public sealed class BpmnReadabilityTests
         {
             XElement edge = xml.Descendants(BpmnSerializer.Di + "BPMNEdge").Single(candidate => candidate.Attribute("bpmnElement")!.Value == flow.Attribute("id")!.Value);
             XElement label = Assert.Single(edge.Elements(BpmnSerializer.Di + "BPMNLabel")).Element(BpmnSerializer.Dc + "Bounds")!;
-            XElement target = xml.Descendants(BpmnSerializer.Di + "BPMNShape")
-                .Single(shape => shape.Attribute("bpmnElement")!.Value == flow.Attribute("targetRef")!.Value)
-                .Element(BpmnSerializer.Dc + "Bounds")!;
-            Assert.True(Value(label, "y") + Value(label, "height") <= Value(target, "y"), "A branch caption overlaps the shape it labels.");
+            List<(double X, double Y)> waypoints = [.. edge.Elements(BpmnSerializer.DdDi + "waypoint")
+                .Select(point => (Value(point, "x"), Value(point, "y")))];
+
+            double centreX = Value(label, "x") + (Value(label, "width") / 2);
+            double centreY = Value(label, "y") + (Value(label, "height") / 2);
+            double away = Enumerable.Range(1, waypoints.Count - 1)
+                .Min(index => ToSegment(centreX, centreY, waypoints[index - 1], waypoints[index]));
+
+            Assert.True(away <= 30,
+                $"'{flow.Attribute("name")!.Value}' in {fixture} sits {away:F0} pixels from the flow it captions.");
         }
+    }
+
+    /// <summary>How far a point is from a line between two others — the nearest point on it, not an endpoint.</summary>
+    private static double ToSegment(double x, double y, (double X, double Y) from, (double X, double Y) to)
+    {
+        double dx = to.X - from.X;
+        double dy = to.Y - from.Y;
+        double square = (dx * dx) + (dy * dy);
+        double along = square <= 0 ? 0 : Math.Clamp((((x - from.X) * dx) + ((y - from.Y) * dy)) / square, 0, 1);
+        double nearestX = from.X + (along * dx);
+        double nearestY = from.Y + (along * dy);
+        return Math.Sqrt(((x - nearestX) * (x - nearestX)) + ((y - nearestY) * (y - nearestY)));
     }
 
     /// <summary>The guarantee: no label text lands on top of any shape in the diagram, in any fixture.</summary>

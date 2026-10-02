@@ -151,7 +151,12 @@ public sealed partial class BpmnBuilder
     /// </summary>
     private SplitBlock Split(StepNode step, FlowNodeType gatewayType)
     {
-        FlowNode split = _graph.Add(new FlowNode(Id(step.Path, "split"), gatewayType, Truncate(GatewayName(step), 60))
+        // A CONDITION IS NEVER SHORTENED. Everything else on a diagram can be cut back to what fits, but the
+        // test a process turns on is the reason a reader opened it, and "(phonecall.ps_activitysubresultid =
+        // Satış Yapıldı) VE …" hides the half that decides. The cap that exists elsewhere is there because an
+        // address list reached thirty thousand characters on one label; a condition is bounded by the fields it
+        // names and cannot run away like that.
+        FlowNode split = _graph.Add(new FlowNode(Id(step.Path, "split"), gatewayType, GatewayName(step))
         {
             Documentation = StepDocumentation(step),
             Sources = step.Sources
@@ -163,7 +168,7 @@ public sealed partial class BpmnBuilder
         foreach (Branch branch in step.Branches)
         {
             bool isDefault = step.Kind == StepKind.Condition && branch.Predicate is null;
-            paths.Add(new SplitPath(Truncate(BranchLabel(step, branch, asksTheComparison, shared, isDefault), 60),
+            paths.Add(new SplitPath(BranchLabel(step, branch, asksTheComparison, shared, isDefault),
                 branch.Predicate?.Text ?? branch.Label, isDefault, Sequence(branch.Steps)));
         }
         if (step.Kind == StepKind.Condition && !step.Branches.Any(branch => branch.Predicate is null))

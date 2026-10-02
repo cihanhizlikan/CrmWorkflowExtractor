@@ -104,6 +104,29 @@ public sealed class NestedConditionTests
         Assert.Equal(["= Düşük (2)", "= Yüksek (3)", "diğer"], Arrows(process, gateway));
     }
 
+    /// <summary>
+    /// A condition is never shortened. The test a process turns on is the reason a reader opened the diagram, and
+    /// a diamond reading "(phonecall.ps_activitysubresultid = Satış Yapıldı) VE …" hides the half that decides it.
+    /// Everything else on a diagram may be cut back to what fits; this may not.
+    /// </summary>
+    [Fact]
+    public void A_Long_Condition_Reaches_The_Diamond_Whole()
+    {
+        string wordy = string.Join(" VE ", Enumerable.Range(1, 8).Select(number => $"(lead.alan{number} = Değer {number})"));
+        StepNode step = new("0", StepKind.Condition, "ConditionStep1", null, [],
+            [new Branch("Var", new Predicate(wordy, null, null, "Equal", []) { Subject = wordy }, [Update("0/0/0", "a", "b")], [])],
+            null, [], null, [new StepSource(Id, "0")]);
+        WorkflowIdentity identity = new(Id, "UZUN", null, "İş Akışı", "Tanım", "lead", "Arka plan", "Kuruluş",
+            "Etkin", false, false, null, null, null, 1, true);
+        BpmnProcess process = BpmnBuilder.Build(new WorkflowIr(identity,
+            new WorkflowTrigger(true, false, [], null, null, null, "Sahip", false), [step],
+            new WorkflowDependencies([], []), new DataTouched([], [], [], []), [], new IrProvenance("x", "y", "z", "1")));
+
+        FlowNode gateway = process.Graph.Nodes.Single(node => node.Type == FlowNodeType.ExclusiveGateway && node.Name.Length > 0);
+        Assert.Equal(wordy, gateway.Name);
+        Assert.DoesNotContain("…", gateway.Name, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void No_Arrow_Describes_How_The_Diagram_Was_Built()
     {
