@@ -33,8 +33,6 @@ public static class Guides
         sheet.Row("bekleme_var", "evet ise akış bir zamanlayıcı ya da bir koşul bekliyor: süreç saatlerce, günlerce açık kalır. "
             + "Zamana yayılan bir süreç, baştan sona koşan bir süreçle aynı şey değildir; tasarımı buna göre kurun.");
         sheet.Row("rol", "\"giriş noktası\" bir bütün olarak taşınır. \"yapı taşı\" başka akışlarca paylaşılır: tek başına taşımayın, bir kez taşıyın.");
-        sheet.Row("aile · aile_rolu", "Bu akışa çok benzeyen başkaları varsa ailenin adı (ailenin başlangıç noktası olan akış). "
-            + "Dolu ise tasarıma tek tek değil, aile olarak başlayın — ayrıntısı aileler.xlsx.");
         sheet.Row("kullanim · son_kayitli_calisma",
             "Canlı mı: \"çalışıyor · tarih\", \"kayıtlı çalışma yok\" ya da \"bilinemez\". Hücrede \"<tarih> sonrası çalışma yok\" "
             + "yazıyorsa kanıt yalnızca o tarihten bugüne tarandı; daha eskisine bakılmadı, o akış daha önce çalışmış olabilir. "
@@ -49,7 +47,7 @@ public static class Guides
         sheet.Row("mod", "\"Gerçek zamanlı\" akış kullanıcıyı bekletir, \"arka plan\" bekletmez. Aynı işi arka plana almak davranışı değiştirir.");
         sheet.Row("hassas_deger_var", "XAML içinde adres, kullanıcı adı veya parola benzeri değer var. Değerlerin kendisi bu pakette "
             + "yoktur; kurum içinde bilgi güvenliği ekibindedir. Tasarım için değeri bilmeniz gerekmez, bir sır taşındığını bilmeniz yeter.");
-        sheet.Row("bpmn_dosyasi · birlesik_dosya · is_akisi_id", "Nereye gideceğiniz: akışın diyagramı, ailesinin birleşik modeli ve CRM'de aramak için kimliği.");
+        sheet.Row("bpmn_dosyasi · is_akisi_id", "Nereye gideceğiniz: akışın diyagramı ve CRM'de aramak için kimliği.");
         sheet.Row("İş yükü nasıl hesaplanır",
             "Bir üst akış ve çağırdığı alt akışlar TEK bir taşıma kalemidir. Süreç ağaçları sayfası bu kalemleri gösterir; "
             + "kalem sayısı iş akışı sayısından çok daha azdır.");

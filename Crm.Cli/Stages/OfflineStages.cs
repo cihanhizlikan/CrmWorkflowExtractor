@@ -99,14 +99,7 @@ public static class OfflineStages
             [SheetNames.Guide, SheetNames.RunRoles, SheetNames.RunAuthority], token);
 
         // Written last of all: it quotes the numbers and names a real workflow from everything above it.
-        if (AnalystGuide.Build(state, documents, usage, logoFile) is byte[] guide)
-        {
-            await folder.WriteBytesAsync(RunPaths.AnalystGuide, guide, token);
-        }
-        else
-        {
-            state.Warnings.Add($"{RunPaths.AnalystGuide} yazılamadı: bu makinede Türkçe harfleri taşıyan ve gömülmesine izin veren bir yazı tipi bulunamadı.");
-        }
+        await folder.WriteBytesAsync(RunPaths.AnalystGuide, AnalystGuide.Build(state, documents, usage, logoFile), token);
         state.StagesRun.Add(RunStages.MigrationPlan);
     }
 

@@ -935,3 +935,28 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   and no label the estate produces comes within an order of magnitude of it.
 - **Acceptance on the company network — Do:** reprocess, open a create-record step with many fields.
   **Pass:** every field it writes is named on the box, and the text sits inside the border.
+### The guide in the department's own hand (2026-10-02) — committed, awaiting merge
+- **Maintainer:** this first version goes to the outsource partner as the ORIGINAL diagrams only — no `birlesik/`,
+  no `aileler.xlsx` — and `nasil-kullanilir` takes the layout of the department's own standard document
+  (`AHE-BT-EY-STD_V2.2`, supplied 2026-10-02) and becomes a .docx. **Decision taken on being asked:** DOCX only,
+  the PDF dropped rather than kept beside it.
+- **Why the format was the right thing to change.** The hand-written PDF writer paginated by counting lines,
+  needed a TrueType font off the machine to spell ğ, ı and ş at all, and produced a file nobody could edit. Word
+  paginates, carries the PNG as a file, and hyphenates Turkish. `PdfDocument` and `TrueTypeFont` are gone — 713
+  lines — and `PngImage` is down to reading IHDR, because a .docx needs the logo's size and not its pixels.
+- **`WordDocument` writes the .docx by hand, as `ExcelWorkbook` writes .xlsx:** a zip of XML, no dependency.
+  `DocumentPart` is the vocabulary — `Paragraph`, `Table`, `PageBreak`, `Logo` — and the styles carry the standard:
+  A4 with its margins, Arial 11 justified, headings in its navy, a cover with the document's particulars, a
+  revision table and a contents list.
+- **The trap that would have reached the reader's desk.** WordprocessingML fixes the ORDER of the children of
+  `w:pPr` and `w:rPr`. The first draft emitted `outlineLvl` before `spacing` and `sz` before `color`, which is a
+  file Word calls unreadable and "repairs" — which is to say throws away, silently, after the package has left.
+  `Style` now takes a `Look` record and emits in schema order in one place, and a test reads the order back out of
+  the styles; confirmed by putting each fault back, one at a time.
+- **What the partner is given is now the whole truth of what they have.** `aileler.xlsx` and `birlesik/` are still
+  produced and still read here, but the plan lost its `aile`, `aile_rolu` and `birlesik_dosya` columns, the guide
+  its families section, and `DeliveryTests` now fails on `aileler` or `birlesik` in any delivered cell — a column
+  pointing at a folder the reader has not got sends them looking for it.
+- **Acceptance on the company network — Do:** reprocess, open `raporlar/nasil-kullanilir.docx` in Word.
+  **Pass:** it opens with no repair prompt, the cover carries the logo and the particulars, the headings appear in
+  the navigation pane, Turkish is spelt right throughout, and nothing in it names a file outside the delivery.

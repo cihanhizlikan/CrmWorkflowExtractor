@@ -24,10 +24,12 @@ public static class MigrationPlan
         // Column order is the order an analyst asks the questions in while redrawing a process: what is it, what
         // starts it, how big is it, does it span time, does it stand alone, is it a duplicate, is it alive, how much
         // of the drawing can I trust, what does it drag along with it.
+        // No aile, aile_rolu or birlesik_dosya: the first delivery is the original diagrams only (maintainer,
+        // 2026-10-02), and a column naming a workbook and a folder the reader was not given sends them looking.
         Sheet sheet = new(SheetNames.Plan, "is_akisi", "kategori", "birincil_varlik", "tetikleyici", "adim", "bekleme_var",
-            "rol", "aile", "aile_rolu", "kullanim", "son_kayitli_calisma", "okunamayan_adim",
+            "rol", "kullanim", "son_kayitli_calisma", "okunamayan_adim",
             "ozel_etkinlikler", "baslattigi_is_akisi", "paylasilan_alan", "yazdigi_varliklar",
-            "mod", "hassas_deger_var", "bpmn_dosyasi", "birlesik_dosya", "is_akisi_id");
+            "mod", "hassas_deger_var", "bpmn_dosyasi", "is_akisi_id");
         foreach (WorkflowIr document in InScope(documents, usage).OrderBy(Priority).ThenBy(document => document.Identity.Name, StringComparer.Ordinal))
         {
             rows.Plan(sheet, document);

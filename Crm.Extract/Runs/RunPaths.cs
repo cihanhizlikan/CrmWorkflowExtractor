@@ -45,7 +45,7 @@ public static class RunPaths
     public const string OutOfScopeWorkbook = Reports + "/kapsam-disi.xlsx";
 
     /// <summary>The one document an analyst who has never seen this CRM reads first, start to finish.</summary>
-    public const string AnalystGuide = Reports + "/nasil-kullanilir.pdf";
+    public const string AnalystGuide = Reports + "/nasil-kullanilir.docx";
 
     /// <summary>The data workbook: the field footprint and the cascades.</summary>
     public const string DataWorkbook = Reports + "/veri-analizi.xlsx";

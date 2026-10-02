@@ -5,22 +5,22 @@ using Xunit;
 namespace Crm.Tests.Cli;
 
 /// <summary>
-/// What is handed to the analysts is a subset of the run folder: the five workbooks, the diagrams, the combined
-/// models and the report. The evidence, the restricted findings and the out-of-scope book stay with Enterprise
-/// Architecture. A delivered file that names one of those sends a reader looking for something they do not have,
-/// which is worse than saying nothing — so no delivered file names one.
+/// What is handed to the outsource partner is a subset of the run folder: the guide, four workbooks and the
+/// original diagrams. The families, the combined models, the evidence, the report, the restricted findings and
+/// the out-of-scope book stay with Enterprise Architecture. A delivered file that names one of those sends a
+/// reader looking for something they do not have, which is worse than saying nothing — so none does.
 /// </summary>
 public sealed class DeliveryTests
 {
     /// <summary>Everything left behind when the package is assembled. A cell may not mention any of it.</summary>
     private static readonly string[] NotDelivered =
     [
-        "hassas-degerler", "kapsam-disi", "ham/", "ara-model", "elle-inceleme", "gunlukler", "aileler/", ".json"
+        "hassas-degerler", "kapsam-disi", "ham/", "ara-model", "elle-inceleme", "gunlukler", "aileler", "birlesik", ".json"
     ];
 
     private static readonly string[] Delivered =
     [
-        "tasima-plani.xlsx", "aileler.xlsx", "veri-analizi.xlsx", "dis-sistemler.xlsx", "calistirma-yetkisi.xlsx"
+        "tasima-plani.xlsx", "veri-analizi.xlsx", "dis-sistemler.xlsx", "calistirma-yetkisi.xlsx"
     ];
 
     [Fact]

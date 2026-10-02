@@ -21,7 +21,7 @@ The stages after retrieval read only the run folder, never the network.
 out/runs/<yyyyMMdd-HHmmss>/   manifest.json (written LAST — its presence seals the run)
   ham/  ara-model/  aileler/  birlesik/  elle-inceleme/  raporlar/  gunlukler/
   bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn
-  raporlar/  nasil-kullanilir.pdf · rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · kapsam-disi.xlsx · aileler.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx · calistirma-yetkisi.xlsx
+  raporlar/  nasil-kullanilir.docx · rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · kapsam-disi.xlsx · aileler.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx · calistirma-yetkisi.xlsx
 out/cache/metadata/           shared across runs, copied into each run's ham/ust-veri/
 ```
 
@@ -31,14 +31,16 @@ never-run test names, so the plan itself needs no filtering), `aileler.xlsx` (wh
 `veri-analizi.xlsx` (what touches what), `dis-sistemler.xlsx` (what reaches outside CRM),
 `calistirma-yetkisi.xlsx` (who may start one by hand, and whose identity it then runs under). Each opens with a **Nasıl okunur** sheet
 carrying the columns, the caveats and that run's numbers, so a reader who has the file needs nothing beside it.
-**The package opens with a PDF.** `nasil-kullanilir.pdf` is the one document an analyst who has never seen this
-CRM reads first: what the package is, which file to open in which order, and how to work a single workflow from
-its plan row to a drawn process — demonstrated on a real live workflow picked from that run. `PdfDocument` writes
-it by hand, as `ExcelWorkbook` writes .xlsx, and embeds an installed TrueType font because the PDF base encodings
-have no ğ, ı or ş. No font on the machine that covers them and allows embedding means no PDF and a warning, never
-a misspelled one. The cover carries the organisation's logo — embedded in `Crm.Cli` so the locked-down host needs
-no loose file, read by `PngImage` (8-bit, non-interlaced), and replaceable with `Run:LogoFile` without a rebuild.
-The document is set in the logo's own two colours.
+**The package opens with a WORD DOCUMENT.** `nasil-kullanilir.docx` is the one document an analyst who
+has never seen this CRM reads first: what the package is, which file to open in which order, and how to work a
+single workflow from its plan row to a drawn process — demonstrated on a real live workflow picked from that run.
+`WordDocument` writes it by hand, as `ExcelWorkbook` writes .xlsx — a zip of XML, so no dependency — in the
+department’s own standard layout (AHE-BT-EY-STD, supplied 2026-10-02): A4 with its margins, Arial 11 justified,
+headings in its navy, a cover carrying the document’s particulars, a revision table and a contents list. The
+ORDER of the children of `w:pPr` and `w:rPr` is fixed by the schema and is written in one place for that reason:
+a file with them out of order is one Word calls unreadable and "repairs". It was a PDF until 2026-10-02; Word
+paginates, which is the whole reason for the change, and the hand-written PDF writer and its font embedding went
+with it. `PngImage` now reads only the logo’s size, because a .docx carries the file itself.
 
 Only two Markdown pages remain: `rapor.md` (the entry point) and `hassas-degerler.md` (restricted, kept separate so
 it is easy to leave out of a delivery). `ExcelWorkbook` writes .xlsx by hand — a zip of XML, so no dependency.
@@ -75,10 +77,14 @@ made, then gzips the result where `CompressionStream` exists — about tenfold o
 recognises a compressed export by its first two bytes rather than its name, and keeps it verbatim in `ham/`
 under `.json.gz`. Every stage of the write announces itself, because the failure that cost a run printed nothing.
 
-**What is delivered names only what is delivered.** The analysts get the five workbooks, the diagrams, the
-combined models and `rapor.md`; the evidence, the restricted findings and `kapsam-disi.xlsx` stay with Enterprise
-Architecture. A delivered file that names one of those sends a reader looking for what they do not have, so none
-does — `DeliveryTests` opens every delivered workbook and fails on any cell that mentions something left behind.
+**What is delivered names only what is delivered.** The outsource partner gets `nasil-kullanilir.docx`, the four
+workbooks a migration needs (`tasima-plani`, `veri-analizi`, `dis-sistemler`, `calistirma-yetkisi`) and `bpmn/`.
+The first delivery is the ORIGINAL diagrams only (maintainer, 2026-10-02): `aileler.xlsx`, `birlesik/` and
+`aileler/` are still produced and still read by Enterprise Architecture, as are the evidence, `rapor.md`, the
+restricted findings and `kapsam-disi.xlsx` — but none of them is handed over, so a consolidation nobody has
+agreed to cannot be mistaken for the plan. A delivered file that names one of those sends a reader looking for
+what they do not have, so none does — `DeliveryTests` opens every delivered workbook, and `AnalystGuideTests`
+the guide, and both fail on any text that mentions something left behind.
 
 **A column exists only if a line can be written in the workbook's guide saying what a reader does differently
 because of it**, and a page exists only if its rows are things to act on: the call pages carry only workflows that
