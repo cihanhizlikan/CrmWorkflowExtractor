@@ -22,6 +22,40 @@ public sealed class BpmnReadabilityTests
         Assert.Equal(expected, BpmnFileNames.Slug(name));
     }
 
+    /// <summary>
+    /// Windows keeps these names for devices. Two of the three slugs in
+    /// <c>bpmn/&lt;kategori&gt;/&lt;varlık&gt;/&lt;ad&gt;.bpmn</c> are folder names, and a folder with one of these
+    /// names cannot be created at all — measured on Windows 11, where <c>mkdir nul</c> throws.
+    /// </summary>
+    [Theory]
+    [InlineData("NUL", "nul-ayrilmis")]
+    [InlineData("con", "con-ayrilmis")]
+    [InlineData("Aux", "aux-ayrilmis")]
+    [InlineData("prn", "prn-ayrilmis")]
+    [InlineData("COM1", "com1-ayrilmis")]
+    [InlineData("lpt9", "lpt9-ayrilmis")]
+    [InlineData("com0", "com0-ayrilmis")]
+    // The name arrives as something else and still lands on the device word.
+    [InlineData("  nul  ", "nul-ayrilmis")]
+    [InlineData("*NUL*", "nul-ayrilmis")]
+    public void A_Name_Windows_Keeps_For_A_Device_Is_Moved_Off_It(string name, string expected)
+    {
+        Assert.Equal(expected, BpmnFileNames.Slug(name));
+    }
+
+    /// <summary>Only an exact match is a device; everything near one is an ordinary name and is left alone.</summary>
+    [Theory]
+    [InlineData("console", "console")]
+    [InlineData("nula", "nula")]
+    [InlineData("com10", "com10")]
+    [InlineData("com", "com")]
+    [InlineData("auxiliary", "auxiliary")]
+    [InlineData("nul akis", "nul-akis")]
+    public void A_Name_That_Merely_Looks_Like_A_Device_Is_Untouched(string name, string expected)
+    {
+        Assert.Equal(expected, BpmnFileNames.Slug(name));
+    }
+
     [Fact]
     public void Workflows_Sharing_A_Name_Keep_Distinct_Files()
     {

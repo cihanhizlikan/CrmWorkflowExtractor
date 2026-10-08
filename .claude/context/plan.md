@@ -133,6 +133,8 @@ mapped: no credible XAML sample exists to write them against; they surface as un
 1. Yalbuz `ScreenConceptBuilder` fold misses `â`/`î`/`û` and decomposed `İ`.
 2. The handout's 4 style rules are a stale subset of Yalbuz's 13.
 3. CRM 8.2 out of extended support, running partner code that may hold credentials — EA/security risk.
+4. `BpmnFileNames.Slug`'s empty-name fallback is the English word `workflow`, in a tool whose output is Turkish
+   down to the folder names. Reached only by a workflow whose name folds to nothing at all.
 
 ---
 
@@ -1035,3 +1037,25 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess. **Pass:** if any diagram fails, the run still writes
   every workbook and the guide, `rapor.md` names the workflow that failed, and that workflow's plan row has an
   empty `bpmn_dosyasi` cell rather than naming a file that is not there.
+### A slug is a folder name too (2026-10-08) — committed, awaiting merge
+- **Maintainer:** rule out the NUL case, noted in the previous package's section 4.
+- **I had it half wrong, and measuring said so.** I had written that a workflow named `NUL` would slug to
+  `nul.bpmn`, which `CreateFile` opens as the null device, leaving a silently empty file. Measured on this machine
+  (Windows 11, 2026-10-08): `nul.bpmn`, `con.bpmn`, `aux.bpmn`, `com1.bpmn` and `lpt1.bpmn` all write as ordinary
+  files with the right length. The FILE half is not a fault here.
+- **The folder half is.** A diagram's path is `bpmn/<kategori>/<birincil varlık>/<ad>.bpmn`, so two of the three
+  slugs are DIRECTORY names with no extension, and `mkdir nul` throws — measured. A CRM entity whose logical name
+  is one of these words would lose every diagram under it. With last package's guard that is now a quiet loss of
+  those diagrams instead of the run, which is better and still wrong.
+- **Fixed in all three positions, not the two that are provably broken.** The target is a locked-down host nobody
+  here can test, and on every Windows before 11 the file half was a fault too. An exact device word gets
+  `-ayrilmis`: `nul` → `nul-ayrilmis`. Only an EXACT match counts — `console`, `com10`, `nula` and `com` are
+  ordinary names and are untouched.
+- **The trailing-dot class was already impossible** and is now said out loud in the doc comment: Windows strips a
+  trailing dot or space silently, so two names differing only there would land on one file — but a slug holds
+  nothing but lower-case ASCII, digits and single hyphens, so neither can occur.
+- 16 new tests, 363 in all. The end-to-end one drives `BpmnStage` with an entity called `nul` and fails without
+  the fix.
+- **Acceptance on the company network — Do:** reprocess. **Pass:** `bpmn/` has no empty file, and if any folder
+  is named for a device word it reads `…-ayrilmis` and has the diagrams in it.
+

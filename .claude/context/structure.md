@@ -92,6 +92,16 @@ are part of a call, Sapma only the definitions whose running copy really differs
 nearly became a family or carry one structure under two names. The diagrams are emitted AFTER grouping, because
 each one's header note carries what the rest of the run learned about it — role, family, usage, drift.
 
+**A slug is a FOLDER name as often as a file name.** A diagram's path is
+`bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn`, so two of its three slugs are directories, and Windows
+keeps about two dozen names for devices. Measured on this machine (Windows 11, 2026-10-08): `mkdir nul` throws,
+while `nul.bpmn` writes perfectly well as an ordinary file — so the FILE half of this is no longer a fault on
+Windows 11, though it was on every Windows before it, where that name opens the null device and the diagram is
+written to nothing with nobody told. `BpmnFileNames.Slug` therefore moves an exact device word off itself in all
+three positions, to `nul-ayrilmis`; only an exact match counts, so `console` and `com10` are ordinary names. That
+the slug holds nothing but lower-case ASCII, digits and single hyphens is also what rules out a trailing dot or
+space, which Windows strips silently — two names differing only there would land on one file.
+
 **One workflow may not cost the run.** The BPMN stage runs before consolidation and every report, so anything
 thrown while drawing one diagram used to take the workbooks and the guide with it. Each diagram is now drawn
 inside a guard: a cancellation is the operator's and travels, everything else belongs to that one workflow — the

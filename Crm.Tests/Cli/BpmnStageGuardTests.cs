@@ -38,6 +38,30 @@ public sealed class BpmnStageGuardTests
         return ir with { Identity = ir.Identity with { Name = name } };
     }
 
+    /// <summary>
+    /// A diagram's folder is <c>bpmn/&lt;kategori&gt;/&lt;birincil varlık&gt;/</c>, and an entity whose logical name
+    /// is one Windows keeps for a device would make a folder that cannot be created — measured on Windows 11,
+    /// where <c>mkdir nul</c> throws while <c>nul.bpmn</c> writes fine. With the guard in place the cost would be
+    /// only that diagram, quietly; the point of this test is that there is no cost at all.
+    /// </summary>
+    [Fact]
+    public async Task An_Entity_Named_For_A_Device_Still_Gets_Its_Diagram()
+    {
+        using TemporaryOutput output = new();
+        RunFolder folder = RunFolder.Create(output.Root, DateTimeOffset.UtcNow);
+        RunState state = new(folder.RunId, folder.Root, "test");
+        WorkflowIr sound = Named(Good, "Poliçe İptal");
+        List<WorkflowIr> documents = [sound with { Identity = sound.Identity with { PrimaryEntity = "nul" } }];
+
+        await BpmnStage.RunAsync(folder, state, documents, new SimilarityResult([], []), null, NullLogger.Instance, CancellationToken.None);
+
+        Assert.Empty(state.Failures);
+        Assert.Equal(0, state.Counts["bpmn.lost"]);
+        string file = Assert.Single(Directory.GetFiles(Path.Combine(folder.Root, "bpmn"), "*.bpmn", SearchOption.AllDirectories));
+        Assert.Contains("nul-ayrilmis", file, StringComparison.Ordinal);
+        Assert.NotEmpty(File.ReadAllBytes(file));
+    }
+
     [Fact]
     public async Task A_Diagram_That_Cannot_Be_Drawn_Costs_That_Diagram_And_Nothing_Else()
     {

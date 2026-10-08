@@ -13,6 +13,27 @@ public static class BpmnFileNames
 {
     public const int MaxSlugLength = 70;
 
+    /// <summary>
+    /// The names Windows keeps for devices, which a slug may land on exactly: a CRM entity whose logical name is
+    /// <c>nul</c>, a workflow somebody called "AUX".
+    ///
+    /// <para>
+    /// A path here is <c>bpmn/&lt;kategori&gt;/&lt;varlık&gt;/&lt;ad&gt;.bpmn</c>, so two of the three slugs become
+    /// DIRECTORY names, with no extension — and a directory with one of these names cannot be created at all.
+    /// Measured on this machine (Windows 11, 2026-10-08): <c>mkdir nul</c> throws, while <c>nul.bpmn</c> writes
+    /// perfectly well as an ordinary file. The file half is therefore no longer a fault on Windows 11 — but it was
+    /// one on every Windows before it, where that name opens the null device and the diagram is written to
+    /// nothing with nobody told, and this tool runs on a locked-down host nobody here can test. So the name is
+    /// moved off the reserved word in all three positions rather than in the two that are provably broken.
+    /// </para>
+    /// </summary>
+    private static readonly HashSet<string> ReservedNames = new(StringComparer.Ordinal)
+    {
+        "con", "prn", "aux", "nul",
+        "com0", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
+        "lpt0", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9"
+    };
+
     /// <summary>One file name per workflow, in the order given; the mapping is stable for the same input.</summary>
     public static IReadOnlyDictionary<Guid, string> Assign(IEnumerable<(Guid Id, string Name)> workflows)
     {
@@ -43,8 +64,10 @@ public static class BpmnFileNames
     }
 
     /// <summary>
-    /// <c>Poliçe İptal Süreci (ADMIN)</c> → <c>police-iptal-sureci-admin</c>. Always a valid file name on Windows
-    /// and Linux: lower-case ASCII letters, digits and single hyphens.
+    /// <c>Poliçe İptal Süreci (ADMIN)</c> → <c>police-iptal-sureci-admin</c>. Always a valid file name AND folder
+    /// name on Windows and Linux: lower-case ASCII letters, digits and single hyphens, never a name Windows keeps
+    /// for a device. Having no character outside that set is also what rules out a trailing dot or space, which
+    /// Windows silently strips — two names that differed only there would otherwise land on one file.
     /// </summary>
     public static string Slug(string name)
     {
@@ -66,7 +89,12 @@ public static class BpmnFileNames
         {
             slug = slug[..MaxSlugLength].TrimEnd('-');
         }
-        return slug.Length == 0 ? "workflow" : slug;
+        if (slug.Length == 0)
+        {
+            return "workflow";
+        }
+        // Only an EXACT match is a device. "console" and "com10" are ordinary names and are left alone.
+        return ReservedNames.Contains(slug) ? slug + "-ayrilmis" : slug;
     }
 
     /// <summary>A cluster's file name: its medoid's name, marked as the combined form of a family.</summary>
