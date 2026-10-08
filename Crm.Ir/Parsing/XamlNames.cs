@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Crm.Ir.Model;
+using Crm.Ir.Text;
 
 namespace Crm.Ir.Parsing;
 
@@ -48,9 +49,13 @@ internal static partial class XamlNames
         "UpdateEntity", "CreateEntity", "AssignEntity", "SetState", "SendEmail", "StartChildWorkflow", "TerminateWorkflow", "SendEmailFromTemplate"
     };
 
+    /// <summary>
+    /// A step's label as a reader should see it. The designer leaves HTML's references in what it stores, so a
+    /// label arrived reading "&amp;#160" where a space belonged; <see cref="HtmlEntities"/> resolves them once.
+    /// </summary>
     public static string DisplayName(XElement element)
     {
-        return element.Attribute("DisplayName")?.Value ?? "";
+        return element.Attribute("DisplayName")?.Value is string name ? HtmlEntities.Decode(name) : "";
     }
 
     public static string? Key(XElement element)

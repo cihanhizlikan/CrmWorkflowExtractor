@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using Crm.Ir.Text;
 
 namespace Crm.Ir.Parsing;
 
@@ -120,7 +121,8 @@ internal sealed partial class ExpressionIndex
 
     public static IReadOnlyList<string> QuotedStrings(string expression)
     {
-        return [.. Quoted().Matches(expression).Select(match => match.Groups[1].Value.Replace("\"\"", "\"", StringComparison.Ordinal))];
+        return [.. Quoted().Matches(expression)
+            .Select(match => HtmlEntities.Decode(match.Groups[1].Value.Replace("\"\"", "\"", StringComparison.Ordinal)))];
     }
 
     /// <summary>The value(s) held by a variable: literals when the designer created them, <see cref="Dynamic"/> otherwise.</summary>

@@ -960,3 +960,29 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess, open `raporlar/nasil-kullanilir.docx` in Word.
   **Pass:** it opens with no repair prompt, the cover carries the logo and the particulars, the headings appear in
   the navigation pane, Turkish is spelt right throughout, and nothing in it names a file outside the delivery.
+### The characters, not their references (2026-10-08) — committed, awaiting merge
+- **Maintainer:** a weird text fragment in some labels — `&#160`.
+- **Where it comes from.** A step's label is the `DisplayName` of the `Sequence` CRM's designer wraps the step in,
+  and that text is typed into a web designer which leaves HTML's own references in it. The XAML therefore escapes
+  them a second time; reading the XAML as XML peels one layer and hands the parser `&#160` as five characters of
+  text. Nothing in this tool put it there and nothing was removing it, so it went straight onto the diagram. The
+  missing semicolon is CRM's, not ours: the designer writes `&#160` with nothing after it, which every browser
+  reads as a space.
+- **`HtmlEntities.Decode` at the three places CRM text enters the IR:** `XamlNames.DisplayName`, a condition's
+  `Description`, and every quoted literal in `ExpressionIndex` — the last of which is also what the sensitive scan
+  and `dis-sistemler.xlsx` read, so an address stops arriving with its `&amp;` showing.
+- **The two rules that keep it honest.** ONE PASS, never until nothing changes: text that really says `&amp;` means
+  an ampersand followed by "amp;", and a second pass would hand the reader something CRM never held. And a
+  reference nobody there knows is left verbatim — a guess on a diagram is worse than a visible oddity. A semicolon
+  is optional on a numeric reference (the reported shape) and required on a named one, because `&nbspAdı` is as
+  likely to be someone's text as a dropped semicolon.
+- **A reference to a character no document may carry is dropped**, as `ExcelWorkbook` and `WordDocument` already
+  drop a control character scanned out of a binary: `&#0;`, a lone surrogate and seven digits are refused, and
+  `&#3;` resolves to nothing rather than to a character that would make the BPMN unwritable.
+- **A non-breaking space becomes an ORDINARY space.** Keeping U+00A0 would leave two labels that read identically
+  comparing unequal, and no reader can tell them apart anyway.
+- **`entity-references-in-labels.xaml` records the real shape**, and the fix was confirmed by taking it out: the
+  step then read `Müşteri&#160Adı&nbsp;güncelle`, which is the fault as reported. 28 new tests, 330 in all.
+- **Acceptance on the company network — Do:** reprocess, reopen a diagram whose labels showed the fragment.
+  **Pass:** the words read with spaces between them and no `&#` or `&…;` appears on any label, in any plan cell,
+  or in the guide.

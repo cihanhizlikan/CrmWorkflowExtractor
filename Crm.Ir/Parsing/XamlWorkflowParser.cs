@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Crm.Ir.Model;
+using Crm.Ir.Text;
 
 namespace Crm.Ir.Parsing;
 
@@ -268,7 +269,9 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
         {
             context.Warn(path, "A condition with no recognisable branches.");
         }
-        string? description = XamlNames.Keyed(conditionSequence, "Properties", "Description")?.Value;
+        string? description = XamlNames.Keyed(conditionSequence, "Properties", "Description")?.Value is string written
+            ? HtmlEntities.Decode(written)
+            : null;
         return node with { Branches = branches, Detail = description };
     }
 
@@ -473,7 +476,7 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
         string? variable = ExpressionIndex.VariableOf(raw);
         if (variable is null || !context.Index.Literals.TryGetValue(variable, out IReadOnlyList<string>? values))
         {
-            return raw;
+            return HtmlEntities.Decode(raw);
         }
         return string.Join(", ", values);
     }
@@ -545,11 +548,11 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
     {
         foreach (XAttribute attribute in element.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration))
         {
-            literals.Add(new XamlLiteral(path, attribute.Value));
+            literals.Add(new XamlLiteral(path, HtmlEntities.Decode(attribute.Value)));
         }
         foreach (XText text in element.Nodes().OfType<XText>())
         {
-            literals.Add(new XamlLiteral(path, text.Value));
+            literals.Add(new XamlLiteral(path, HtmlEntities.Decode(text.Value)));
         }
     }
 

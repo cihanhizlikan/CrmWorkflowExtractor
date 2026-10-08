@@ -15,6 +15,21 @@ public sealed class XamlWorkflowParserTests
         return File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Xaml", name));
     }
 
+    /// <summary>
+    /// The reported fault, end to end: the designer stores its own HTML references inside the text, so the XAML
+    /// escapes them twice and reading it as XML leaves one layer behind. A step box read "Müşteri&amp;#160Adı".
+    /// </summary>
+    [Fact]
+    public void A_Reference_The_Designer_Left_In_A_Label_Does_Not_Reach_The_Step()
+    {
+        ParseResult result = new XamlWorkflowParser(new OptionLabels()).Parse(Id, Fixture("entity-references-in-labels.xaml"));
+
+        Assert.Equal(2, result.Steps.Count);
+        Assert.Equal("Müşteri Adı güncelle", result.Steps[0].DisplayName);
+        Assert.Equal("Fiyat & Koşul", result.Steps[1].DisplayName);
+        Assert.All(result.Steps, step => Assert.DoesNotContain("&#", step.DisplayName, StringComparison.Ordinal));
+    }
+
     [Fact]
     public void A_Condition_With_An_Else_Branch_Becomes_Two_Branches_With_Resolved_Predicate()
     {

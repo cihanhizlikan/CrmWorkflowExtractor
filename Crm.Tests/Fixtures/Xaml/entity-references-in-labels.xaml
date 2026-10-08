@@ -1,0 +1,13 @@
+<Activity x:Class="XrmWorkflow00000000000000000000000000000009" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mxswa="clr-namespace:Microsoft.Xrm.Sdk.Workflow.Activities;assembly=Microsoft.Xrm.Sdk.Workflow, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Recorded shape, 2026-10-08: the step's label is the Sequence's DisplayName, which the designer wrote, so
+       it carries the designer's own HTML references and the XAML escapes them a second time. A semicolon-less
+       &amp;#160 is what the real data carried. -->
+  <mxswa:Workflow>
+    <Sequence DisplayName="UpdateStep1: Müşteri&amp;#160Adı&amp;nbsp;güncelle">
+      <mxswa:UpdateEntity DisplayName="UpdateStep1" Entity="[UpdatedEntities(&quot;primaryEntity#Temp&quot;)]" EntityName="account" />
+    </Sequence>
+    <Sequence DisplayName="CreateStep2: Fiyat&amp;#160;&amp;amp;&amp;#160;Koşul">
+      <mxswa:CreateEntity DisplayName="CreateStep2" Entity="[CreatedEntities(&quot;task#Temp&quot;)]" EntityName="task" />
+    </Sequence>
+  </mxswa:Workflow>
+</Activity>

@@ -7,7 +7,7 @@ The stages after retrieval read only the run folder, never the network.
 | Project | Owns | Network |
 |---|---|---|
 | `Crm.Extract` | `CrmHttpClient` (the only network type), credentials, paging, preflight (WhoAmI, privileges, `$count`), inventory and XAML retrieval, raw persistence, run folder + manifest | **yes — GET only** |
-| `Crm.Ir` | XAML parsing, IR types, metadata resolution, `TurkishFold`, coverage, sensitive-literal scan | no |
+| `Crm.Ir` | XAML parsing, IR types, metadata resolution, `TurkishFold`, `HtmlEntities`, coverage, sensitive-literal scan | no |
 | `Crm.Bpmn` | IR → BPMN 2.0, DI layout, embedded OMG XSD validation | no |
 | `Crm.Similarity` | step signatures, structural + lexical scores, union-find clustering, cohesion | no |
 | `Crm.Consolidation` | combining a family into one workflow (prefix union with Variant splits), provenance reconciliation | no |
@@ -91,6 +91,17 @@ because of it**, and a page exists only if its rows are things to act on: the ca
 are part of a call, Sapma only the definitions whose running copy really differs, Yakın çiftler only the pairs that
 nearly became a family or carry one structure under two names. The diagrams are emitted AFTER grouping, because
 each one's header note carries what the rest of the run learned about it — role, family, usage, drift.
+
+**The text CRM stores is HTML, and a reader should see the words.** A step's label is the `DisplayName` of the
+`Sequence` the designer wraps it in, typed into a web designer that leaves its own references behind in it — so
+the XAML escapes them a SECOND time, reading it as XML peels one layer, and a step box came out reading
+`Müşteri&#160Adı` where a space belonged. `HtmlEntities` resolves them at the three places CRM text enters the
+IR: `XamlNames.DisplayName`, a condition's description, and every quoted literal in `ExpressionIndex` (which is
+also what the sensitive scan and the address page read, so a query string stops arriving with its `&amp;` showing).
+ONE PASS, never until nothing changes — text that really says `&amp;` means an ampersand and the letters "amp;" —
+and a reference nobody there knows is left verbatim, because a guess on a diagram is worse than a visible oddity.
+A semicolon is optional on a NUMERIC reference and required on a named one: `&#160` with nothing after it is what
+the real data carried, while `&nbspAdı` is as likely to be someone's text as a dropped semicolon.
 
 **The output is Turkish** — folder names, file names and every word the tool writes. Four tables carry it:
 `RunPaths` (paths), `RunStages` (stage names) and `ProcessLabels` (category, mode and state labels, which code also
