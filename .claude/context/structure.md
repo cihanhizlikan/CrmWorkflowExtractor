@@ -92,6 +92,23 @@ are part of a call, Sapma only the definitions whose running copy really differs
 nearly became a family or carry one structure under two names. The diagrams are emitted AFTER grouping, because
 each one's header note carries what the rest of the run learned about it — role, family, usage, drift.
 
+**Blocks are aligned on their SPINE, and the layout reserves the room every label will take.** A block's spine is
+the height its flow comes in and goes out at; for a split whose branches all end the process, that is the row its
+continuation takes, which is rarely the middle one. Aligning bounding-box centres instead put the diamond on
+whichever row happened to be in the middle and drew the outgoing flow straight THROUGH the shape standing there —
+invisible with an even number of branches, which is why every fixture passed and `CHECK_CAMPAIGN_FIELD`, with
+three rows, did not. Spines are also what keep a chain of diamonds reading as one straight line.
+
+**`LabelBox` is the one measurement of a label**, used by the layout to reserve room and by `BpmnSerializer` to
+write bounds, because measuring in one place and spacing by a constant in the other is how a 160-pixel caption
+came to be drawn into a 120-pixel gap. Three things are reserved from it: the corridor between a diamond and its
+branches is at least a caption wide; the gap between branch rows is at least a caption tall; and a shape whose
+text is drawn OUTSIDE it — every gateway and event — reserves that text below itself, so the row beneath is not
+placed as though an end event were 36 pixels tall when it carries 100 pixels of name under it. A caption goes on
+the middle of its flow's longest LEVEL run, because that is the part of a flow belonging to one branch alone: two
+branches share the upright line out of their diamond, so captions measured along that line are drawn on top of
+each other. Where the legs are short this is the same place it always was.
+
 **A slug is a FOLDER name as often as a file name.** A diagram's path is
 `bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn`, so two of its three slugs are directories, and Windows
 keeps about two dozen names for devices. Measured on this machine (Windows 11, 2026-10-08): `mkdir nul` throws,

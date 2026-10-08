@@ -279,15 +279,13 @@ public static class BpmnSerializer
     /// </summary>
     private static XElement? ShapeLabel(FlowNode node)
     {
-        if (node.Name.Length == 0 || node.Type is not (FlowNodeType.ExclusiveGateway or FlowNodeType.EventBasedGateway
-            or FlowNodeType.StartEvent or FlowNodeType.EndEvent or FlowNodeType.TerminateEndEvent
-            or FlowNodeType.ConditionalCatchEvent or FlowNodeType.TimerCatchEvent))
+        if (!LabelBox.CarriesTextBelow(node))
         {
             return null;
         }
-        (double width, double height) = LabelSize(node.Name);
+        (double width, double height) = LabelBox.Measure(node.Name);
         double x = node.X + (node.Width / 2) - (width / 2);
-        return Label(x, node.Y + node.Height + 6, width, height);
+        return Label(x, node.Y + node.Height + LabelBox.Gap, width, height);
     }
 
     /// <summary>
@@ -306,26 +304,46 @@ public static class BpmnSerializer
         {
             return null;
         }
-        (double width, double height) = LabelSize(name);
+        (double width, double height) = LabelBox.Measure(name);
         (double x, double y, bool upright) = Middle(waypoints);
         if (upright)
         {
-            return Label(x + LabelGap, y - (height / 2), width, height);
+            return Label(x + LabelBox.Gap, y - (height / 2), width, height);
         }
-        return Label(x - (width / 2), y - LabelGap - height, width, height);
+        return Label(x - (width / 2), y - LabelBox.Gap - height, width, height);
     }
 
-    /// <summary>Clear of the line by this much, so the caption reads as beside it rather than written through it.</summary>
-    private const double LabelGap = 6;
-
     /// <summary>
-    /// The point halfway ALONG a flow, measured by length rather than by counting corners — a flow that leaves a
-    /// gateway sideways and then runs level is two segments of very different sizes, and its middle is the point
-    /// a reader's eye follows, not the bend. Also reports whether the line is upright there, which decides
-    /// whether the caption sits above it or beside it.
+    /// Where a caption goes on a flow: the middle of its longest LEVEL run, or, for a flow that has none, the
+    /// point halfway along it by length.
+    ///
+    /// <para>
+    /// The level run is preferred because it is the one part of a flow that belongs to one branch alone. Two
+    /// branches leaving the same diamond share the upright line out of it, so two captions measured along that
+    /// line are drawn one on top of the other — which is what happened as soon as the conditions were long
+    /// enough to be worth reading. Each branch's level run is at its own height, so the captions cannot meet.
+    /// Where the legs are the ordinary short ones this picks the same place it always did.
+    /// </para>
     /// </summary>
     private static (double X, double Y, bool Upright) Middle(IReadOnlyList<(double X, double Y)> waypoints)
     {
+        int level = -1;
+        for (int index = 1; index < waypoints.Count; index++)
+        {
+            if (Math.Abs(waypoints[index].Y - waypoints[index - 1].Y) >= 0.5)
+            {
+                continue;
+            }
+            if (level < 0 || Length(waypoints[index - 1], waypoints[index]) > Length(waypoints[level - 1], waypoints[level]))
+            {
+                level = index;
+            }
+        }
+        if (level > 0)
+        {
+            return ((waypoints[level - 1].X + waypoints[level].X) / 2, waypoints[level].Y, false);
+        }
+
         double total = 0;
         for (int index = 1; index < waypoints.Count; index++)
         {
@@ -360,20 +378,6 @@ public static class BpmnSerializer
     private static XElement Label(double x, double y, double width, double height)
     {
         return new XElement(Di + "BPMNLabel", new XElement(Dc + "Bounds", Number("x", x), Number("y", y), Number("width", width), Number("height", height)));
-    }
-
-    /// <summary>
-    /// Room for the text as a viewer actually draws it. Viewers wrap an external label at their own fixed width
-    /// (90 pixels in bpmn.io) and centre it on these bounds, growing up and down, so the height is what matters:
-    /// too little and the text spills over the shape below. About 6.2 pixels a character at the 11-pixel font.
-    /// </summary>
-    private static (double Width, double Height) LabelSize(string text)
-    {
-        const double wrapWidth = 90;
-        // Twelve lines rather than five: a condition is never shortened, so its box has to be able to hold one.
-        // Too few and the viewer draws the text outside the bounds it was given, over whatever is below.
-        double lines = Math.Min(12, Math.Ceiling(((text.Length * 6.2) + 4) / wrapWidth));
-        return (wrapWidth, Math.Round((lines * 13) + 6));
     }
 
     private static IReadOnlyList<(double X, double Y)> Waypoints(FlowNode source, FlowNode target)

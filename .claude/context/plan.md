@@ -1059,3 +1059,41 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess. **Pass:** `bpmn/` has no empty file, and if any folder
   is named for a device word it reads `…-ayrilmis` and has the diagrams in it.
 
+### A block hangs from its spine (2026-10-08) — committed, awaiting merge
+- **Maintainer:** `check-campaign-field.bpmn` still places labels and arrows wrongly; fix it without undoing the
+  earlier placement fixes.
+- **Three faults, one cause.** The flow leaving the first diamond ran straight THROUGH an end event; the two long
+  branch captions overlapped each other; and the `diğer` caption landed on a shape. All of it came from aligning
+  blocks on their BOUNDING-BOX CENTRE. That condition has two tests, each ending the process, and no
+  otherwise-branch — so the tool adds the arrow taken when neither held, giving three rows, and a diamond centred
+  on the block sits on the middle one. The flow leaving it runs along that line, and row two was standing there.
+- **Why no fixture caught it.** An EVEN number of rows puts the centre between rows and hides the whole thing.
+  Every condition fixture has one or two branches. `CREATE_CAMPAIGN_RESPONSE_FOR_PHONECALL`, which the maintainer
+  confirmed reads correctly, has three diamonds with one branch each — two rows apiece.
+- **Blocks now hang from a SPINE:** the height a block's flow enters and leaves at. For a split left through the
+  diamond itself, that is the row its continuation takes; where the paths meet at a join, it is the middle, as
+  before. `SequenceBlock` aligns its blocks on spines rather than centres, which also keeps a chain of diamonds on
+  one line by construction instead of by luck of parity — `The_Start_And_The_Diamond_Stay_On_One_Line` pins that,
+  and it passed BEFORE the fix too, so the earlier work is demonstrably still standing.
+- **`LabelBox` is now the one measurement of a label**, used by the layout to reserve room and by the serializer
+  to write bounds. The gap was a constant 120 "room for a five-line caption" while a caption, since conditions
+  stopped being shortened, can be 162 pixels. Reserved from it: a corridor at least a caption wide between a
+  diamond and its branches, a row gap at least a caption tall, and — the one I missed on the first pass — the
+  text of a shape that draws its text OUTSIDE itself, which an end event does and which the row below was ignoring.
+- **A caption goes on the middle of its flow's longest LEVEL run.** Two branches share the upright line out of
+  their diamond, so two captions measured along it are drawn on top of one another. Each branch's level run is at
+  its own height. Where the legs are the ordinary short ones this is the same place "halfway along" already chose,
+  which is why the maintainer-approved file is unchanged in character.
+- **The caption guard was measuring the wrong thing.** It asked that a caption's CENTRE be within 30 pixels of its
+  flow, which a 110-pixel caption cannot be however well it is placed. It now measures from the box's nearest
+  edge and asks for 10; confirmed by moving every caption 40 pixels off its line, which fails all four fixtures.
+- **Three new guards, and one that did not exist at all:** no flow passes through a shape it is not an end of; no
+  label lands on a shape; no label lands on ANOTHER label — nothing was watching for that anywhere. Each runs over
+  one, two and three branches so no parity can hide a fault again.
+- 8 new tests, 383 in all. Confirmed by reverting the spine, which restores the arrow through the end event.
+- **The cost, stated plainly:** these diagrams are taller. A three-row condition now spans about 700 pixels where
+  it spanned 350. That is the price of "never shorten a condition" — the room was always needed; it just was not
+  being reserved, so the text was drawn over whatever was under it.
+- **Acceptance on the company network — Do:** reprocess, reopen `check-campaign-field.bpmn` and
+  `create-campaign-response-for-phonecall.bpmn`. **Pass:** on the first, no arrow crosses a shape and no two
+  captions touch; on the second, the diamonds still sit on one line and `evet`/`hayır` are where they were.

@@ -146,14 +146,25 @@ public sealed class BpmnReadabilityTests
             List<(double X, double Y)> waypoints = [.. edge.Elements(BpmnSerializer.DdDi + "waypoint")
                 .Select(point => (Value(point, "x"), Value(point, "y")))];
 
-            double centreX = Value(label, "x") + (Value(label, "width") / 2);
-            double centreY = Value(label, "y") + (Value(label, "height") / 2);
-            double away = Enumerable.Range(1, waypoints.Count - 1)
-                .Min(index => ToSegment(centreX, centreY, waypoints[index - 1], waypoints[index]));
+            // Measured from the caption's nearest CORNER, not its centre: a condition is never shortened, so a
+            // caption can be a hundred and sixty pixels tall, and its centre is then half that far from the line
+            // however perfectly it is placed. The box's own edge says where it was put.
+            double away = Corners(label).Min(corner => Enumerable.Range(1, waypoints.Count - 1)
+                .Min(index => ToSegment(corner.X, corner.Y, waypoints[index - 1], waypoints[index])));
 
-            Assert.True(away <= 30,
+            Assert.True(away <= 10,
                 $"'{flow.Attribute("name")!.Value}' in {fixture} sits {away:F0} pixels from the flow it captions.");
         }
+    }
+
+    private static IEnumerable<(double X, double Y)> Corners(XElement bounds)
+    {
+        double left = Value(bounds, "x");
+        double top = Value(bounds, "y");
+        double right = left + Value(bounds, "width");
+        double bottom = top + Value(bounds, "height");
+        return [(left, top), (right, top), (left, bottom), (right, bottom),
+            ((left + right) / 2, top), ((left + right) / 2, bottom), (left, (top + bottom) / 2), (right, (top + bottom) / 2)];
     }
 
     /// <summary>How far a point is from a line between two others — the nearest point on it, not an endpoint.</summary>
@@ -191,6 +202,39 @@ public sealed class BpmnReadabilityTests
                     && Value(label, "y") < Value(shape, "y") + Value(shape, "height")
                     && Value(shape, "y") < Value(label, "y") + Value(label, "height");
                 Assert.False(overlaps, $"A label at ({Value(label, "x")}, {Value(label, "y")}) covers a shape at ({Value(shape, "x")}, {Value(shape, "y")}).");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Two captions written over one another are as unreadable as one over a shape, and nothing here was watching
+    /// for it. Every fixture, because the layout now reserves the room each label will take and this is the
+    /// measurement of whether it reserved enough.
+    /// </summary>
+    [Theory]
+    [InlineData("condition-update-stop.xaml")]
+    [InlineData("child-and-custom.xaml")]
+    [InlineData("wait-timeout.xaml")]
+    [InlineData("production-helpers.xaml")]
+    [InlineData("business-rule.xaml")]
+    [InlineData("dialog.xaml")]
+    [InlineData("condition-attribute-read-lookup.xaml")]
+    [InlineData("condition-unnamed-then-stop.xaml")]
+    public void No_Label_Lands_On_Another_Label(string fixture)
+    {
+        XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(BpmnEmissionTests.IrFor(fixture)), "test");
+        List<XElement> labels = [.. xml.Descendants(BpmnSerializer.Di + "BPMNLabel").Select(label => label.Element(BpmnSerializer.Dc + "Bounds")!)];
+
+        for (int first = 0; first < labels.Count; first++)
+        {
+            for (int second = first + 1; second < labels.Count; second++)
+            {
+                bool overlaps = Value(labels[first], "x") < Value(labels[second], "x") + Value(labels[second], "width")
+                    && Value(labels[second], "x") < Value(labels[first], "x") + Value(labels[first], "width")
+                    && Value(labels[first], "y") < Value(labels[second], "y") + Value(labels[second], "height")
+                    && Value(labels[second], "y") < Value(labels[first], "y") + Value(labels[first], "height");
+                Assert.False(overlaps, $"In {fixture}, labels at ({Value(labels[first], "x")}, {Value(labels[first], "y")}) "
+                    + $"and ({Value(labels[second], "x")}, {Value(labels[second], "y")}) overlap.");
             }
         }
     }
