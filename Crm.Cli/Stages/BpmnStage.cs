@@ -20,6 +20,7 @@ public static class BpmnStage
         SimilarityResult families, UsageEvidence? usage, ILogger logger, CancellationToken token)
     {
         int invalid = 0;
+        int lost = 0;
         IReadOnlyDictionary<Guid, string> names = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity.Name);
         IReadOnlyDictionary<Guid, string> stems = BpmnFileNames.Assign(documents.Select(document => (document.Identity.WorkflowId, document.Identity.Name)));
         // 1437 files in one folder is a wall. Category, then entity, is how an analyst divides the work.
@@ -29,22 +30,44 @@ public static class BpmnStage
         Facts facts = new(documents, families, usage, state.Drift, state.Plugins);
         foreach (WorkflowIr document in documents)
         {
-            XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(document, names, facts.For(document)), state.ToolVersion);
             string file = $"{RunPaths.Bpmn}/{fileNames[document.Identity.WorkflowId]}.bpmn";
-            await folder.WriteBytesAsync(file, BpmnSerializer.ToBytes(xml), token);
-
-            IReadOnlyList<string> errors = BpmnSchemaValidator.Validate(xml);
-            if (errors.Count > 0)
+            // ONE WORKFLOW MAY NOT COST THE RUN. This stage runs before consolidation and every report, so an
+            // exception here used to take the workbooks and the guide with it — and the thing that threw was a
+            // single stray byte in a single name. What one diagram costs is now that diagram: the failure is
+            // recorded against its name, the run is marked failed, and the remaining 1436 are still drawn.
+            try
             {
-                invalid++;
-                state.Fail(ExitCode.RunFailed, $"{file} ('{document.Identity.Name}') BPMN 2.0 şemasına uymuyor: {string.Join(" | ", errors.Take(3))}");
+                XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(document, names, facts.For(document)), state.ToolVersion);
+                await folder.WriteBytesAsync(file, BpmnSerializer.ToBytes(xml), token);
+
+                IReadOnlyList<string> errors = BpmnSchemaValidator.Validate(xml);
+                if (errors.Count > 0)
+                {
+                    invalid++;
+                    state.Fail(ExitCode.RunFailed, $"{file} ('{document.Identity.Name}') BPMN 2.0 şemasına uymuyor: {string.Join(" | ", errors.Take(3))}");
+                }
+            }
+            // A cancellation is the operator's and travels; everything else belongs to this one workflow. The
+            // filter rather than a catch-and-rethrow because a filter that does not match never unwinds the
+            // stack, so a debugger still stops where the throw was.
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                lost++;
+                // No file was written, so nothing may point at one: the plan's bpmn_dosyasi cell stays empty and
+                // the guide picks a different workflow to walk the reader through.
+                fileNames.Remove(document.Identity.WorkflowId);
+                state.Fail(ExitCode.RunFailed, $"{file} ('{document.Identity.Name}') çizilemedi: {error.GetType().Name}: {error.Message}");
+                logger.LogError(error, "BPMN: {File} could not be drawn", file);
             }
         }
         state.BpmnFiles = fileNames;
-        state.Counts["bpmn.written"] = documents.Count;
+        // The count the chain reconciles is what was WRITTEN, so a lost diagram shows up as a drop rather than
+        // disappearing into a number that still says 1437.
+        state.Counts["bpmn.written"] = documents.Count - lost;
         state.Counts["bpmn.invalid"] = invalid;
+        state.Counts["bpmn.lost"] = lost;
         state.StagesRun.Add(RunStages.Bpmn);
-        logger.LogInformation("BPMN: {Written} written, {Invalid} invalid", documents.Count, invalid);
+        logger.LogInformation("BPMN: {Written} written, {Invalid} invalid, {Lost} lost", documents.Count - lost, invalid, lost);
     }
 
     /// <summary>

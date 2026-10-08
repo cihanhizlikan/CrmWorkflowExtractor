@@ -92,6 +92,14 @@ are part of a call, Sapma only the definitions whose running copy really differs
 nearly became a family or carry one structure under two names. The diagrams are emitted AFTER grouping, because
 each one's header note carries what the rest of the run learned about it — role, family, usage, drift.
 
+**One workflow may not cost the run.** The BPMN stage runs before consolidation and every report, so anything
+thrown while drawing one diagram used to take the workbooks and the guide with it. Each diagram is now drawn
+inside a guard: a cancellation is the operator's and travels, everything else belongs to that one workflow — the
+failure is recorded against its NAME, the run's exit code becomes a failure, and the rest are still drawn. The
+workflow is dropped from `state.BpmnFiles`, so the plan's `bpmn_dosyasi` cell stays empty and the guide walks the
+reader through a different one rather than naming a file nobody has. `bpmn.written` counts what was written, so
+the count chain shows a loss as a drop instead of hiding it behind a number that still says 1437.
+
 **XML has no escape for a control character.** There is no spelling of U+0001 that a document may hold, so a
 writer handed one does not produce a bad file — it THROWS. CRM's own records are XML and cannot carry one, but the
 names around them arrive as JSON, which can, and the strings scanned out of a plug-in assembly are full of them.

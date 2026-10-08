@@ -133,9 +133,6 @@ mapped: no credible XAML sample exists to write them against; they surface as un
 1. Yalbuz `ScreenConceptBuilder` fold misses `â`/`î`/`û` and decomposed `İ`.
 2. The handout's 4 style rules are a stale subset of Yalbuz's 13.
 3. CRM 8.2 out of extended support, running partner code that may hold credentials — EA/security risk.
-4. `BpmnStage`'s loop has no per-workflow guard: the scrub (2026-10-08) closes the one failure anyone has seen,
-   but anything else thrown while emitting one diagram still costs the reports, because the stage runs before
-   them and nothing catches.
 
 ---
 
@@ -1015,3 +1012,26 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess. **Pass:** the run completes and writes every workbook
   even if a workflow name carries a stray byte; no label shows a replacement character.
 
+### One workflow may not cost the run (2026-10-08) — committed, awaiting merge
+- **Maintainer:** add the per-workflow guard, recorded as item 4 of section 4 in the previous package.
+- **Each diagram is drawn inside a guard.** `catch (Exception error) when (error is not OperationCanceledException)`
+  — a filter rather than a catch-and-rethrow, because a filter that does not match never unwinds the stack, so a
+  debugger still stops at the throw. A cancellation is the operator's and travels; everything else belongs to the
+  one workflow being drawn.
+- **What a loss costs is now exactly that diagram.** The failure is recorded against the workflow's NAME, so a
+  human knows which one to look at; the exit code becomes a failure, as an invalid schema already did; and the
+  workflow is dropped from `state.BpmnFiles`, so the plan's `bpmn_dosyasi` cell stays empty and the guide walks
+  the reader through a different workflow. Every consumer already read that dictionary with `TryGetValue` or
+  `ContainsKey`, so nothing had to change to make an absent file mean "no file".
+- **`bpmn.written` now counts what was WRITTEN** and `bpmn.lost` what was not, so the count chain shows a loss as
+  a drop rather than hiding it behind a number that still says 1437.
+- **The test needed a failure nobody had anticipated**, which is the whole point of a guard, so it uses one the
+  code already refuses: two steps sharing one path, which `FlowGraph` rejects with "Duplicate BPMN element id".
+  That is a malformed intermediate model — a parser fault, not a data one — and it stands for the class.
+- **Both halves were confirmed by breaking them.** Disabling the filter makes the exception propagate out of the
+  stage again; widening it to catch everything makes the cancellation test fail, which is the half that would
+  otherwise have turned an operator's stop into 1437 recorded failures and a run that carried on regardless.
+- 2 new tests, 347 in all.
+- **Acceptance on the company network — Do:** reprocess. **Pass:** if any diagram fails, the run still writes
+  every workbook and the guide, `rapor.md` names the workflow that failed, and that workflow's plan row has an
+  empty `bpmn_dosyasi` cell rather than naming a file that is not there.
