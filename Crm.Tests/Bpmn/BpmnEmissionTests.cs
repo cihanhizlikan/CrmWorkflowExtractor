@@ -23,6 +23,31 @@ public sealed class BpmnEmissionTests
             new IrProvenance("ham/xaml/x.xaml", "abc", "2026-09-15T00:00:00Z", "test"));
     }
 
+    /// <summary>
+    /// A control character in a workflow's name used to cost the WHOLE RUN. XML has no escape for one, so
+    /// XmlWriter throws rather than writing a bad file; the loop that emits the diagrams does not guard itself
+    /// and it runs before the reports, so one stray byte in one name took the workbooks and the guide with it.
+    ///
+    /// <para>
+    /// The name is JSON, not XAML — CRM's own records could not carry this, but the inventory around them can,
+    /// as can the strings scanned out of a plug-in assembly.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_Control_Character_In_A_Name_Does_Not_Cost_The_Diagram()
+    {
+        WorkflowIr ir = IrFor("condition-update-stop.xaml");
+        // Written as escapes on purpose: a raw control character in a source file is invisible to the next reader.
+        WorkflowIr named = ir with { Identity = ir.Identity with { Name = "Poli\u0001çe \u0003İptal" } };
+
+        XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(named), "test");
+
+        Assert.NotEmpty(BpmnSerializer.ToBytes(xml));
+        Assert.Empty(BpmnSchemaValidator.Validate(xml));
+        // The words survive; what no document may carry does not.
+        Assert.Contains("Poliçe İptal", xml.ToString(), StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("condition-update-stop.xaml")]
     [InlineData("child-and-custom.xaml")]

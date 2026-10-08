@@ -7,7 +7,7 @@ The stages after retrieval read only the run folder, never the network.
 | Project | Owns | Network |
 |---|---|---|
 | `Crm.Extract` | `CrmHttpClient` (the only network type), credentials, paging, preflight (WhoAmI, privileges, `$count`), inventory and XAML retrieval, raw persistence, run folder + manifest | **yes — GET only** |
-| `Crm.Ir` | XAML parsing, IR types, metadata resolution, `TurkishFold`, `HtmlEntities`, coverage, sensitive-literal scan | no |
+| `Crm.Ir` | XAML parsing, IR types, metadata resolution, `TurkishFold`, `HtmlEntities`, `DocumentText`, coverage, sensitive-literal scan | no |
 | `Crm.Bpmn` | IR → BPMN 2.0, DI layout, embedded OMG XSD validation | no |
 | `Crm.Similarity` | step signatures, structural + lexical scores, union-find clustering, cohesion | no |
 | `Crm.Consolidation` | combining a family into one workflow (prefix union with Variant splits), provenance reconciliation | no |
@@ -91,6 +91,17 @@ because of it**, and a page exists only if its rows are things to act on: the ca
 are part of a call, Sapma only the definitions whose running copy really differs, Yakın çiftler only the pairs that
 nearly became a family or carry one structure under two names. The diagrams are emitted AFTER grouping, because
 each one's header note carries what the rest of the run learned about it — role, family, usage, drift.
+
+**XML has no escape for a control character.** There is no spelling of U+0001 that a document may hold, so a
+writer handed one does not produce a bad file — it THROWS. CRM's own records are XML and cannot carry one, but the
+names around them arrive as JSON, which can, and the strings scanned out of a plug-in assembly are full of them.
+`ExcelWorkbook` and `WordDocument` each dropped them; `BpmnSerializer` did not, and its loop neither guards itself
+nor runs after the reports, so one stray byte in one workflow name cost the whole run — every workbook with it.
+The rule is now `DocumentText.Writable` and all three writers use it: it also drops a lone surrogate (half a
+character, which `XmlConvert.IsXmlChar` accepts because inside a pair a high half IS character data), U+FFFE and
+U+FFFF, and the C1 range that XML permits and nobody can read; tab, newline and carriage return are text and stay.
+`BpmnSerializer` sweeps the BUILT document rather than each of the dozen places text goes in, because that is the
+version a later site cannot forget to call.
 
 **The text CRM stores is HTML, and a reader should see the words.** A step's label is the `DisplayName` of the
 `Sequence` the designer wraps it in, typed into a web designer that leaves its own references behind in it — so

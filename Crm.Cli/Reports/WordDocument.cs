@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO.Compression;
 using System.Text;
+using Crm.Ir.Text;
 
 namespace Crm.Cli.Reports;
 
@@ -181,15 +182,16 @@ public static class WordDocument
     }
 
     /// <summary>
-    /// XML text. A .docx is XML, so the five characters have to go — and so do the control characters, which a
-    /// literal scanned out of a CRM definition can carry and which no XML document may hold at all.
+    /// XML text. A .docx is XML, so the five characters have to go — and so does everything no XML document may
+    /// hold, which is <see cref="DocumentText"/>'s business and the same rule the diagrams needed.
     /// </summary>
     public static string Text(string text)
     {
         StringBuilder clean = new(text.Length);
-        foreach (char letter in text)
+        foreach (char letter in DocumentText.Writable(text))
         {
-            if (char.IsControl(letter) && letter is not ('\t' or '\n'))
+            // And the carriage return: a line in a .docx is an element, not a character.
+            if (letter == '\r')
             {
                 continue;
             }

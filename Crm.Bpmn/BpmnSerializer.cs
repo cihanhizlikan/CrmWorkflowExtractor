@@ -4,6 +4,7 @@ using System.Xml;
 using System.Xml.Linq;
 using Crm.Bpmn.Graph;
 using Crm.Ir.Model;
+using Crm.Ir.Text;
 
 namespace Crm.Bpmn;
 
@@ -100,7 +101,43 @@ public static class BpmnSerializer
             new XAttribute("exporterVersion", toolVersion),
             processElement,
             new XElement(Di + "BPMNDiagram", new XAttribute("id", "diagram_" + process.ProcessId), plane));
-        return new XDocument(new XDeclaration("1.0", "UTF-8", null), definitions);
+        return Writable(new XDocument(new XDeclaration("1.0", "UTF-8", null), definitions));
+    }
+
+    /// <summary>
+    /// The finished document with every character XML cannot carry taken out of it.
+    ///
+    /// <para>
+    /// A workflow's name arrives as JSON and a plug-in's strings arrive as bytes, so either can hold a control
+    /// character; <see cref="XmlWriter"/> has no spelling for one and THROWS rather than writing a bad file. The
+    /// loop that emits the diagrams does not guard itself, and it runs before the reports, so one stray byte in
+    /// one name used to cost the whole run — every workbook with it. It is swept here, over the built document,
+    /// rather than at each of the dozen places text goes in, because that is the version a later site cannot
+    /// forget to call.
+    /// </para>
+    /// </summary>
+    private static XDocument Writable(XDocument document)
+    {
+        foreach (XElement element in document.Descendants())
+        {
+            foreach (XAttribute attribute in element.Attributes())
+            {
+                string clean = DocumentText.Writable(attribute.Value);
+                if (!ReferenceEquals(clean, attribute.Value))
+                {
+                    attribute.Value = clean;
+                }
+            }
+        }
+        foreach (XText text in document.DescendantNodes().OfType<XText>())
+        {
+            string clean = DocumentText.Writable(text.Value);
+            if (!ReferenceEquals(clean, text.Value))
+            {
+                text.Value = clean;
+            }
+        }
+        return document;
     }
 
     /// <summary>UTF-8 without BOM, LF line endings, two-space indent.</summary>

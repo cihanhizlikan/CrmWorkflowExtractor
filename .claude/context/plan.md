@@ -133,6 +133,9 @@ mapped: no credible XAML sample exists to write them against; they surface as un
 1. Yalbuz `ScreenConceptBuilder` fold misses `â`/`î`/`û` and decomposed `İ`.
 2. The handout's 4 style rules are a stale subset of Yalbuz's 13.
 3. CRM 8.2 out of extended support, running partner code that may hold credentials — EA/security risk.
+4. `BpmnStage`'s loop has no per-workflow guard: the scrub (2026-10-08) closes the one failure anyone has seen,
+   but anything else thrown while emitting one diagram still costs the reports, because the stage runs before
+   them and nothing catches.
 
 ---
 
@@ -986,3 +989,29 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess, reopen a diagram whose labels showed the fragment.
   **Pass:** the words read with spaces between them and no `&#` or `&…;` appears on any label, in any plan cell,
   or in the guide.
+### What no document may carry (2026-10-08) — committed, awaiting merge
+- **Maintainer:** close the BPMN control-character gap, reported out of the previous package's section 4.
+- **It was worse than the finding said.** I had written that a control character makes the diagram "fail to write
+  rather than render oddly". Measured: `BpmnStage`'s loop has no guard and runs at line 36 of `OfflineStages`,
+  BEFORE consolidation and every report, and `Program.Main` catches nothing. One stray byte in one workflow name
+  took the whole run with it — no workbooks, no guide, an unhandled `ArgumentException`. Proved before fixing, with
+  a probe that failed on `'', hexadecimal value 0x01, is an invalid character`.
+- **How one reaches a label at all.** Not through the XAML: that is XML and could not carry it. Through the
+  inventory, which is JSON, and through `AssemblyStrings`, which reads bytes. `HtmlEntities` closed a third route
+  last package by dropping `&#3;` rather than resolving it.
+- **`DocumentText.Writable` is the rule, written once.** The gap existed BECAUSE the rule had been written twice —
+  in `ExcelWorkbook` and in `WordDocument` — and missed in the third writer. All three now call it, and the two
+  that had their own copies gained what those copies lacked: a lone surrogate, U+FFFE, U+FFFF.
+- **A lone surrogate is the case that nearly got away.** `XmlConvert.IsXmlChar` says YES to a high half, because
+  inside a pair it is character data, so the first draft let it through; the test caught it. A pair is kept or
+  dropped as one thing. Also dropped: the C1 range, which XML permits and no reader can see.
+- **`BpmnSerializer` sweeps the BUILT document**, not each of the dozen places text goes in — the version a later
+  site cannot forget to call. `XmlText` was the honest name and collided with `System.Xml.XmlText` in exactly the
+  files that needed it, so it is `DocumentText`.
+- **A test trap worth remembering:** xUnit cannot carry a lone surrogate through `InlineData` — it arrives as the
+  replacement character and the assertion then compares two legal strings. Those cases are a `[Fact]`. And a raw
+  control character in a source file is invisible to the next reader, so the test writes `\u0001` as an escape.
+- 16 new tests, 345 in all; confirmed by taking the sweep out, which restores the original exception.
+- **Acceptance on the company network — Do:** reprocess. **Pass:** the run completes and writes every workbook
+  even if a workflow name carries a stray byte; no label shows a replacement character.
+

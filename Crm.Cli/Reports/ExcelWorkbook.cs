@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
+using Crm.Ir.Text;
 
 namespace Crm.Cli.Reports;
 
@@ -203,13 +204,13 @@ public static class ExcelWorkbook
     }
 
     /// <summary>
-    /// What a cell can hold. Excel stops at 32,767 characters and "repairs" a longer one by discarding it, and XML
-    /// cannot carry a control character at all — a string scanned out of a binary may hold one. Both are silent
-    /// losses at the reader's end, so they are cut here, where the writer knows the limit.
+    /// What a cell can hold. Excel stops at 32,767 characters and "repairs" a longer one by discarding it; what no
+    /// XML document may carry is <see cref="DocumentText"/>'s business, and it is the same rule the diagrams needed.
+    /// Both are silent losses at the reader's end, so they are cut here, where the writer knows the limit.
     /// </summary>
     private static string Writable(string text)
     {
-        string clean = new([.. text.Where(letter => letter is '\t' or '\n' or '\r' || !char.IsControl(letter))]);
+        string clean = DocumentText.Writable(text);
         return clean.Length <= CellLimit ? clean : clean[..(CellLimit - Cut.Length)] + Cut;
     }
 
