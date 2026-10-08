@@ -97,13 +97,14 @@ public sealed class AnalystGuideTests
         Assert.True(code == ExitCode.Success, console);
         string text = Words(Xml(Parts(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "nasil-kullanilir.docx"))), "word/document.xml"));
 
-        foreach (string absent in new[] { "aileler", "birlesik", "Birleşik", "Aile", "kapsam-disi", "hassas-degerler", "ara-model", "elle-inceleme" })
+        foreach (string absent in new[] { "aileler", "birlesik", "Birleşik", "Aile", "kapsam-disi", "hassas-degerler",
+            "ara-model", "elle-inceleme", "calistirma-yetkisi", "Çalıştırma yetkisi" })
         {
             Assert.DoesNotContain(absent, text, StringComparison.Ordinal);
         }
         // And it still says what it is for.
         Assert.Contains("tasima-plani.xlsx", text, StringComparison.Ordinal);
-        Assert.Contains("calistirma-yetkisi.xlsx", text, StringComparison.Ordinal);
+        Assert.Contains("dis-sistemler.xlsx", text, StringComparison.Ordinal);
     }
 
     /// <summary>Two runs over the same evidence must give the same bytes, or nobody can tell a re-run from a change.</summary>

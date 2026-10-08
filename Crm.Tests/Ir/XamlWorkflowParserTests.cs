@@ -16,6 +16,35 @@ public sealed class XamlWorkflowParserTests
     }
 
     /// <summary>
+    /// A status change says WHICH status. It is CRM's own SetState message rather than a field write, so the state
+    /// is not a FieldWrite and has to be read off the step — and it arrives two ways. A state built through an
+    /// expression is a variable the index resolves; a state typed into the designer is a literal, nested as
+    /// &lt;mxs:OptionSetValue Value="1" /&gt; under SetState.State, with no variable anywhere. Only the first was
+    /// being read, so the box said "Durum değiştir: phonecall" and never what it changed the status TO.
+    /// </summary>
+    [Fact]
+    public void A_Status_Change_Says_Which_Status()
+    {
+        OptionLabels labels = new();
+        labels.Add("new_policy", "statecode", 1, "Pasif");
+
+        ParseResult result = new XamlWorkflowParser(labels).Parse(Id, Fixture("production-helpers.xaml"));
+
+        StepNode change = result.Steps.Single(step => step.Kind == StepKind.ChangeStatus);
+        Assert.Equal("Pasif (1)", change.Detail);
+    }
+
+    /// <summary>The number alone where metadata has no label for it — never a guess, and never nothing.</summary>
+    [Fact]
+    public void A_Status_With_No_Label_Still_Says_Its_Number()
+    {
+        ParseResult result = new XamlWorkflowParser(OptionLabels.Empty).Parse(Id, Fixture("production-helpers.xaml"));
+
+        StepNode change = result.Steps.Single(step => step.Kind == StepKind.ChangeStatus);
+        Assert.Equal("1", change.Detail);
+    }
+
+    /// <summary>
     /// The reported fault, end to end: the designer stores its own HTML references inside the text, so the XAML
     /// escapes them twice and reading it as XML leaves one layer behind. A step box read "Müşteri&amp;#160Adı".
     /// </summary>

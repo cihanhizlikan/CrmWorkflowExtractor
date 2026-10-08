@@ -77,11 +77,13 @@ made, then gzips the result where `CompressionStream` exists — about tenfold o
 recognises a compressed export by its first two bytes rather than its name, and keeps it verbatim in `ham/`
 under `.json.gz`. Every stage of the write announces itself, because the failure that cost a run printed nothing.
 
-**What is delivered names only what is delivered.** The outsource partner gets `nasil-kullanilir.docx`, the four
-workbooks a migration needs (`tasima-plani`, `veri-analizi`, `dis-sistemler`, `calistirma-yetkisi`) and `bpmn/`.
+**What is delivered names only what is delivered.** The outsource partner gets `nasil-kullanilir.docx`, the three
+workbooks a migration needs (`tasima-plani`, `veri-analizi`, `dis-sistemler`) and `bpmn/`.
+`calistirma-yetkisi.xlsx` is INTERNAL (maintainer, 2026-10-08): it names security roles and counts the people
+holding each, which is the estate's own business and not a migrator's.
 The first delivery is the ORIGINAL diagrams only (maintainer, 2026-10-02): `aileler.xlsx`, `birlesik/` and
 `aileler/` are still produced and still read by Enterprise Architecture, as are the evidence, `rapor.md`, the
-restricted findings and `kapsam-disi.xlsx` — but none of them is handed over, so a consolidation nobody has
+restricted findings, `kapsam-disi.xlsx` and `calistirma-yetkisi.xlsx` — but none is handed over, so a consolidation nobody has
 agreed to cannot be mistaken for the plan. A delivered file that names one of those sends a reader looking for
 what they do not have, so none does — `DeliveryTests` opens every delivered workbook, and `AnalystGuideTests`
 the guide, and both fail on any text that mentions something left behind.
@@ -91,6 +93,22 @@ because of it**, and a page exists only if its rows are things to act on: the ca
 are part of a call, Sapma only the definitions whose running copy really differs, Yakın çiftler only the pairs that
 nearly became a family or carry one structure under two names. The diagrams are emitted AFTER grouping, because
 each one's header note carries what the rest of the run learned about it — role, family, usage, drift.
+
+**A step box says what a step writes AND what it writes there.** A field whose value the definition FIXES is
+shown as `description = …`, an option as `Aramadan İşlem Yapılmıştır (3)` — the label for the reader, the number
+for CRM. A value CRM works out as it runs is not one: that field is named alone, because `= <dynamic>` costs a
+line of the box and tells a reader nothing they could not see, and a field needs ALL its values fixed to be shown
+with them, since half a list is worse than none. `LiteralValue.Dynamic` is the marker, on the MODEL rather than on
+the parser that writes it, because every stage after the parser has to tell the two apart. The documentation and
+the box now render a value through one function, so they cannot drift.
+
+**A status change says which status.** `SetState` is CRM's own message and the only supported way to move a record
+between Active, Inactive and the rest; it sets `statecode` and `statuscode` as a PAIR, so the state never arrives
+as a `FieldWrite` and is read off the step. It arrives two ways and only one was being read: a state built through
+an expression is a variable the index resolves, while a state typed into the designer is a literal nested as
+`<mxs:OptionSetValue Value="1" />` under `SetState.State`, with no variable anywhere — so the box read
+"Durum değiştir: phonecall" and never said what it changed the status TO. Each number is resolved against the
+attribute it belongs to, `SetState.State` against `statecode` and `SetState.Status` against `statuscode`.
 
 **Blocks are aligned on their SPINE, and the layout reserves the room every label will take.** A block's spine is
 the height its flow comes in and goes out at; for a split whose branches all end the process, that is the row its

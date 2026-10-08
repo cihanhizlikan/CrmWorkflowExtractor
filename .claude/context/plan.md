@@ -1097,3 +1097,35 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess, reopen `check-campaign-field.bpmn` and
   `create-campaign-response-for-phonecall.bpmn`. **Pass:** on the first, no arrow crosses a shape and no two
   captions touch; on the second, the diamonds still sit on one line and `evet`/`hayır` are where they were.
+### What a step writes, and what it writes there (2026-10-08) — committed, awaiting merge
+- **Maintainer:** show the static values on `Kayıt oluştur`/`Kayıt güncelle` boxes and only the static ones; show
+  the state on `Durum değiştir`; take `calistirma-yetkisi.xlsx` out of what the outsource partner is given.
+- **The values were already parsed.** The box named the fields and the documentation held the values, so the
+  substance of a step — what it sets them TO — was readable only by opening the XML. `Written` now renders a field
+  as `description = …` where the definition fixes the value, and the documentation and the box go through ONE
+  rendering function so they cannot drift. An option keeps its number behind its label: `Aramadan İşlem
+  Yapılmıştır (3)` — the label for the reader, the number for CRM.
+- **A dynamic value is not shown at all.** `= <dynamic>` costs a line of the box to tell a reader nothing they
+  could not already see, so that field is named alone beside the ones that say something. A field needs ALL its
+  values fixed to be shown with them: half a list is worse than none.
+- **`LiteralValue.Dynamic` moved the marker onto the MODEL.** It lived on `ExpressionIndex`, which is internal to
+  `Crm.Ir`, so no stage after the parser could tell a fixed value from a run-time one — which is exactly the
+  question every stage now has to answer. `ExpressionIndex.Dynamic` still exists and refers to it, so there is
+  one string.
+- **`Durum değiştir` never said which status, and the fixture had the answer all along.** `SetState` is CRM's own
+  message, not a field write, and sets `statecode` and `statuscode` as a pair — so the state is not a `FieldWrite`
+  and has to be read off the step. It arrives TWO ways and only one was being read: a state built through an
+  expression is a variable the index resolves, while a state typed into the designer is a literal nested as
+  `<mxs:OptionSetValue Value="1" />` under `SetState.State`, with no variable anywhere. `production-helpers.xaml`
+  has carried that shape since the fixtures were recorded; nothing was looking at it. Each number is resolved
+  against the attribute it belongs to, and falls back to the bare number rather than to nothing.
+- **`calistirma-yetkisi.xlsx` is internal.** It names security roles and counts the people holding each: the
+  estate's own business, not a migrator's. It is still produced. The guide lost its section 2.5 and its row in the
+  opening table, the walkthrough step that sent a reader to it now answers the trigger question from the plan and
+  the diagram, `DeliveryTests` moved it to the not-delivered list, and `AnalystGuideTests` now requires its
+  ABSENCE where it used to require its presence — the assertion was flipped, not deleted.
+- 5 new tests, 388 in all. Each fix confirmed by taking it out: the boxes lose their values, the status change
+  loses its state, and the guide fails the delivery guard on a re-added row.
+- **Acceptance on the company network — Do:** reprocess, open `close-cti-calls-systemclosed.bpmn`. **Pass:** the
+  update box reads `description = …`, `ps_activityresultcode = 99`, `ps_activitysubresultid = … (…)`; the next box
+  says which status it changes to; and nothing in `nasil-kullanilir.docx` mentions `calistirma-yetkisi.xlsx`.

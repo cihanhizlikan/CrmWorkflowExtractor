@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Crm.Ir.Text;
+using Crm.Ir.Model;
 
 namespace Crm.Ir.Parsing;
 
@@ -33,7 +34,7 @@ internal sealed record LogicalCombination(string Operator, string Left, string R
 /// </summary>
 internal sealed partial class ExpressionIndex
 {
-    public const string Dynamic = "<dynamic>";
+    public const string Dynamic = LiteralValue.Dynamic;
 
     public Dictionary<string, AttributeRead> Reads { get; } = new(StringComparer.Ordinal);
 

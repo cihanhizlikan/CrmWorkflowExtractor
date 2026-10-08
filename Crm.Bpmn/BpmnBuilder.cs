@@ -349,8 +349,7 @@ public sealed partial class BpmnBuilder
         }
         foreach (FieldWrite field in step.Fields)
         {
-            text.Append(" Yazar: ").Append(field.Field).Append(" = ")
-                .Append(string.Join(" | ", field.Values.Select(value => value.Resolved is null ? value.Raw : $"{value.Resolved} ({value.Raw})"))).Append('.');
+            text.Append(" Yazar: ").Append(field.Field).Append(" = ").Append(Values(field)).Append('.');
         }
         if (step.Detail is not null)
         {
@@ -444,6 +443,32 @@ public sealed partial class BpmnBuilder
         return "";
     }
 
+    /// <summary>The value(s) a field is given, as a reader should see them: the option's label with its number behind it.</summary>
+    private static string Values(FieldWrite field)
+    {
+        return string.Join(" | ", field.Values.Select(value => value.Resolved is null ? value.Raw : $"{value.Resolved} ({value.Raw})"));
+    }
+
+    /// <summary>
+    /// A field on the box, and the value it is given where the DEFINITION FIXES IT.
+    ///
+    /// <para>
+    /// A value CRM works out at run time is not one, and the field is then named on its own: "= &lt;dynamic&gt;"
+    /// costs a line of the box and tells a reader nothing they could not see. Which fields a step writes was all
+    /// the box used to say, and for the static ones that left the substance of the step — what it actually sets
+    /// them TO — readable only in the documentation (maintainer, 2026-10-08). A field with several values must
+    /// have all of them fixed to be shown: half a list is worse than none.
+    /// </para>
+    /// </summary>
+    private static string Written(FieldWrite field)
+    {
+        if (field.Values.Count == 0 || field.Values.Any(value => value.Raw == LiteralValue.Dynamic))
+        {
+            return field.Field;
+        }
+        return field.Field + " = " + Values(field);
+    }
+
     /// <summary>
     /// What the step is about, for the label. The designer's own step name is used when the author wrote one; when
     /// they did not, CRM leaves only its internal id (<c>AssignStep3</c>), which tells a reader nothing, so the step
@@ -462,7 +487,7 @@ public sealed partial class BpmnBuilder
         }
         if (step.Fields.Count > 0)
         {
-            parts.Add(string.Join(", ", step.Fields.Select(field => field.Field)));
+            parts.Add(string.Join(", ", step.Fields.Select(Written)));
         }
         if (parts.Count == 0 && step.Kind is StepKind.UserInteraction)
         {

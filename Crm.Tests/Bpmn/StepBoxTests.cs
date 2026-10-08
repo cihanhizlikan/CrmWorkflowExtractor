@@ -42,6 +42,63 @@ public sealed class StepBoxTests
         Assert.DoesNotContain("…", step.Name, StringComparison.Ordinal);
     }
 
+    private static FlowNode Writes(params FieldWrite[] fields)
+    {
+        StepNode update = new("0", StepKind.UpdateRecord, "UpdateStep1", "phonecall", fields, [], null, [], null, [new StepSource(Id, "0")]);
+        WorkflowIdentity identity = new(Id, "CLOSE_CTI_CALLS", null, "İş Akışı", "Tanım", "phonecall",
+            "Arka plan", "Kuruluş", "Etkin", false, true, null, null, null, 1, true);
+        BpmnProcess process = BpmnBuilder.Build(new WorkflowIr(identity,
+            new WorkflowTrigger(false, false, [], null, null, null, "Çağıran Kullanıcı", true), [update],
+            new WorkflowDependencies([], []), new DataTouched([], [], [], []), [], new IrProvenance("x", "y", "z", "1")));
+        return process.Graph.Nodes.Single(node => node.Type == FlowNodeType.ServiceTask);
+    }
+
+    /// <summary>
+    /// The value a field is SET TO, where the definition fixes it. Naming the fields alone left the substance of
+    /// the step — what it actually does to them — readable only in the documentation (maintainer, 2026-10-08).
+    /// </summary>
+    [Fact]
+    public void A_Value_The_Definition_Fixes_Is_On_The_Box()
+    {
+        FlowNode step = Writes(
+            new FieldWrite("description", [new LiteralValue("VD-92418 numaralı talebe istinaden kapatılmıştır.", null)]),
+            new FieldWrite("ps_activityresultcode", [new LiteralValue("99", null)]),
+            new FieldWrite("ps_activitysubresultid", [new LiteralValue("3", "Aramadan İşlem Yapılmıştır")]));
+
+        Assert.Contains("description = VD-92418 numaralı talebe istinaden kapatılmıştır.", step.Name, StringComparison.Ordinal);
+        Assert.Contains("ps_activityresultcode = 99", step.Name, StringComparison.Ordinal);
+        // An option keeps its number behind its label: the label is for the reader, the number is what CRM holds.
+        Assert.Contains("ps_activitysubresultid = Aramadan İşlem Yapılmıştır (3)", step.Name, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A value CRM works out as it runs is not one the definition fixes, and "= &lt;dynamic&gt;" costs a line of
+    /// the box to tell a reader nothing. Those fields are named alone, beside the ones that do say something.
+    /// </summary>
+    [Fact]
+    public void A_Value_Only_Known_At_Run_Time_Is_Left_Off()
+    {
+        FlowNode step = Writes(
+            new FieldWrite("customer", [new LiteralValue(LiteralValue.Dynamic, null)]),
+            new FieldWrite("prioritycode", [new LiteralValue("1", "Normal")]),
+            new FieldWrite("regardingobjectid", []));
+
+        Assert.DoesNotContain(LiteralValue.Dynamic, step.Name, StringComparison.Ordinal);
+        Assert.Contains("customer,", step.Name, StringComparison.Ordinal);
+        Assert.Contains("prioritycode = Normal (1)", step.Name, StringComparison.Ordinal);
+        Assert.EndsWith("regardingobjectid", step.Name, StringComparison.Ordinal);
+    }
+
+    /// <summary>Half a list is worse than none: a field is shown with its values only when ALL of them are fixed.</summary>
+    [Fact]
+    public void A_Field_With_One_Value_Left_To_Run_Time_Is_Named_Alone()
+    {
+        FlowNode step = Writes(new FieldWrite("statuscode", [new LiteralValue("1", "Açık"), new LiteralValue(LiteralValue.Dynamic, null)]));
+
+        Assert.EndsWith("statuscode", step.Name, StringComparison.Ordinal);
+        Assert.DoesNotContain("Açık", step.Name, StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// Growing the text without growing the box would only move the problem: the viewer draws it over whatever is
     /// below. The box has to be able to hold its own text at the width it was given.

@@ -32,6 +32,14 @@ public sealed record StepSource(Guid WorkflowId, string Path);
 /// <summary>A literal as written in the XAML (proves fidelity) and, where metadata allows, its label (what a human reads).</summary>
 public sealed record LiteralValue(string Raw, string? Resolved)
 {
+    /// <summary>
+    /// What <see cref="Raw"/> reads as when the definition does NOT fix the value and CRM works it out as it
+    /// runs. It lives on the model rather than on the parser that writes it, because every stage after the parser
+    /// has to be able to tell the two apart — a diagram shows a value the definition fixes and names the field
+    /// alone otherwise.
+    /// </summary>
+    public const string Dynamic = "<dynamic>";
+
     /// <summary>In a combined workflow: which member workflows set this value. Absent for a single workflow.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<Guid>? Workflows { get; init; }

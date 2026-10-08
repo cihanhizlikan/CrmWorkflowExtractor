@@ -494,6 +494,24 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
         return null;
     }
 
+    /// <summary>
+    /// Which state a <c>SetState</c> step moves the record to.
+    ///
+    /// <para>
+    /// A status change is not a field write — it is CRM's own <c>SetState</c> message, the only supported way to
+    /// move a record between Active, Inactive, Resolved and the rest, and it sets <c>statecode</c> and
+    /// <c>statuscode</c> together as a pair. So the state does not arrive as a <see cref="FieldWrite"/> and has to
+    /// be read from the step itself.
+    /// </para>
+    ///
+    /// <para>
+    /// It arrives TWO ways, and only one of them was being read. A state the designer built through an expression
+    /// is a variable, which the index resolves. A state typed straight into the designer is a literal, written as
+    /// a nested <c>&lt;mxs:OptionSetValue Value="1" /&gt;</c> under <c>SetState.State</c> — no variable anywhere,
+    /// so the box came out reading "Durum değiştir: phonecall" and never said what it changed the status TO
+    /// (maintainer, 2026-10-08). The number is resolved to its own label where metadata has one.
+    /// </para>
+    /// </summary>
     private static string? StatusDetail(XElement evidence, Context context)
     {
         List<string> values = [.. evidence.DescendantsAndSelf()
@@ -502,7 +520,40 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
             .SelectMany(context.Index.ValuesOf)
             .Where(value => value != ExpressionIndex.Dynamic)
             .Distinct(StringComparer.Ordinal)];
+        values.AddRange(Literals(evidence, context.Labels).Where(value => !values.Contains(value, StringComparer.Ordinal)));
         return values.Count == 0 ? null : string.Join(", ", values);
+    }
+
+    /// <summary>
+    /// The states written as literals on the step, named as a reader would say them. <c>SetState.State</c> carries
+    /// <c>statecode</c> and <c>SetState.Status</c> carries <c>statuscode</c>, so each number is resolved against
+    /// the attribute it actually belongs to.
+    /// </summary>
+    private static IEnumerable<string> Literals(XElement evidence, OptionLabels labels)
+    {
+        string? entity = evidence.Attribute("EntityName")?.Value;
+        foreach (XElement property in evidence.DescendantsAndSelf())
+        {
+            string attribute = property.Name.LocalName switch
+            {
+                "SetState.State" => "statecode",
+                "SetState.Status" => "statuscode",
+                _ => ""
+            };
+            if (attribute.Length == 0)
+            {
+                continue;
+            }
+            foreach (XElement option in property.Descendants().Where(child => child.Name.LocalName == "OptionSetValue"))
+            {
+                if (option.Attribute("Value")?.Value is not string raw)
+                {
+                    continue;
+                }
+                string? label = labels.Resolve(entity, attribute, raw);
+                yield return label is null ? raw : $"{label} ({raw})";
+            }
+        }
     }
 
     private static string? TimeoutDetail(XElement postpone)

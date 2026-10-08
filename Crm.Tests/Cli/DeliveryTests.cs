@@ -5,22 +5,24 @@ using Xunit;
 namespace Crm.Tests.Cli;
 
 /// <summary>
-/// What is handed to the outsource partner is a subset of the run folder: the guide, four workbooks and the
-/// original diagrams. The families, the combined models, the evidence, the report, the restricted findings and
-/// the out-of-scope book stay with Enterprise Architecture. A delivered file that names one of those sends a
-/// reader looking for something they do not have, which is worse than saying nothing — so none does.
+/// What is handed to the outsource partner is a subset of the run folder: the guide, three workbooks and the
+/// original diagrams. The families, the combined models, the evidence, the report, the restricted findings, the
+/// out-of-scope book and the run-authority workbook — which names security roles and how many people hold each —
+/// stay with Enterprise Architecture. A delivered file that names one of those sends a reader looking for
+/// something they do not have, which is worse than saying nothing — so none does.
 /// </summary>
 public sealed class DeliveryTests
 {
     /// <summary>Everything left behind when the package is assembled. A cell may not mention any of it.</summary>
     private static readonly string[] NotDelivered =
     [
-        "hassas-degerler", "kapsam-disi", "ham/", "ara-model", "elle-inceleme", "gunlukler", "aileler", "birlesik", ".json"
+        "hassas-degerler", "kapsam-disi", "ham/", "ara-model", "elle-inceleme", "gunlukler", "aileler", "birlesik",
+        "calistirma-yetkisi", ".json"
     ];
 
     private static readonly string[] Delivered =
     [
-        "tasima-plani.xlsx", "veri-analizi.xlsx", "dis-sistemler.xlsx", "calistirma-yetkisi.xlsx"
+        "tasima-plani.xlsx", "veri-analizi.xlsx", "dis-sistemler.xlsx"
     ];
 
     [Fact]

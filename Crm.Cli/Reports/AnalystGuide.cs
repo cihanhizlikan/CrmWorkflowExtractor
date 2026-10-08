@@ -138,8 +138,7 @@ public static class AnalystGuide
             new DocumentRow(["tasima-plani.xlsx", "Taşınacak işin listesi; her iş akışı için bir satır. Buradan başlarsınız."]),
             new DocumentRow(["bpmn/", "Her iş akışının diyagramı, kategori ve varlık klasörlerine ayrılmış."]),
             new DocumentRow(["veri-analizi.xlsx", "Hangi akış hangi veriye dokunuyor, hangisi hangisini tetikliyor."]),
-            new DocumentRow(["dis-sistemler.xlsx", "CRM dışına uzanan çağrılar: entegrasyon yükü."]),
-            new DocumentRow(["calistirma-yetkisi.xlsx", "Kim elle başlatabilir, süreç kimin yetkisiyle çalışır."])
+            new DocumentRow(["dis-sistemler.xlsx", "CRM dışına uzanan çağrılar: entegrasyon yükü."])
         ], [2800, 6800]));
 
         parts.Add(new Paragraph("Heading2", "2.1  tasima-plani.xlsx — sizin iş listeniz"));
@@ -180,15 +179,6 @@ public static class AnalystGuide
         parts.Add(new Paragraph("NormalBullet", "iş akışı OLMAYAN, bir mesaj üzerinde çalışan kod. Taşıma planında hiç "
             + "görünmezler ama yeni üründe karşılıkları kurulmalıdır.", "Eklentiler — "));
 
-        parts.Add(new Paragraph("Heading2", "2.5  calistirma-yetkisi.xlsx — kim başlatır, kimin yetkisiyle çalışır"));
-        parts.Add(new Paragraph("Normal", "CRM'de \"şu rol şu akışı çalıştırabilir\" diye bir kayıt yoktur: elle "
-            + "başlatma tek bir yetkiye bağlıdır ve bütün süreçler için aynı anda verilir. Bu yüzden cevap iki "
-            + "sayfaya bölünmüştür."));
-        parts.Add(new Paragraph("NormalBullet", "yetkiyi taşıyan güvenlik rolleri, her birini kaç kişinin taşıdığı ve "
-            + "hangi ekiplerin bağlı olduğu. Kişi adları bu pakette yoktur.", "Çalıştırma yetkisi — "));
-        parts.Add(new Paragraph("NormalBullet", "akış başına: elle başlatılabiliyor mu, ve calisma_kimligi — adımların "
-            + "KİMİN yetkileriyle çalıştığı. \"Sahip\" ise her zaman o hesabın gözüyle; \"Çağıran Kullanıcı\" ise "
-            + "başlatanın gözüyle, ve yetkisi yetmeyen birinde adım başarısız olur.", "Kim çalıştırabilir — "));
     }
 
     private static void Walkthrough(List<DocumentPart> parts, RunState state, UsageEvidence? usage, WorkflowIr? example)
@@ -221,9 +211,9 @@ public static class AnalystGuide
                 + "başına taşınmaz. Çağrı ağacı ve Süreç ağaçları sayfalarına bakın."),
             ("Diyagramı açın", "bpmn_dosyasi sütunundaki dosyayı açın, üstteki not kutusunu okuyun, sonra akışı soldan "
                 + "sağa izleyin."),
-            ("Tetikleyiciyi ve çalışma kimliğini karara bağlayın", "Akışı ne başlatıyor ve yeni üründe aynı olayın "
-                + "karşılığı var mı? Aynı satırı calistirma-yetkisi.xlsx → Kim çalıştırabilir sayfasında da bulun. "
-                + "Bunlar tasarımın ilk kararlarıdır; cevaplarını yazmadan devam etmeyin."),
+            ("Tetikleyiciyi karara bağlayın", "Akışı ne başlatıyor ve yeni üründe aynı olayın karşılığı var mı? "
+                + "Taşıma planındaki tetikleyici ve mod sütunları ile diyagramın başlangıç olayı bunu söyler. "
+                + "Bu tasarımın ilk kararıdır; cevabını yazmadan devam etmeyin."),
             ("Beklemeleri işaretleyin", "Diyagramdaki bekleme adımları süreci açık tutar. Her biri için \"ne kadar\" ve "
                 + "\"neyi bekliyor\" sorularını cevaplayın."),
             ("Veri bağlarını çıkarın", "yazdigi_varliklar sütunundaki varlıkları veri-analizi.xlsx → Veri ayak izi "
