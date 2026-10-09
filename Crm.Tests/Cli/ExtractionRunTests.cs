@@ -12,10 +12,10 @@ public sealed class ExtractionRunTests
     [Fact]
     public async Task A_Healthy_Organization_Produces_A_Sealed_Completed_Run()
     {
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 45 }.Build();
+        FakeOrganization organization = new() { WorkflowCount = 45 };
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.Equal(ExitCode.Success, code);
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
@@ -31,10 +31,10 @@ public sealed class ExtractionRunTests
     [Fact]
     public async Task Every_Artifact_Hash_In_The_Manifest_Matches_The_File_On_Disk()
     {
-        FakeCrmServer server = new FakeOrganization().Build();
+        FakeOrganization organization = new();
         using TemporaryOutput output = new();
 
-        (_, string runRoot, _) = await RunHarness.RunAsync(server, output);
+        (_, string runRoot, _) = await RunHarness.RunAsync(organization, output);
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
         List<JsonElement> artifacts = [.. manifest.RootElement.GetProperty("artifacts").EnumerateArray()];
@@ -55,10 +55,10 @@ public sealed class ExtractionRunTests
     [Fact]
     public async Task User_Level_Read_Fails_The_Run_But_Keeps_The_Inventory_As_Evidence()
     {
-        FakeCrmServer server = new FakeOrganization { PrivilegeDepth = "Basic" }.Build();
+        FakeOrganization organization = new() { PrivilegeDepth = "Basic" };
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.Equal(ExitCode.RunFailed, code);
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
@@ -70,78 +70,39 @@ public sealed class ExtractionRunTests
     [Fact]
     public async Task A_Count_Mismatch_Fails_The_Run()
     {
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 45, ReportedCount = 312 }.Build();
+        FakeOrganization organization = new() { WorkflowCount = 45, ReportedCount = 312 };
         using TemporaryOutput output = new();
 
-        (ExitCode code, _, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, _, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.Equal(ExitCode.RunFailed, code);
         Assert.Contains("$count 312 iş akışı bildirdi, 45 kayıt alındı", console, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_Count_Of_Minus_One_Falls_Back_To_The_FetchXml_Aggregate()
-    {
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 45, ReportedCount = -1, AggregateCount = 45 }.Build();
-        using TemporaryOutput output = new();
-
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
-
-        Assert.True(code == ExitCode.Success, console);
-        Assert.Contains(server.Requests, request => Uri.UnescapeDataString(request.Uri.PathAndQuery).Contains("workflows?fetchXml=<fetch aggregate=\"true\">", StringComparison.Ordinal));
-        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
-        Assert.Equal(45, manifest.RootElement.GetProperty("counts").GetProperty("apiCount").GetInt32());
-        // The aggregate's {"n":45} row must not be mistaken for a workflow record.
-        Assert.Equal(45, File.ReadAllLines(Path.Combine(runRoot, "ham", "is-akislari.jsonl")).Length);
-    }
-
-    [Fact]
-    public async Task A_Count_Of_Minus_One_Without_An_Aggregate_Warns_Instead_Of_Failing()
-    {
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 45, ReportedCount = -1 }.Build();
-        using TemporaryOutput output = new();
-
-        (ExitCode code, _, string console) = await RunHarness.RunAsync(server, output);
-
-        Assert.True(code == ExitCode.Success, console);
-        Assert.Contains("Sunucu bağımsız bir sayım vermedi (-1 yanıtladı)", console, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task An_Aggregate_Count_That_Differs_Still_Fails_The_Run()
-    {
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 45, ReportedCount = -1, AggregateCount = 50 }.Build();
-        using TemporaryOutput output = new();
-
-        (ExitCode code, _, string console) = await RunHarness.RunAsync(server, output);
-
-        Assert.Equal(ExitCode.RunFailed, code);
-        Assert.Contains("$count 50 iş akışı bildirdi, 45 kayıt alındı", console, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task A_Single_Owner_Is_Printed_Prominently()
     {
-        FakeCrmServer server = new FakeOrganization { DistinctOwners = 1 }.Build();
+        FakeOrganization organization = new() { DistinctOwners = 1 };
         using TemporaryOutput output = new();
 
-        (_, _, string console) = await RunHarness.RunAsync(server, output);
+        (_, _, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.Contains("YALNIZCA TEK BİR SAHİP", console, StringComparison.Ordinal);
         Assert.Contains("Farklı sahip:           1", console, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_Column_Missing_On_The_Server_Is_Left_Out_Of_The_Query_And_Warned()
+    public async Task A_Column_Missing_On_The_Server_Is_Recorded_And_Warned()
     {
-        FakeCrmServer server = new FakeOrganization { MissingAttributes = ["businessprocesstype"] }.Build();
+        FakeOrganization organization = new() { MissingAttributes = ["businessprocesstype"] };
         using TemporaryOutput output = new();
 
-        (ExitCode code, _, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.Equal(ExitCode.Success, code);
         Assert.Contains("'businessprocesstype' sütunu", console, StringComparison.Ordinal);
-        Assert.DoesNotContain(server.Requests, request => Uri.UnescapeDataString(request.Uri.Query).Contains("businessprocesstype", StringComparison.Ordinal));
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
+        Assert.Contains("businessprocesstype", manifest.RootElement.GetProperty("columnsMissingFromServer").EnumerateArray().Select(column => column.GetString()));
     }
 
     [Fact]

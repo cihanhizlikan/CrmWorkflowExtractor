@@ -95,7 +95,7 @@ public static class Reprocessing
         state.StagesRun.Add(RunStages.Reprocess(runId));
         state.StagesRun.Add(RunStages.Xaml);
 
-        await RetrievalStages.RouteAndDriftAsync(folder, state, XamlEntry.ReadIndex(folder.Root), token);
+        await XamlRouting.RouteAndDriftAsync(folder, state, XamlEntry.ReadIndex(folder.Root), token);
         logger.LogInformation("Reprocessing run {Source}: {Records} inventory records, no network access", runId, records.Count);
         return records;
     }

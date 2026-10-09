@@ -2,7 +2,6 @@ using System.Text.Json;
 using System.Xml.Linq;
 using Crm.Bpmn;
 using Crm.Bpmn.Stages;
-using Crm.Extract.Metadata;
 using Crm.Extract.Runs;
 using Crm.Ir.Model;
 using Crm.Ir.Stages;
@@ -24,7 +23,7 @@ public static class StageMapStage
 {
     public static async Task RunAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, ILogger logger, CancellationToken token)
     {
-        string source = folder.PathOf(CaseStageRetriever.IndexFile);
+        string source = folder.PathOf(RunPaths.RawCaseStages);
         if (!File.Exists(source))
         {
             return;

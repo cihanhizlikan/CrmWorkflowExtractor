@@ -16,10 +16,10 @@ public sealed class EndToEndTests
     {
         string update = XamlWorkflowParserTests.Fixture("condition-update-stop.xaml");
         string custom = XamlWorkflowParserTests.Fixture("child-and-custom.xaml");
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 12, NonDesigner = new HashSet<int> { 10 }, XamlFor = (index, _) => index < 6 ? update : custom }.Build();
+        FakeOrganization organization = new() { WorkflowCount = 12, NonDesigner = new HashSet<int> { 10 }, XamlFor = (index, _) => index < 6 ? update : custom };
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.True(code == ExitCode.Success, console);
         // Two pages and the workbooks: what was moved into a workbook is not written as a file beside it.
@@ -67,13 +67,11 @@ public sealed class EndToEndTests
     {
         string update = XamlWorkflowParserTests.Fixture("condition-update-stop.xaml");
         using TemporaryOutput output = new();
-        (_, string firstRoot, _) = await RunHarness.RunAsync(new FakeOrganization { WorkflowCount = 6, XamlFor = (_, _) => update }.Build(), output);
-        FakeCrmServer silent = new();
+        (_, string firstRoot, _) = await RunHarness.RunAsync(new FakeOrganization { WorkflowCount = 6, XamlFor = (_, _) => update }, output);
 
-        (ExitCode code, string secondRoot, string console) = await RunHarness.RunAsync(silent, output, reprocessRunId: Path.GetFileName(firstRoot));
+        (ExitCode code, string secondRoot, string console) = await RunHarness.RunAsync(new FakeOrganization(), output, reprocessRunId: Path.GetFileName(firstRoot));
 
         Assert.True(code == ExitCode.Success, console);
-        Assert.Empty(silent.Requests);
         Assert.NotEqual(firstRoot, secondRoot);
         Assert.Equal(Directory.GetFiles(Path.Combine(firstRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Select(Path.GetFileName), Directory.GetFiles(Path.Combine(secondRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Select(Path.GetFileName));
         Assert.Equal(File.ReadAllBytes(Path.Combine(firstRoot, "ham", "is-akislari.jsonl")), File.ReadAllBytes(Path.Combine(secondRoot, "ham", "is-akislari.jsonl")));
@@ -87,7 +85,7 @@ public sealed class EndToEndTests
     {
         using TemporaryOutput output = new();
 
-        (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, reprocessRunId: "19990101-000000");
+        (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeOrganization(), output, reprocessRunId: "19990101-000000");
 
         Assert.Equal(ExitCode.RunFailed, code);
         Assert.Contains("mühürlenmiş bir çalıştırma değil", console, StringComparison.Ordinal);

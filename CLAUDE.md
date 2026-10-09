@@ -9,10 +9,11 @@ The requirement is the handout from Enterprise Architecture (2026-09-14); its de
 in @.claude/context/plan.md. Section numbers like "§2.4" in code comments refer to that handout.
 
 ## Critical rules
-- **Read-only against PRODUCTION, structurally.** Only `CrmHttpClient` touches the network, and only with GET.
-  `BannedSymbols.txt` bans every other way to build a client or send a request (RS0030 is an error). Never
-  suppress RS0030 anywhere except the one guarded call site in `CrmHttpClient`.
-- **No CRM SDK, no `Microsoft.Xrm.*`, no `System.Activities`.** Plain `HttpClient` + OData; XAML parsed as XML.
+- **Read-only against PRODUCTION, structurally: the tool has NO network code** (since 2026-10-09). Data enters a run
+  only as a file saved by the browser scripts in `tools/`, which run in the user's own signed-in session and send
+  GET only. `BannedSymbols.txt` bans every way to build a client, open a socket or send a request, with no exception
+  anywhere (RS0030 is an error). Never suppress RS0030.
+- **No CRM SDK, no `Microsoft.Xrm.*`, no `System.Activities`.** The export is plain OData JSON; XAML parsed as XML.
 - **The tool does NOT group or combine workflows** (maintainer, 2026-10-09 — reverses 2026-09-14). Grouping by
   resemblance answered a question the analysts were not asking: how workflows are used together is DATA, held in
   the case stages (`ps_step`) that fire them, and the stage maps draw it. Similarity and consolidation were removed.
@@ -21,9 +22,9 @@ in @.claude/context/plan.md. Section numbers like "§2.4" in code comments refer
   the CRM server**: anything that needs it is stated as unverified, never reported as working.
 - **Never work directly on `main`.** A work package runs through `/wp-start` → work → `/wp-verify` → `/wp-finish`,
   in a worktree, and stops for the maintainer to merge. See @.claude/context/working-agreement.md.
-- **Secrets never enter `appsettings.json`** — `__CRM_PASSWORD__` placeholder only. Real values live in the gitignored
-  `appsettings.Development.json` or the Windows Credential Manager. `out/` is gitignored: extracted production XAML
-  may hold credentials.
+- **There are no secrets to configure.** With no network path there are no credentials and no connection settings;
+  `appsettings.json` names files (`Run:ImportFile`, `Run:UsageFile`, …) and nothing else. `out/` and the exports
+  are still gitignored and never pasted anywhere: extracted production XAML may hold credentials.
 - **Zero command-line arguments.** The target host has a locked-down command prompt; configuration is
   `appsettings.json` bound through the Options pattern, with a constants block in `Program.cs` as fallback.
 - **Turkish text:** fold for comparison keys (`TurkishFold`), always keep and display the original string.

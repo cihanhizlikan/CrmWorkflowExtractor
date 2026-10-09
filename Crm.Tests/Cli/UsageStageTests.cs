@@ -23,8 +23,8 @@ public sealed class UsageStageTests
     {
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output,
-            importFile: Fixture("mock-crm-export.json"), usageFile: Fixture("mock-usage-export.json"));
+        (ExitCode code, string runRoot, string console) = await RunHarness.ImportAsync(output,
+            Fixture("mock-crm-export.json"), usageFile: Fixture("mock-usage-export.json"));
 
         Assert.True(code == ExitCode.Success, console);
         Assert.Equal(File.ReadAllBytes(Fixture("mock-usage-export.json")), File.ReadAllBytes(Path.Combine(runRoot, "ham", "kullanim-disa-aktarim.json")));
@@ -60,10 +60,10 @@ public sealed class UsageStageTests
     public async Task A_Reprocessed_Run_Inherits_The_Usage_Evidence_Of_Its_Source_Run()
     {
         using TemporaryOutput output = new();
-        (_, string first, _) = await RunHarness.RunAsync(new FakeCrmServer(), output,
-            importFile: Fixture("mock-crm-export.json"), usageFile: Fixture("mock-usage-export.json"));
+        (_, string first, _) = await RunHarness.ImportAsync(output,
+            Fixture("mock-crm-export.json"), usageFile: Fixture("mock-usage-export.json"));
 
-        (ExitCode code, string second, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, reprocessRunId: Path.GetFileName(first));
+        (ExitCode code, string second, string console) = await RunHarness.RunAsync(new FakeOrganization(), output, reprocessRunId: Path.GetFileName(first));
 
         Assert.True(code == ExitCode.Success, console);
         Workbook plan = Workbook.Open(Path.Combine(second, "raporlar", "tasima-plani.xlsx"));
@@ -104,8 +104,8 @@ public sealed class UsageStageTests
     {
         using TemporaryOutput output = new();
 
-        (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output,
-            importFile: Fixture("mock-crm-export.json"), usageFile: Path.Combine(output.Root, "nowhere.json"));
+        (ExitCode code, _, string console) = await RunHarness.ImportAsync(output,
+            Fixture("mock-crm-export.json"), usageFile: Path.Combine(output.Root, "nowhere.json"));
 
         Assert.Equal(ExitCode.RunFailed, code);
         Assert.Contains("Run:UsageFile", console, StringComparison.Ordinal);

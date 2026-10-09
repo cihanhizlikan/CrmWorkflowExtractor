@@ -135,6 +135,10 @@ mapped: no credible XAML sample exists to write them against; they surface as un
 3. CRM 8.2 out of extended support, running partner code that may hold credentials — EA/security risk.
 4. `BpmnFileNames.Slug`'s empty-name fallback is the English word `workflow`, in a tool whose output is Turkish
    down to the folder names. Reached only by a workflow whose name folds to nothing at all.
+5. The run-authority reduction — above all "a role that can only READ processes is never listed as able to RUN them" —
+   lives only in `tools/crm-browser-export.js` and has no committed test. The C# copy that was tested ran only on the
+   network path and went with it (2026-10-09). A node-run test of the script would close it; there is no JS test
+   harness in the repository yet.
 
 ---
 
@@ -1217,3 +1221,31 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess. **Pass:** `raporlar/` has no `aileler.xlsx`, the run folder
   has no `aileler/` or `birlesik/`, and in `Taşıma planı` every value sits under its own header — `kullanim` reads
   like "çalışıyor · <tarih>", `bpmn_dosyasi` ends in `.bpmn`, `is_akisi_id` is a GUID.
+### No network code at all; the usage file in appsettings.json (2026-10-09) — committed, awaiting merge
+- **Maintainer:** the API integration can go — extraction is browser-based. And `Run:UsageFile` belongs in
+  `appsettings.json`. Asked also whether the usage export must be re-run: NO — usage still drives the plan's
+  `kullanim` columns, the never-run-test exclusion and the diagrams' `Kullanım:` line, but its script has not changed,
+  so the existing file serves as long as it comes from the same organization as the new export (matched by id).
+- **Removed:** `CrmHttpClient` and all of `Crm.Extract/Http` (credentials, retries, paging, preferences, deployment
+  detection), the inventory and XAML retrievers, every retriever's network half, `RetrievalStages`, the cross-run
+  XAML cache (`PriorRuns`), the metadata cache in `out/cache/`, `raw/http` evidence, the `Crm` configuration section
+  and its validator, and exit codes 3–5 (not reused, so no script reads a new meaning into an old number).
+- **Kept, under honest names:** what reads the export. `PluginRegistryReader`, `RunAuthorityReader`,
+  `OptionSetReader`, `ProcessStageIndex`; `PrivilegeCheck.Evaluate`, `WorkflowColumns.Split`, reconciliation, drift.
+  Manual-review routing and drift moved to `XamlRouting`, which import and reprocess share. A class named
+  `…Retriever` that retrieves nothing would mislead the next reader, so none is left.
+- **The read-only guarantee is now absolute.** `BannedSymbols.txt` had one exception — the guarded GET site — and
+  that site is gone; it now bans every client, handler, socket and send with no exception. Confirmed by adding an
+  `HttpClient` and a `TcpClient` to `Program.Main`: both stop the build with RS0030.
+- **The test organization changed shape, not meaning.** `FakeOrganization` served its scenarios over a fake HTTP
+  server; it now writes them as a `crm-browser-export/1` file, section for section in the shapes the real script
+  produced, and the end-to-end tests run the import path the tool is actually run with. Per test class the counts
+  match `main` except where tests were deliberately removed: 43 of them, all of network mechanics (credentials,
+  paging, retries, the send guard, deployment detection, the `$count` fallback, the XAML cache, connection
+  settings) and the C# role reduction that only the network path ran. 345 pass.
+- **`Run:UsageFile` is in `appsettings.json`**, beside `ImportFile`, `ReprocessRunId` and `LogoFile` — bound in code
+  and listed in `Program` since 2026-09-23, and absent from the one file anyone edits. A test now requires every
+  file a run reads to have its key there, and no `Crm` section.
+- **Acceptance on the company network — Do:** fill `Run:ImportFile` (and `Run:UsageFile`) in `appsettings.json`, run.
+  **Pass:** the run completes as before; `appsettings.json` has no `Crm` section; with both keys empty the tool says
+  what to fill in and exits 2 without creating a run folder.

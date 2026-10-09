@@ -76,7 +76,7 @@ public sealed class StageMapStageTests
         Directory.CreateDirectory(output.Root);
         string file = Path.Combine(output.Root, "with-stages.json");
         File.WriteAllText(file, export.ToJsonString());
-        return await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: file);
+        return await RunHarness.ImportAsync(output, file);
     }
 
     [Fact]

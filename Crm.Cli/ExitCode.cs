@@ -5,18 +5,13 @@ public enum ExitCode
 {
     Success = 0,
 
-    /// <summary>A reconciliation, privilege or request failure. The run folder is sealed with status <c>failed</c>.</summary>
+    /// <summary>A reconciliation, privilege or file failure. The run folder is sealed with status <c>failed</c>.</summary>
     RunFailed = 1,
 
-    /// <summary>Configuration is invalid; nothing touched the network and no run folder was created.</summary>
-    ConfigurationInvalid = 2,
-
-    /// <summary>§2.2: the server looks internet-facing (IFD). Stopped and reported.</summary>
-    InternetFacingDeployment = 3,
-
-    /// <summary>The server could not be reached after bounded retries.</summary>
-    ServerUnreachable = 4,
-
-    /// <summary>The server offers Windows authentication and rejected the credentials.</summary>
-    AuthenticationRejected = 5
+    /// <summary>
+    /// Configuration is invalid — there is nothing to read — and no run folder was created. 3, 4 and 5 were the
+    /// network path's (internet-facing deployment, server unreachable, credentials rejected) and are not reused, so a
+    /// script that tests a code never reads a new meaning into an old number.
+    /// </summary>
+    ConfigurationInvalid = 2
 }

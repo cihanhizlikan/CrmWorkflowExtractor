@@ -23,13 +23,11 @@ public sealed partial class BrowserExportImportTests
     [Fact]
     public async Task A_Browser_Export_Runs_Every_Stage_Without_Touching_The_Network_And_The_Count_Chain_Balances()
     {
-        FakeCrmServer silent = new();
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(silent, output, importFile: Fixture());
+        (ExitCode code, string runRoot, string console) = await RunHarness.ImportAsync(output, Fixture());
 
         Assert.True(code == ExitCode.Success, console);
-        Assert.Empty(silent.Requests);
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
         JsonElement root = manifest.RootElement;
         Assert.Contains("içe aktarma:mock-crm-export.json", root.GetProperty("stagesRun").EnumerateArray().Select(stage => stage.GetString()));
@@ -64,7 +62,7 @@ public sealed partial class BrowserExportImportTests
         string file = Path.Combine(output.Root, "with-stages.json");
         File.WriteAllText(file, export.ToJsonString());
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: file);
+        (ExitCode code, string runRoot, string console) = await RunHarness.ImportAsync(output, file);
 
         Assert.True(code == ExitCode.Success, console);
         JsonNode stages = JsonNode.Parse(File.ReadAllText(Path.Combine(runRoot, "ham", "surec-asamalari-ham.json")))!;
@@ -88,7 +86,7 @@ public sealed partial class BrowserExportImportTests
     {
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: Fixture());
+        (ExitCode code, string runRoot, string console) = await RunHarness.ImportAsync(output, Fixture());
 
         Assert.True(code == ExitCode.Success, console);
         Assert.Equal("[]", File.ReadAllText(Path.Combine(runRoot, "ham", "surec-tetikleyicileri.json")).Trim());
@@ -107,7 +105,7 @@ public sealed partial class BrowserExportImportTests
         string tampered = Path.Combine(output.Root, "tampered.json");
         File.WriteAllText(tampered, export.ToJsonString());
 
-        (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: tampered);
+        (ExitCode code, _, string console) = await RunHarness.ImportAsync(output, tampered);
 
         Assert.Equal(ExitCode.RunFailed, code);
         Assert.Contains("$count 312 iş akışı bildirdi, 51 kayıt alındı", console, StringComparison.Ordinal);
@@ -125,7 +123,7 @@ public sealed partial class BrowserExportImportTests
         string uncounted = Path.Combine(output.Root, "uncounted.json");
         File.WriteAllText(uncounted, export.ToJsonString());
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: uncounted);
+        (ExitCode code, string runRoot, string console) = await RunHarness.ImportAsync(output, uncounted);
 
         Assert.True(code == ExitCode.Success, console);
         Assert.Contains("Sunucu bağımsız bir sayım vermedi (-1 yanıtladı)", console, StringComparison.Ordinal);
@@ -143,7 +141,7 @@ public sealed partial class BrowserExportImportTests
         string other = Path.Combine(output.Root, "workflows.json");
         File.WriteAllText(other, "{\"value\":[]}");
 
-        (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: other);
+        (ExitCode code, _, string console) = await RunHarness.ImportAsync(output, other);
 
         Assert.Equal(ExitCode.RunFailed, code);
         Assert.Contains("bir crm-browser-export/1 dosyası değil", console, StringComparison.Ordinal);
@@ -154,7 +152,7 @@ public sealed partial class BrowserExportImportTests
     {
         using TemporaryOutput output = new();
 
-        (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: Path.Combine(output.Root, "nope.json"));
+        (ExitCode code, _, string console) = await RunHarness.ImportAsync(output, Path.Combine(output.Root, "nope.json"));
 
         Assert.Equal(ExitCode.RunFailed, code);
         Assert.Contains("bulunamadı", console, StringComparison.Ordinal);

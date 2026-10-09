@@ -38,8 +38,8 @@ public sealed class CompressedExportTests
         using TemporaryOutput plainOutput = new();
         using TemporaryOutput zippedOutput = new();
 
-        (ExitCode plainCode, string plainRoot, string plainConsole) = await RunHarness.RunAsync(new FakeCrmServer(), plainOutput, importFile: Fixture());
-        (ExitCode zippedCode, string zippedRoot, string zippedConsole) = await RunHarness.RunAsync(new FakeCrmServer(), zippedOutput, importFile: Gzip("mock-crm-export.json.gz"));
+        (ExitCode plainCode, string plainRoot, string plainConsole) = await RunHarness.ImportAsync(plainOutput, Fixture());
+        (ExitCode zippedCode, string zippedRoot, string zippedConsole) = await RunHarness.ImportAsync(zippedOutput, Gzip("mock-crm-export.json.gz"));
 
         Assert.True(plainCode == ExitCode.Success, plainConsole);
         Assert.True(zippedCode == ExitCode.Success, zippedConsole);
@@ -56,7 +56,7 @@ public sealed class CompressedExportTests
         using TemporaryOutput output = new();
         string zipped = Gzip("mock-crm-export.json.gz");
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: zipped);
+        (ExitCode code, string runRoot, string console) = await RunHarness.ImportAsync(output, zipped);
 
         Assert.True(code == ExitCode.Success, console);
         string evidence = Path.Combine(runRoot, RunPaths.RawBrowserExport + ".gz");
@@ -72,7 +72,7 @@ public sealed class CompressedExportTests
     {
         using TemporaryOutput output = new();
 
-        (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: Gzip("misnamed-export.json"));
+        (ExitCode code, _, string console) = await RunHarness.ImportAsync(output, Gzip("misnamed-export.json"));
 
         Assert.True(code == ExitCode.Success, console);
     }

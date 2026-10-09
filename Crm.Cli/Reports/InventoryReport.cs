@@ -15,7 +15,7 @@ public static class InventoryReport
         Line(text, "Araç sürümü", state.ToolVersion);
         Line(text, "Kuruluş", state.OrganizationUrl ?? "(erişilmedi)");
         Line(text, "Kimlik", state.Identity is null
-            ? "(bilinmiyor — WhoAmI tamamlanmadı)"
+            ? "(bilinmiyor — dışa aktarım kimlik taşımıyor)"
             : $"{state.Identity.DomainName ?? "?"} ({state.Identity.FullName ?? "?"}) {state.Identity.UserId:D}");
 
         if (state.Privileges.Count > 0)

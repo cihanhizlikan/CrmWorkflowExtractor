@@ -27,10 +27,10 @@ pushes. Naming `main` makes the base local by construction. `EnterWorktree` also
 
 ## What bites once you are in there
 
-- **The gitignored `Crm.Cli/appsettings.Development.json` does not exist in a fresh worktree.** No test depends on
-  it — the suite never reaches a server — so do not copy it in. It holds real credentials.
-- **Never run `Crm.Cli` from a worktree against a real server.** This machine cannot reach CRM anyway; a run that
-  appears to "work" here is talking to something else.
+- **The gitignored `Crm.Cli/appsettings.Development.json` does not exist in a fresh worktree**, and no test needs it.
+  It may name a real export file; do not copy it in.
+- **Never point a worktree run at a real export.** Production XAML may hold credentials, and a worktree is the wrong
+  place for it to land. The tests build their own exports.
 - **Use `awk 'NR==n'` to read a line, never `sed -n 'a,bp'`** — MSYS `sed` has been off by one against `grep -n`.
 
 ## What this skill does NOT do

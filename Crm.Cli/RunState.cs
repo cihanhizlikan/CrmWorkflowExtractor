@@ -1,4 +1,3 @@
-using Crm.Extract.Http;
 using Crm.Extract.Inventory;
 using Crm.Extract.Preflight;
 using Crm.Extract.Runs;
@@ -81,9 +80,6 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     public List<string> Failures { get; } = [];
 
     public List<string> Warnings { get; } = [];
-
-    /// <summary>Every final API response in order, written verbatim to raw/http/ at the end of the run.</summary>
-    public List<CrmResponse> Responses { get; } = [];
 
     public IReadOnlyList<Crm.Cli.Reports.CountLink> CountChain { get; set; } = [];
 

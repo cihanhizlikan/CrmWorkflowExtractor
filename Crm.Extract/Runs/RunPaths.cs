@@ -26,9 +26,13 @@ public static class RunPaths
     public const string RawBrowserExport = Raw + "/tarayici-disa-aktarim.json";
     public const string RawUsageExport = Raw + "/kullanim-disa-aktarim.json";
     public const string RawMetadata = Raw + "/ust-veri";
-    public const string RawHttp = Raw + "/http";
-    public const string RawHttpIndex = RawHttp + "/dizin.jsonl";
     public const string RawXaml = Raw + "/xaml";
+
+    /// <summary>The processtriggers rows as the export kept them: what a business process flow runs on entering or leaving a stage.</summary>
+    public const string RawProcessTriggers = Raw + "/surec-tetikleyicileri.json";
+
+    /// <summary>The ps_step rows as the export kept them: the stage machine a case moves through.</summary>
+    public const string RawCaseStages = Raw + "/talep-asamalari.json";
 
     /// <summary>The processstages rows exactly as CRM gave them; the index beside it is derived from these.</summary>
     public const string RawProcessStages = Raw + "/surec-asamalari-ham.json";

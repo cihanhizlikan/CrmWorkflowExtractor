@@ -2,16 +2,16 @@
 
 Folder, project and root namespace are the same name. Dependencies point one way: `Cli` → everything;
 `Bpmn` → `Ir`; `Ir` → nothing of ours; `Extract` → nothing of ours.
-The stages after retrieval read only the run folder, never the network.
+Nothing in the tool reads the network: a run is made from an export file, or from an earlier run.
 
 | Project | Owns | Network |
 |---|---|---|
-| `Crm.Extract` | `CrmHttpClient` (the only network type), credentials, paging, preflight (WhoAmI, privileges, `$count`), inventory and XAML retrieval, raw persistence, run folder + manifest | **yes — GET only** |
+| `Crm.Extract` | readers of what the export kept (inventory records, privileges, columns, option sets, plug-in registry, run authority, stage rows), reconciliation, drift, run folder + manifest | no |
 | `Crm.Ir` | XAML parsing, IR types, metadata resolution, `TurkishFold`, `HtmlEntities`, `DocumentText`, coverage, sensitive-literal scan, case stages (`CaseStageReader`, `CaseStageRules`) | no |
 | `Crm.Bpmn` | IR → BPMN 2.0, DI layout, embedded OMG XSD validation, stage maps (`StageMap`) | no |
 | `Crm.Cli` | `Program.Main`, configuration binding, stage orchestration, reports, exit codes | via `Crm.Extract` |
 | `Crm.Tests` | xUnit v3 over recorded fixtures (`Crm.Tests/Fixtures/`) — never a live server | no |
-| `tools/` | `crm-browser-export.js` and `crm-usage-export.js` (run on a CRM page in the user's browser, GET only) and the bookmarklet pages generated from them | the user's browser |
+| `tools/` | `crm-browser-export.js` and `crm-usage-export.js` (run on a CRM page in the user's browser, GET only — the ONLY things that read CRM) and the bookmarklet pages generated from them | the user's browser |
 
 ## Run output (`out/`, gitignored)
 
@@ -21,7 +21,6 @@ out/runs/<yyyyMMdd-HHmmss>/   manifest.json (written LAST — its presence seals
   bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn
   bpmn/asama-akislari/<talep konusu>.bpmn   one per active primary stage, workflows embedded
   raporlar/  nasil-kullanilir.docx · rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · kapsam-disi.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx · calistirma-yetkisi.xlsx
-out/cache/metadata/           shared across runs, copied into each run's ham/ust-veri/
 ```
 
 **Every table is a sheet in a workbook, and no table is also a file.** Five workbooks, one per question the reader
@@ -51,18 +50,18 @@ is the names an activity is called with, gathered per activity as its `parametre
 signature, and the only record of which back-end operation a call stands for.
 
 **The endpoint of a service call is not in any workflow record.** A CRM workflow cannot call a service; a custom
-activity can, and its address is written inside that activity's assembly. CRM stores the assembly, so
-`PluginRegistryRetriever` reads the registry (`pluginassemblies`, `plugintypes`, `sdkmessageprocessingsteps`),
-downloads only the assemblies behind a workflow's activities, and `AssemblyStrings` scans their string constants
-for addresses; the bytes are dropped, never written to disk. The browser export does the same scan in the browser
-and sends only the text. What this says is "the code this step runs contains these addresses", never "this step
+activity can, and its address is written inside that activity's assembly. CRM stores the assembly, so the browser
+export reads the registry (`pluginassemblies`, `plugintypes`, `sdkmessageprocessingsteps`), downloads only the
+assemblies behind a workflow's activities, scans their string constants for addresses IN THE BROWSER and sends only
+the text; no DLL ever reaches this machine. `PluginRegistryReader` reads what it sent, and `AssemblyStrings` scans
+plug-in step configuration the same way. What this says is "the code this step runs contains these addresses", never "this step
 calls this address" — and it is said that way on the sheet, in the guide and on the diagram. Plug-in steps come
 with it: code CRM runs on a message, not a process, invisible to the plan and listed on its own page.
 
 **CRM has no per-workflow permission.** There is no record saying "role X may run workflow Y": starting a
 process by hand needs one estate-wide privilege, `prvExecuteWorkflowJob`, plus the right to read the process
-record. `RoleRetriever` reads the roles holding those two and how many hold each — counted, never named, so no
-staff list leaves the building — and `calistirma-yetkisi.xlsx` keeps the two halves apart: the roles on one page,
+record. The browser export reduces the roles holding those two and COUNTS each one's holders — never names, so no
+staff list leaves the building; `RunAuthorityReader` reads its result — and `calistirma-yetkisi.xlsx` keeps the two halves apart: the roles on one page,
 and on the other the facts that really do vary per workflow, its on-demand flag and its run-as identity. A record
 SHARED with one user or team grants access none of this can see: `principalobjectaccess` is not on the Web API,
 and the guide says so. The intersect tables’ entity set names are asked of metadata rather than assumed.
@@ -209,8 +208,17 @@ predicate, where it is a comparison key, and one nobody translated keeps CRM's o
 Names that come from CRM are never translated. A run made before this still reprocesses: its `raw/`
 is read and copied forward as `ham/`.
 
-A sealed run folder is never modified. Unchanged XAML is reused from the newest sealed run; an unsealed (crashed)
-run is not resumed in the prototype — the next run starts fresh.
+A sealed run folder is never modified. An unsealed (crashed) run is not resumed — the next run starts fresh from
+the same export.
+
+**There is no network path** (2026-10-09). The tool once fetched from CRM itself; the organization signs in through
+AD FS and refused its Windows authentication (2026-09-22), and every run since has been made from a browser export.
+The client, credentials, retries, paging, preflight requests, the cross-run XAML cache and the metadata cache are
+gone, and exit codes 3–5 with them (not reused). What stayed is what reads the export: the `…Reader` and
+`…Index` types, `PrivilegeCheck.Evaluate`, `WorkflowColumns.Split`, reconciliation and drift. The test
+organisation (`FakeOrganization`) used to be served over a fake HTTP server; it now writes the same scenarios as a
+`crm-browser-export/1` file, section for section in the shapes the real script produced, and every end-to-end test
+runs the import path the tool is actually run with.
 
 ## Milestones
 M1 inventory + privilege/count reconciliation · M2 XAML retrieval, resumable, hashed · M3 parser + IR + coverage ·

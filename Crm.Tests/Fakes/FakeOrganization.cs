@@ -1,24 +1,37 @@
 using System.Globalization;
-using System.Text;
-using Crm.Extract.Http;
+using System.Text.Json.Nodes;
 using Crm.Extract.Preflight;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Crm.Tests.Fakes;
 
-/// <summary>A synthetic organization: a user, privileges, workflow metadata and N workflows served in pages.</summary>
+/// <summary>
+/// A synthetic organization: a user, privileges, workflow metadata and N workflows — as the browser export would
+/// describe it.
+///
+/// <para>
+/// It used to serve the same organization over a fake HTTP server, because the tool fetched from CRM itself. The
+/// tool no longer has a network path: every run reads a file <c>tools/crm-browser-export.js</c> wrote, so the
+/// organization is now written as that file, section for section — the shapes are the ones the real script produced
+/// in <c>Fixtures/BrowserExport/mock-crm-export.json</c>. The scenario knobs mean what they always meant.
+/// </para>
+/// </summary>
 internal sealed class FakeOrganization
 {
+    public const string BaseUrl = "https://crm.example.local/org/api/data/v8.2/";
+
     public static readonly Guid UserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+    public static Guid AssemblyId { get; } = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001");
+
+    public static Guid PluginTypeId { get; } = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000002");
+
+    /// <summary>The address the assembly carries, and the only place in this organization it is written down.</summary>
+    public const string AssemblyAddress = "https://nova.ornek.local/imza/v2";
 
     public int WorkflowCount { get; set; } = 45;
 
-    /// <summary>What <c>workflows/$count</c> answers; defaults to the true count.</summary>
+    /// <summary>The count the export reports; defaults to the true count.</summary>
     public int? ReportedCount { get; set; }
-
-    /// <summary>What the FetchXML aggregate count answers; null makes the server refuse it with 400.</summary>
-    public int? AggregateCount { get; set; }
 
     public int DistinctOwners { get; set; } = 3;
 
@@ -29,9 +42,6 @@ internal sealed class FakeOrganization
     /// <summary>Raw <c>category</c> value for record 0, to stage an option-set value outside the §3.1 table.</summary>
     public int FirstCategory { get; set; }
 
-    /// <summary>Added to every versionnumber, to simulate workflows edited between two runs.</summary>
-    public int VersionOffset { get; set; }
-
     /// <summary>Record indexes whose <c>iscrmuiworkflow</c> is false (hand-authored XAML).</summary>
     public IReadOnlySet<int> NonDesigner { get; set; } = new HashSet<int>();
 
@@ -41,70 +51,15 @@ internal sealed class FakeOrganization
     /// <summary>Definition indexes whose activation runs different logic from the definition.</summary>
     public IReadOnlySet<int> Drifted { get; set; } = new HashSet<int>();
 
-    /// <summary>Record indexes whose XAML request fails with 404.</summary>
+    /// <summary>Record indexes whose XAML the export failed to read.</summary>
     public IReadOnlySet<int> XamlMissing { get; set; } = new HashSet<int>();
 
-    /// <summary>The XAML served for a record index; the definition index and whether it is the activation copy are passed.</summary>
+    /// <summary>The XAML for a record index; the definition index and whether it is a drifted activation copy are passed.</summary>
     public Func<int, bool, string> XamlFor { get; set; } = DefaultXaml;
 
-    public FakeCrmServer Build()
+    public static Guid WorkflowId(int index)
     {
-        FakeCrmServer server = new();
-        server.OnJson("WhoAmI()", $"{{\"UserId\":\"{UserId:D}\",\"BusinessUnitId\":\"22222222-2222-2222-2222-222222222222\",\"OrganizationId\":\"33333333-3333-3333-3333-333333333333\"}}");
-        server.OnJson($"systemusers({UserId:D})?", "{\"fullname\":\"Servis Hesabı\",\"domainname\":\"CORP\\\\svc-crm-read\"}");
-        server.OnJson("privileges?", PrivilegesBody());
-        server.OnJson($"systemusers({UserId:D})/Microsoft.Dynamics.CRM.RetrieveUserPrivileges()", RolePrivilegesBody(PrivilegeDepth));
-        server.OnJson("EntityDefinitions(LogicalName='workflow')/Attributes", AttributesBody());
-        server.On("workflows/$count", _ => FakeCrmServer.Text((ReportedCount ?? WorkflowCount).ToString(CultureInfo.InvariantCulture)));
-        server.On("workflows?", Page);
-        server.On("workflows?fetchXml=", _ => AggregateCount is int aggregate
-            ? FakeCrmServer.Json("{\"value\":[{\"n\":" + aggregate.ToString(CultureInfo.InvariantCulture) + "}]}")
-            : FakeCrmServer.Json("{\"error\":{\"message\":\"Aggregate query refused\"}}", System.Net.HttpStatusCode.BadRequest));
-        server.On("workflows(", Xaml);
-        server.OnJson("EntityDefinitions(LogicalName='new_policy')/Attributes/Microsoft.Dynamics.CRM.PicklistAttributeMetadata",
-            "{\"value\":[{\"LogicalName\":\"new_status\",\"OptionSet\":{\"Options\":[{\"Value\":100000003,\"Label\":{\"UserLocalizedLabel\":{\"Label\":\"İptal Edildi\"}}},{\"Value\":100000007,\"Label\":{\"UserLocalizedLabel\":{\"Label\":\"Askıda\"}}}]}}]}");
-        server.OnJson("EntityDefinitions(LogicalName='new_policy')/Attributes/Microsoft.Dynamics.CRM.StatusAttributeMetadata", "{\"value\":[]}");
-        server.OnJson("EntityDefinitions(LogicalName='new_policy')/Attributes/Microsoft.Dynamics.CRM.StateAttributeMetadata", "{\"value\":[]}");
-        server.OnJson("processstages?", "{\"value\":[]}");
-        server.OnJson("pluginassemblies?", PluginAssembliesBody());
-        server.OnJson("plugintypes?", PluginTypesBody());
-        server.OnJson("sdkmessageprocessingsteps?", PluginStepsBody());
-        server.OnJson($"pluginassemblies({AssemblyId:D})", AssemblyContentBody());
-        return server;
-    }
-
-    public static Guid AssemblyId { get; } = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001");
-
-    public static Guid PluginTypeId { get; } = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000002");
-
-    /// <summary>The address the assembly carries, and the only place in this organization it is written down.</summary>
-    public const string AssemblyAddress = "https://nova.ornek.local/imza/v2";
-
-    private static string PluginAssembliesBody()
-    {
-        return $"{{\"value\":[{{\"pluginassemblyid\":\"{AssemblyId:D}\",\"name\":\"Partner.Crm.Activities\",\"version\":\"2.1.0.0\",\"sourcetype\":0,\"ismanaged\":false}}]}}";
-    }
-
-    private static string PluginTypesBody()
-    {
-        return $"{{\"value\":[{{\"plugintypeid\":\"{PluginTypeId:D}\",\"typename\":\"Partner.Crm.Activities.NotifyPolicyService\","
-            + $"\"friendlyname\":\"Poliçe servisi\",\"isworkflowactivity\":true,\"workflowactivitygroupname\":\"Partner\","
-            + $"\"_pluginassemblyid_value\":\"{AssemblyId:D}\"}}]}}";
-    }
-
-    private static string PluginStepsBody()
-    {
-        return $"{{\"value\":[{{\"sdkmessageprocessingstepid\":\"aaaaaaaa-0000-0000-0000-000000000003\","
-            + $"\"name\":\"Partner.Crm.Plugins.CaseRouter: Create of incident\",\"configuration\":\"<ayarlar><servis>https://kuyruk.ornek.local/route</servis></ayarlar>\","
-            + $"\"stage\":40,\"mode\":0,\"statecode\":0,\"_plugintypeid_value\":\"{PluginTypeId:D}\"}}]}}";
-    }
-
-    /// <summary>The assembly as CRM stores it: base64. Here it is only the string constants an address hides in.</summary>
-    private static string AssemblyContentBody()
-    {
-        string bytes = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(
-            "PolicyNumber\0" + AssemblyAddress + "\0System.Runtime.Serialization"));
-        return $"{{\"pluginassemblyid\":\"{AssemblyId:D}\",\"content\":\"{bytes}\"}}";
+        return Guid.Parse(string.Create(CultureInfo.InvariantCulture, $"00000000-0000-0000-0000-{index:D12}"));
     }
 
     /// <summary>
@@ -122,123 +77,157 @@ internal sealed class FakeOrganization
             + "</mxswa:Workflow></Activity>";
     }
 
-    private HttpResponseMessage Xaml(Uri uri)
+    /// <summary>The organization as one <c>crm-browser-export/1</c> document.</summary>
+    public JsonObject Export()
     {
-        string path = Uri.UnescapeDataString(uri.AbsolutePath);
-        int open = path.LastIndexOf('(');
-        Guid id = Guid.Parse(path[(open + 1)..path.LastIndexOf(')')]);
-        int index = int.Parse(id.ToString("D")[^12..], CultureInfo.InvariantCulture);
-        if (XamlMissing.Contains(index))
+        JsonArray workflows = [];
+        JsonObject xaml = [];
+        JsonObject xamlErrors = [];
+        for (int index = 0; index < WorkflowCount; index++)
         {
-            return FakeCrmServer.Json("{\"error\":{\"message\":\"Not found\"}}", System.Net.HttpStatusCode.NotFound);
-        }
-        bool activation = index % 2 == 1;
-        int definitionIndex = activation ? index - 1 : index;
-        string xaml = XamlFor(index, activation && Drifted.Contains(definitionIndex));
-        string escaped = System.Text.Json.JsonSerializer.Serialize(xaml);
-        return FakeCrmServer.Json($"{{\"workflowid\":\"{id:D}\",\"xaml\":{escaped}}}");
-    }
-
-    public static CrmConnectionOptions Options()
-    {
-        return new CrmConnectionOptions { WebApiBaseUrl = FakeCrmServer.BaseUrl, PageSize = 20, MaxAttempts = 3 };
-    }
-
-    public static RetryPolicy NoWaitRetry(List<TimeSpan>? delays = null)
-    {
-        return new RetryPolicy(3, TimeSpan.FromSeconds(1), (wait, _) =>
-        {
-            delays?.Add(wait);
-            return Task.CompletedTask;
-        }, () => 0, NullLogger.Instance);
-    }
-
-    public static CrmHttpClient Client(FakeCrmServer server, List<TimeSpan>? delays = null)
-    {
-        return new CrmHttpClient(Options(), server, NoWaitRetry(delays), NullLogger.Instance);
-    }
-
-    public static CrmHttpClient ClientFor(FakeCrmServer server, CrmConnectionOptions options, ILogger logger)
-    {
-        return new CrmHttpClient(options, server, NoWaitRetry(), logger);
-    }
-
-    public static Guid WorkflowId(int index)
-    {
-        return Guid.Parse(string.Create(CultureInfo.InvariantCulture, $"00000000-0000-0000-0000-{index:D12}"));
-    }
-
-    private HttpResponseMessage Page(Uri uri)
-    {
-        const int pageSize = 20;
-        string query = Uri.UnescapeDataString(uri.Query);
-        int page = 1;
-        int marker = query.IndexOf("$skiptoken=page", StringComparison.Ordinal);
-        if (marker >= 0)
-        {
-            page = int.Parse(query[(marker + "$skiptoken=page".Length)..], CultureInfo.InvariantCulture);
-        }
-        int start = (page - 1) * pageSize;
-        int end = Math.Min(WorkflowCount, start + pageSize);
-
-        StringBuilder body = new("{\"@odata.context\":\"" + FakeCrmServer.BaseUrl + "$metadata#workflows\",\"value\":[");
-        for (int index = start; index < end; index++)
-        {
-            if (index > start)
+            workflows.Add(Record(index));
+            string id = WorkflowId(index).ToString("D");
+            if (XamlMissing.Contains(index))
             {
-                body.Append(',');
+                xamlErrors[id] = $"GET workflows({id})?$select=xaml -> 404: {{\"error\":{{\"message\":\"Not found\"}}}}";
+                continue;
             }
-            body.Append(Record(index));
+            bool activation = index % 2 == 1;
+            int definitionIndex = activation ? index - 1 : index;
+            xaml[id] = XamlFor(index, activation && Drifted.Contains(definitionIndex));
         }
-        body.Append(']');
-        if (end < WorkflowCount)
+
+        List<string> attributes = [.. WorkflowColumns.Inventory.Select(WorkflowColumns.AttributeNameOf).Append("xaml")
+            .Where(name => !MissingAttributes.Contains(name, StringComparer.Ordinal))];
+        return new JsonObject
         {
-            string firstQuery = query.Contains("&$skiptoken", StringComparison.Ordinal) ? query[..query.IndexOf("&$skiptoken", StringComparison.Ordinal)] : query;
-            body.Append(CultureInfo.InvariantCulture, $",\"@odata.nextLink\":\"{FakeCrmServer.BaseUrl}workflows{firstQuery}&$skiptoken=page{page + 1}\"");
-        }
-        body.Append('}');
-        return FakeCrmServer.Json(body.ToString());
+            ["format"] = "crm-browser-export/1",
+            ["exportedAtUtc"] = "2026-09-22T12:00:00.000Z",
+            ["startedAtUtc"] = "2026-09-22T11:58:00.000Z",
+            ["webApiRoot"] = BaseUrl,
+            ["whoAmI"] = new JsonObject
+            {
+                ["UserId"] = UserId.ToString("D"),
+                ["BusinessUnitId"] = "22222222-2222-2222-2222-222222222222",
+                ["OrganizationId"] = "33333333-3333-3333-3333-333333333333"
+            },
+            ["user"] = new JsonObject { ["fullname"] = "Servis Hesabı", ["domainname"] = "CORP\\svc-crm-read" },
+            ["privileges"] = new JsonObject
+            {
+                ["value"] = new JsonArray([.. PrivilegeCheck.Required.Select((privilege, index) => new JsonObject
+                {
+                    ["privilegeid"] = PrivilegeId(index).ToString("D"),
+                    ["name"] = privilege.Name
+                })])
+            },
+            ["userPrivileges"] = new JsonObject
+            {
+                ["RolePrivileges"] = new JsonArray([.. PrivilegeCheck.Required.Select((_, index) => new JsonObject
+                {
+                    ["Depth"] = PrivilegeDepth,
+                    ["PrivilegeId"] = PrivilegeId(index).ToString("D"),
+                    ["BusinessUnitId"] = "22222222-2222-2222-2222-222222222222"
+                })])
+            },
+            ["workflowAttributes"] = new JsonObject
+            {
+                ["value"] = new JsonArray([.. attributes.Select(name => new JsonObject { ["LogicalName"] = name })])
+            },
+            ["count"] = ReportedCount ?? WorkflowCount,
+            ["columns"] = new JsonArray([.. attributes.Where(name => name != "xaml").Select(name => JsonValue.Create(name))]),
+            ["workflows"] = workflows,
+            ["xaml"] = xaml,
+            ["xamlErrors"] = xamlErrors,
+            ["optionSets"] = new JsonObject
+            {
+                ["new_policy"] = new JsonObject
+                {
+                    ["PicklistAttributeMetadata"] = JsonNode.Parse(
+                        "{\"value\":[{\"LogicalName\":\"new_status\",\"OptionSet\":{\"Options\":[{\"Value\":100000003,\"Label\":{\"UserLocalizedLabel\":{\"Label\":\"İptal Edildi\"}}},{\"Value\":100000007,\"Label\":{\"UserLocalizedLabel\":{\"Label\":\"Askıda\"}}}]}}]}"),
+                    ["StatusAttributeMetadata"] = JsonNode.Parse("{\"value\":[]}"),
+                    ["StateAttributeMetadata"] = JsonNode.Parse("{\"value\":[]}")
+                }
+            },
+            ["processStages"] = new JsonArray(),
+            ["processTriggers"] = new JsonArray(),
+            ["caseStages"] = new JsonArray(),
+            ["plugins"] = Plugins(),
+            ["runAuthority"] = JsonNode.Parse("{\"roles\":[],\"teams\":[],\"note\":\"Bu organizasyonda rol kaydı yok.\"}")
+        };
+    }
+
+    /// <summary>The export written to a file in <paramref name="directory"/>, as a run would be given it.</summary>
+    public string WriteExport(string directory)
+    {
+        Directory.CreateDirectory(directory);
+        string file = Path.Combine(directory, $"crm-export-{Guid.NewGuid():N}.json");
+        File.WriteAllText(file, Export().ToJsonString());
+        return file;
     }
 
     /// <summary>Even indexes are definitions, odd are the activation of the definition before them.</summary>
-    private string Record(int index)
+    private JsonObject Record(int index)
     {
         bool definition = index % 2 == 0;
-        int category = index == 0 ? FirstCategory : 0;
         Guid owner = Guid.Parse(string.Create(CultureInfo.InvariantCulture, $"99999999-0000-0000-0000-{index % Math.Max(1, DistinctOwners):D12}"));
-        string parent = definition ? "null" : $"\"{WorkflowId(index - 1):D}\"";
-        string active = definition && index + 1 < WorkflowCount ? $"\"{WorkflowId(index + 1):D}\"" : "null";
-        return string.Create(CultureInfo.InvariantCulture,
-            $"{{\"workflowid\":\"{WorkflowId(index):D}\",\"name\":\"Poliçe İptal Süreci {index}\",\"primaryentity\":\"new_policy\","
-            + $"\"category\":{category},\"category@OData.Community.Display.V1.FormattedValue\":\"İş Akışı\","
-            + $"\"type\":{(definition ? 1 : 2)},\"mode\":0,\"scope\":4,\"statecode\":1,\"runas\":1,"
-            + $"\"iscrmuiworkflow\":{(NonDesigner.Contains(index) ? "false" : "true")},\"ismanaged\":{(Managed.Contains(index) ? "true" : "false")},"
-            + $"\"versionnumber\":\"{1000 + index + VersionOffset}\",\"_ownerid_value\":\"{owner:D}\","
-            + $"\"_parentworkflowid_value\":{parent},\"_activeworkflowid_value\":{active}}}");
+        return new JsonObject
+        {
+            ["workflowid"] = WorkflowId(index).ToString("D"),
+            ["name"] = string.Create(CultureInfo.InvariantCulture, $"Poliçe İptal Süreci {index}"),
+            ["primaryentity"] = "new_policy",
+            ["category"] = index == 0 ? FirstCategory : 0,
+            ["category@OData.Community.Display.V1.FormattedValue"] = "İş Akışı",
+            ["type"] = definition ? 1 : 2,
+            ["mode"] = 0,
+            ["scope"] = 4,
+            ["statecode"] = 1,
+            ["runas"] = 1,
+            ["iscrmuiworkflow"] = !NonDesigner.Contains(index),
+            ["ismanaged"] = Managed.Contains(index),
+            ["versionnumber"] = (1000 + index).ToString(CultureInfo.InvariantCulture),
+            ["_ownerid_value"] = owner.ToString("D"),
+            ["_parentworkflowid_value"] = definition ? null : WorkflowId(index - 1).ToString("D"),
+            ["_activeworkflowid_value"] = definition && index + 1 < WorkflowCount ? WorkflowId(index + 1).ToString("D") : null
+        };
     }
 
-    private static string PrivilegesBody()
+    /// <summary>
+    /// The plug-in registry as the export sends it: the browser has already scanned the assembly, so only the
+    /// addresses travel, never the bytes.
+    /// </summary>
+    private static JsonObject Plugins()
     {
-        IEnumerable<string> rows = PrivilegeCheck.Required.Select((privilege, index) =>
-            $"{{\"privilegeid\":\"{PrivilegeId(index):D}\",\"name\":\"{privilege.Name}\"}}");
-        return "{\"value\":[" + string.Join(",", rows) + "]}";
-    }
-
-    private static string RolePrivilegesBody(string depth)
-    {
-        IEnumerable<string> rows = PrivilegeCheck.Required.Select((_, index) =>
-            $"{{\"Depth\":\"{depth}\",\"PrivilegeId\":\"{PrivilegeId(index):D}\",\"BusinessUnitId\":\"22222222-2222-2222-2222-222222222222\"}}");
-        return "{\"RolePrivileges\":[" + string.Join(",", rows) + "]}";
-    }
-
-    private string AttributesBody()
-    {
-        IEnumerable<string> names = WorkflowColumns.Inventory
-            .Select(WorkflowColumns.AttributeNameOf)
-            .Append("xaml")
-            .Where(name => !MissingAttributes.Contains(name, StringComparer.Ordinal))
-            .Select(name => $"{{\"LogicalName\":\"{name}\"}}");
-        return "{\"value\":[" + string.Join(",", names) + "]}";
+        return new JsonObject
+        {
+            ["assemblies"] = new JsonArray(new JsonObject
+            {
+                ["pluginassemblyid"] = AssemblyId.ToString("D"),
+                ["name"] = "Partner.Crm.Activities",
+                ["version"] = "2.1.0.0",
+                ["sourcetype"] = 0,
+                ["ismanaged"] = false,
+                ["addresses"] = new JsonArray(AssemblyAddress)
+            }),
+            ["types"] = new JsonArray(new JsonObject
+            {
+                ["plugintypeid"] = PluginTypeId.ToString("D"),
+                ["typename"] = "Partner.Crm.Activities.NotifyPolicyService",
+                ["friendlyname"] = "Poliçe servisi",
+                ["isworkflowactivity"] = true,
+                ["workflowactivitygroupname"] = "Partner",
+                ["_pluginassemblyid_value"] = AssemblyId.ToString("D")
+            }),
+            ["steps"] = new JsonArray(new JsonObject
+            {
+                ["sdkmessageprocessingstepid"] = "aaaaaaaa-0000-0000-0000-000000000003",
+                ["name"] = "Partner.Crm.Plugins.CaseRouter: Create of incident",
+                ["configuration"] = "<ayarlar><servis>https://kuyruk.ornek.local/route</servis></ayarlar>",
+                ["stage"] = 40,
+                ["mode"] = 0,
+                ["statecode"] = 0,
+                ["_plugintypeid_value"] = PluginTypeId.ToString("D")
+            })
+        };
     }
 
     private static Guid PrivilegeId(int index)

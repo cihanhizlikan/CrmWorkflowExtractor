@@ -93,10 +93,10 @@ public sealed class ExternalSystemsTests
     public async Task The_Address_Inside_An_Activitys_Assembly_Reaches_The_Sheet_And_The_Diagram()
     {
         string xaml = XamlWorkflowParserTests.Fixture("child-and-custom.xaml");
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 8, XamlFor = (_, _) => xaml }.Build();
+        FakeOrganization organization = new() { WorkflowCount = 8, XamlFor = (_, _) => xaml };
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.True(code == ExitCode.Success, console);
         Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "dis-sistemler.xlsx"));
@@ -123,10 +123,10 @@ public sealed class ExternalSystemsTests
     public async Task A_Run_Writes_The_External_Systems_Workbook()
     {
         string xaml = XamlWorkflowParserTests.Fixture("child-and-custom.xaml");
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 8, XamlFor = (_, _) => xaml }.Build();
+        FakeOrganization organization = new() { WorkflowCount = 8, XamlFor = (_, _) => xaml };
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.True(code == ExitCode.Success, console);
         Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "dis-sistemler.xlsx"));

@@ -1,6 +1,5 @@
 using Crm.Cli;
 using Crm.Cli.Configuration;
-using Crm.Extract.Http;
 using Microsoft.Extensions.Options;
 
 namespace Crm.Tests.Fakes;
@@ -19,18 +18,35 @@ internal sealed class TemporaryOutput : IDisposable
     }
 }
 
-/// <summary>Runs <see cref="ExtractionRun"/> end to end against a fake server.</summary>
+/// <summary>
+/// Runs <see cref="ExtractionRun"/> end to end, the only way the tool now runs: from a file. An organization is
+/// written as the export the browser script would have saved, and imported; a reprocess reads an earlier run.
+/// </summary>
 internal static class RunHarness
 {
-    public static async Task<(ExitCode Code, string RunRoot, string Console)> RunAsync(FakeCrmServer server, TemporaryOutput output, bool requirePrivileges = true, string reprocessRunId = "", string importFile = "", string usageFile = "")
+    /// <summary>The organization, exported and imported — or, with <paramref name="reprocessRunId"/>, an earlier run reprocessed.</summary>
+    public static Task<(ExitCode Code, string RunRoot, string Console)> RunAsync(FakeOrganization organization, TemporaryOutput output,
+        bool requirePrivileges = true, string reprocessRunId = "", string usageFile = "")
     {
-        CrmConnectionOptions crm = FakeOrganization.Options();
+        string importFile = reprocessRunId.Length > 0 ? "" : organization.WriteExport(Path.Combine(output.Root, "exports"));
+        return RunAsync(output, importFile, requirePrivileges, reprocessRunId, usageFile);
+    }
+
+    /// <summary>A file the real browser script produced, or one a test built from it.</summary>
+    public static Task<(ExitCode Code, string RunRoot, string Console)> ImportAsync(TemporaryOutput output, string importFile,
+        bool requirePrivileges = true, string usageFile = "")
+    {
+        return RunAsync(output, importFile, requirePrivileges, "", usageFile);
+    }
+
+    private static async Task<(ExitCode Code, string RunRoot, string Console)> RunAsync(TemporaryOutput output, string importFile,
+        bool requirePrivileges, string reprocessRunId, string usageFile)
+    {
         ExtractorSettings settings = new(
-            Options.Create(crm),
             Options.Create(new OutputOptions { Root = output.Root }),
             Options.Create(new RunOptions { RequireOrganizationReadPrivileges = requirePrivileges, ReprocessRunId = reprocessRunId, ImportFile = importFile, UsageFile = usageFile }));
         using StringWriter console = new();
-        ExtractionRun run = new(settings, null, (options, _, logger) => FakeOrganization.ClientFor(server, options, logger), TimeProvider.System, console);
+        ExtractionRun run = new(settings, TimeProvider.System, console);
 
         ExitCode code = await run.RunAsync(CancellationToken.None);
 

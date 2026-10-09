@@ -12,7 +12,6 @@ public sealed record XamlEntry(Guid WorkflowId, string Kind, long? VersionNumber
     public const string IndexFile = Runs.RunPaths.RawXaml + "/dizin.json";
     public const string KindDefinition = "definition";
     public const string KindActivation = "activation";
-    public const string SourceFetched = "fetched";
 
     public static string FileFor(Guid workflowId)
     {

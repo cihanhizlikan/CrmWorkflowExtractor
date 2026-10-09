@@ -13,13 +13,12 @@ namespace Crm.Cli.Stages;
 
 /// <summary>
 /// <c>Run:ImportFile</c>: builds a run from a file saved by <c>tools/crm-browser-export.js</c>, which read CRM through
-/// the user's own signed-in browser session. Used because the organization signs in through AD FS and the tool's
-/// Windows authentication is refused (plan, 2026-09-22). The export holds the same payloads the tool would have
-/// fetched, so this writes the same raw/ layout a network run writes and every later stage runs unchanged.
+/// the user's own signed-in browser session — the organization signs in through AD FS and refused the tool's own
+/// Windows authentication (plan, 2026-09-22), and since 2026-10-09 this is the ONLY way data enters a run.
 ///
 /// <para>
-/// Provenance is weaker than a network run's, and the manifest says so: the tool did not make these requests, it
-/// copies the export verbatim into <c>raw/</c> and records its hash, the signed-in user and the export time.
+/// The tool made none of these requests, and the manifest says so: it copies the export verbatim into <c>ham/</c>
+/// and records its hash, the signed-in user and the export time.
 /// </para>
 /// </summary>
 public static class BrowserExportImport
@@ -84,7 +83,7 @@ public static class BrowserExportImport
         }
 
         IReadOnlyList<XamlEntry> entries = await WriteXamlAsync(folder, state, root, records, token);
-        await RetrievalStages.RouteAndDriftAsync(folder, state, entries, token);
+        await XamlRouting.RouteAndDriftAsync(folder, state, entries, token);
         await WriteOptionSetsAsync(folder, state, root, token);
         await WritePluginsAsync(folder, state, root, token);
         await WriteRunAuthorityAsync(folder, state, root, token);
@@ -199,7 +198,7 @@ public static class BrowserExportImport
                         state.Warnings.Add($"'{entity.Name}' için {body.Name} seçenek kümesi üst verisi dışa aktarılmadı: {error.GetString()}");
                         continue;
                     }
-                    attributes.AddRange(OptionSetMetadataRetriever.Parse(body.Value.GetRawText(), body.Name));
+                    attributes.AddRange(OptionSetReader.Parse(body.Value.GetRawText(), body.Name));
                 }
                 EntityOptionSets sets = new(entity.Name, [.. attributes.OrderBy(attribute => attribute.Attribute, StringComparer.Ordinal)]);
                 await folder.WriteJsonAsync(RunPaths.MetadataFile(entity.Name), sets, token);
@@ -217,9 +216,9 @@ public static class BrowserExportImport
     private static async Task WritePluginsAsync(RunFolder folder, RunState state, JsonElement root, CancellationToken token)
     {
         PluginRegistry plugins = root.TryGetProperty("plugins", out JsonElement registry) && registry.ValueKind == JsonValueKind.Object
-            ? PluginRegistryRetriever.Parse(registry)
+            ? PluginRegistryReader.Parse(registry)
             : PluginRegistry.Empty;
-        await folder.WriteJsonAsync(PluginRegistryRetriever.IndexFile, plugins, token);
+        await folder.WriteJsonAsync(PluginRegistryReader.IndexFile, plugins, token);
         state.Counts["plugins.assemblies"] = plugins.Assemblies.Count;
         state.Counts["plugins.steps"] = plugins.Steps.Count;
         state.StagesRun.Add(RunStages.Plugins);
@@ -232,9 +231,9 @@ public static class BrowserExportImport
     private static async Task WriteRunAuthorityAsync(RunFolder folder, RunState state, JsonElement root, CancellationToken token)
     {
         RunAuthority authority = root.TryGetProperty("runAuthority", out JsonElement rows)
-            ? RoleRetriever.Parse(rows)
+            ? RunAuthorityReader.Parse(rows)
             : RunAuthority.Empty with { Note = "Bu dışa aktarım çalıştırma yetkisini içermiyor; daha eski bir sürümle alınmış." };
-        await folder.WriteJsonAsync(RoleRetriever.IndexFile, authority, token);
+        await folder.WriteJsonAsync(RunAuthorityReader.IndexFile, authority, token);
         state.Counts["roles.canRun"] = authority.Roles.Count;
         state.StagesRun.Add(RunStages.Roles);
         if (authority.Note is not null)
@@ -252,12 +251,12 @@ public static class BrowserExportImport
     {
         List<JsonElement> stages = Rows(root, "processStages");
         await folder.WriteJsonAsync(RunPaths.RawProcessStages, stages, token);
-        await folder.WriteJsonAsync(ProcessStageRetriever.IndexFile, ProcessStageRetriever.Index(stages), token);
+        await folder.WriteJsonAsync(ProcessStageIndex.IndexFile, ProcessStageIndex.Index(stages), token);
         state.Counts["processStages"] = stages.Count;
         state.StagesRun.Add(RunStages.ProcessStages);
 
         List<JsonElement> triggers = Rows(root, "processTriggers");
-        await folder.WriteJsonAsync(ProcessTriggerRetriever.IndexFile, triggers, token);
+        await folder.WriteJsonAsync(RunPaths.RawProcessTriggers, triggers, token);
         state.Counts["processTriggers"] = triggers.Count;
         if (stages.Count > 0 && triggers.Count == 0)
         {
@@ -268,7 +267,7 @@ public static class BrowserExportImport
         // The estate's own stage machine. An export made before it was collected has no such key, and the run says
         // so: a plan without it describes the workflows and not the process they are steps of.
         List<JsonElement> caseStages = Rows(root, "caseStages");
-        await folder.WriteJsonAsync(CaseStageRetriever.IndexFile, caseStages, token);
+        await folder.WriteJsonAsync(RunPaths.RawCaseStages, caseStages, token);
         state.Counts["caseStages"] = caseStages.Count;
         if (!root.TryGetProperty("caseStages", out _))
         {

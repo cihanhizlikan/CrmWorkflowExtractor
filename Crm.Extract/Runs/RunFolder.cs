@@ -114,7 +114,7 @@ public sealed class RunFolder
         await File.WriteAllTextAsync(path, json, Utf8NoBom, token);
     }
 
-    /// <summary>Copies a file byte-for-byte into this run (a reused XAML, a cached metadata file).</summary>
+    /// <summary>Copies a file byte-for-byte into this run: the export itself, or a source run's evidence when reprocessing.</summary>
     public async Task CopyVerbatimAsync(string sourcePath, string relative, CancellationToken token)
     {
         string path = WritablePath(relative);

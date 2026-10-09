@@ -21,7 +21,7 @@ public sealed class MigrationPlanTests
     {
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: Fixture("mock-crm-export.json"));
+        (ExitCode code, string runRoot, string console) = await RunHarness.ImportAsync(output, Fixture("mock-crm-export.json"));
 
         Assert.True(code == ExitCode.Success, console);
         string bpmn = Path.Combine(runRoot, "bpmn");
@@ -42,8 +42,8 @@ public sealed class MigrationPlanTests
     {
         using TemporaryOutput output = new();
 
-        (_, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output,
-            importFile: Fixture("mock-crm-export.json"), usageFile: Fixture("mock-usage-export.json"));
+        (_, string runRoot, string console) = await RunHarness.ImportAsync(output,
+            Fixture("mock-crm-export.json"), usageFile: Fixture("mock-usage-export.json"));
 
         Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
         // The sheets are in the order the guide walks them.
@@ -69,10 +69,10 @@ public sealed class MigrationPlanTests
     {
         // Three definitions call a child workflow that is itself one of the three (see the child-and-custom fixture).
         string xaml = Ir.XamlWorkflowParserTests.Fixture("child-and-custom.xaml");
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 8, XamlFor = (_, _) => xaml }.Build();
+        FakeOrganization organization = new() { WorkflowCount = 8, XamlFor = (_, _) => xaml };
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.True(code == ExitCode.Success, console);
         // Only the workflows that are part of a call: a page whose every row says "calls nothing" is a page a
@@ -91,10 +91,10 @@ public sealed class MigrationPlanTests
     [Fact]
     public async Task Workflows_Supplied_With_The_Product_Are_Held_Apart_From_The_Work()
     {
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 8, Managed = new HashSet<int> { 6 } }.Build();
+        FakeOrganization organization = new() { WorkflowCount = 8, Managed = new HashSet<int> { 6 } };
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.True(code == ExitCode.Success, console);
 

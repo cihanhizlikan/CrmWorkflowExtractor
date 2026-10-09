@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Crm.Extract.Http;
 
 namespace Crm.Extract.Metadata;
 
@@ -25,77 +24,19 @@ public sealed record PluginRegistry(IReadOnlyList<PluginAssembly> Assemblies, IR
 }
 
 /// <summary>
-/// The registered code, read with GETs like everything else (§3.5). Two questions it answers that the workflow
-/// definitions cannot: whether a custom activity a workflow calls is still registered at all, and what else in
-/// CRM reaches outside — plug-in steps are not workflows and never appear in the process inventory.
+/// The registered code, as the browser export read it. Two questions it answers that the workflow definitions
+/// cannot: whether a custom activity a workflow calls is still registered at all, and what else in CRM reaches
+/// outside — plug-in steps are not workflows and never appear in the process inventory.
 ///
 /// <para>
-/// The <b>secure</b> configuration is deliberately not read. It is a separate entity, it is where credentials are
-/// kept, and this tool is looking for addresses.
+/// The <b>secure</b> configuration is deliberately not read by the export. It is a separate entity, it is where
+/// credentials are kept, and this tool is looking for addresses. Assemblies are scanned in the browser and only the
+/// addresses they carry travel in the file; no DLL ever lands on this machine.
 /// </para>
 /// </summary>
-public sealed class PluginRegistryRetriever(CrmHttpClient client, int pageSize)
+public static class PluginRegistryReader
 {
     public const string IndexFile = Runs.RunPaths.Raw + "/eklentiler.json";
-
-    public async Task<PluginRegistry> RetrieveAsync(CancellationToken token)
-    {
-        List<PluginAssembly> assemblies = [.. (await PageAsync("pluginassemblies?$select=pluginassemblyid,name,version,sourcetype,ismanaged", token))
-            .Select(ParseAssembly).OfType<PluginAssembly>().OrderBy(assembly => assembly.AssemblyId)];
-        List<PluginType> types = [.. (await PageAsync("plugintypes?$select=plugintypeid,typename,friendlyname,isworkflowactivity,workflowactivitygroupname,_pluginassemblyid_value", token))
-            .Select(ParseType).OfType<PluginType>().OrderBy(type => type.TypeId)];
-        List<PluginStep> steps = [.. (await PageAsync("sdkmessageprocessingsteps?$select=sdkmessageprocessingstepid,name,configuration,stage,mode,statecode,_plugintypeid_value", token))
-            .Select(ParseStep).OfType<PluginStep>().OrderBy(step => step.StepId)];
-        return new PluginRegistry([.. await WithAddressesAsync(assemblies, types, token)], types, steps);
-    }
-
-    /// <summary>
-    /// The endpoints in the assemblies that back a workflow's custom activities — the only assemblies worth
-    /// downloading, and the only place the address of a service call is written down. The bytes are read, scanned
-    /// and dropped: nothing but the addresses is kept, because a production DLL on disk is a liability.
-    /// </summary>
-    private async Task<List<PluginAssembly>> WithAddressesAsync(List<PluginAssembly> assemblies, List<PluginType> types, CancellationToken token)
-    {
-        HashSet<Guid> wanted = [.. types.Where(type => type.IsWorkflowActivity == true && type.AssemblyId is not null).Select(type => type.AssemblyId!.Value)];
-        List<PluginAssembly> read = [];
-        foreach (PluginAssembly assembly in assemblies)
-        {
-            if (!wanted.Contains(assembly.AssemblyId))
-            {
-                read.Add(assembly);
-                continue;
-            }
-            read.Add(assembly with { Addresses = await AddressesAsync(assembly.AssemblyId, token) });
-        }
-        return read;
-    }
-
-    private async Task<IReadOnlyList<string>> AddressesAsync(Guid assemblyId, CancellationToken token)
-    {
-        try
-        {
-            CrmResponse response = await client.GetAsync($"pluginassemblies({assemblyId:D})?$select=content", CrmPreferences.None, token);
-            using JsonDocument document = JsonDocument.Parse(response.Body);
-            string? content = Json.OptionalString(document.RootElement, "content");
-            return content is null ? [] : AssemblyStrings.Addresses(Convert.FromBase64String(content));
-        }
-        catch (Exception error) when (error is CrmRequestException or FormatException or JsonException)
-        {
-            // A refused or unreadable assembly leaves that activity's addresses unknown, which the report says.
-            return [];
-        }
-    }
-
-    private async Task<List<JsonElement>> PageAsync(string path, CancellationToken token)
-    {
-        ODataPager pager = new(client);
-        List<JsonElement> records = [];
-        await foreach (ODataPage page in pager.GetPagesAsync(path, pageSize, token))
-        {
-            records.AddRange(page.Records);
-        }
-        return records;
-    }
 
     public static PluginAssembly? ParseAssembly(JsonElement row)
     {

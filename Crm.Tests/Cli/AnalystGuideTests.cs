@@ -46,9 +46,9 @@ public sealed class AnalystGuideTests
     public async Task A_Run_Writes_The_Guide_As_A_Word_Document()
     {
         using TemporaryOutput output = new();
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 8 }.Build();
+        FakeOrganization organization = new() { WorkflowCount = 8 };
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.True(code == ExitCode.Success, console);
         string file = Path.Combine(runRoot, "raporlar", "nasil-kullanilir.docx");
@@ -90,9 +90,9 @@ public sealed class AnalystGuideTests
     public async Task The_Guide_Names_Nothing_The_Reader_Was_Not_Given()
     {
         using TemporaryOutput output = new();
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 8 }.Build();
+        FakeOrganization organization = new() { WorkflowCount = 8 };
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.True(code == ExitCode.Success, console);
         string text = Words(Xml(Parts(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "nasil-kullanilir.docx"))), "word/document.xml"));

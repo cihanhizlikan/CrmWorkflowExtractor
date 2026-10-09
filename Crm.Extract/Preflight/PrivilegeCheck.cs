@@ -1,6 +1,4 @@
-using System.Text;
 using System.Text.Json;
-using Crm.Extract.Http;
 
 namespace Crm.Extract.Preflight;
 
@@ -42,22 +40,6 @@ public static class PrivilegeCheck
     ];
 
     private static readonly string[] DepthOrder = ["Basic", "Local", "Deep", "Global"];
-
-    public static async Task<IReadOnlyList<PrivilegeFinding>> RunAsync(CrmHttpClient client, Guid userId, CancellationToken token)
-    {
-        StringBuilder filter = new();
-        foreach (RequiredPrivilege privilege in Required)
-        {
-            if (filter.Length > 0)
-            {
-                filter.Append(" or ");
-            }
-            filter.Append("name eq '").Append(privilege.Name).Append('\'');
-        }
-        CrmResponse privileges = await client.GetAsync($"privileges?$select=privilegeid,name&$filter={Uri.EscapeDataString(filter.ToString())}", CrmPreferences.None, token);
-        CrmResponse held = await client.GetAsync($"systemusers({userId:D})/Microsoft.Dynamics.CRM.RetrieveUserPrivileges()", CrmPreferences.None, token);
-        return Evaluate(privileges.Body, held.Body);
-    }
 
     /// <summary>Pure evaluation over the two response bodies, so every verdict is testable without a server.</summary>
     public static IReadOnlyList<PrivilegeFinding> Evaluate(string privilegesBody, string retrieveUserPrivilegesBody)

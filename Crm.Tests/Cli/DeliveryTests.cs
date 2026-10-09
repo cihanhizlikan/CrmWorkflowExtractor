@@ -29,10 +29,10 @@ public sealed class DeliveryTests
     public async Task No_Delivered_Workbook_Names_A_File_The_Analyst_Does_Not_Have()
     {
         string xaml = Ir.XamlWorkflowParserTests.Fixture("child-and-custom.xaml");
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 8, XamlFor = (_, _) => xaml }.Build();
+        FakeOrganization organization = new() { WorkflowCount = 8, XamlFor = (_, _) => xaml };
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.True(code == ExitCode.Success, console);
         foreach (string file in Delivered)

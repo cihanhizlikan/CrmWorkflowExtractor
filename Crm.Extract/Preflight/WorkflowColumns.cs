@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Crm.Extract.Http;
 
 namespace Crm.Extract.Preflight;
 
@@ -37,12 +36,6 @@ public static class WorkflowColumns
         return column.StartsWith('_') && column.EndsWith("_value", StringComparison.Ordinal)
             ? column[1..^"_value".Length]
             : column;
-    }
-
-    public static async Task<(IReadOnlyList<string> Available, IReadOnlyList<string> Missing)> ResolveAsync(CrmHttpClient client, CancellationToken token)
-    {
-        CrmResponse response = await client.GetAsync("EntityDefinitions(LogicalName='workflow')/Attributes?$select=LogicalName", CrmPreferences.None, token);
-        return Split(response.Body);
     }
 
     public static (IReadOnlyList<string> Available, IReadOnlyList<string> Missing) Split(string attributesBody)

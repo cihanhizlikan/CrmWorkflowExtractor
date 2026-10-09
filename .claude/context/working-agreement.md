@@ -35,8 +35,8 @@ holds the incidents behind each rule.
 - The commit body is the archive entry (see `/wp-finish`). **A session never pushes; merging is the maintainer's.**
 
 ## Secrets
-- `appsettings.json` carries `__CRM_PASSWORD__` only. Real values: gitignored `appsettings.Development.json` or
-  Windows Credential Manager. Treat `*.pfx`, `*.p12`, `.env` as secrets on sight.
+- The tool has no credentials to keep: `appsettings.json` names files only. Treat `*.pfx`, `*.p12`, `.env` and any
+  export or run folder as sensitive on sight — production XAML may hold credentials.
 - `out/` is gitignored and is never copied into fixtures unanonymized. A fixture taken from production is
   anonymized (names, GUIDs, URLs, literals) before it is committed.
 

@@ -12,10 +12,10 @@ public sealed class IrStageTests
     public async Task Each_Designer_Definition_Gets_An_Ir_Document_With_Labels_From_Server_Metadata()
     {
         string xaml = XamlWorkflowParserTests.Fixture("condition-update-stop.xaml");
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 6, NonDesigner = new HashSet<int> { 4 }, XamlFor = (_, _) => xaml }.Build();
+        FakeOrganization organization = new() { WorkflowCount = 6, NonDesigner = new HashSet<int> { 4 }, XamlFor = (_, _) => xaml };
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, _) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, _) = await RunHarness.RunAsync(organization, output);
 
         Assert.Equal(ExitCode.Success, code);
         List<string> documents = [.. Directory.GetFiles(Path.Combine(runRoot, "ara-model"), "*.json").Select(path => Path.GetFileNameWithoutExtension(path)).Order(StringComparer.Ordinal)];
@@ -34,10 +34,10 @@ public sealed class IrStageTests
     public async Task Unparseable_Xaml_Is_Counted_And_The_Others_Still_Get_Documents()
     {
         string good = XamlWorkflowParserTests.Fixture("condition-update-stop.xaml");
-        FakeCrmServer server = new FakeOrganization { WorkflowCount = 4, XamlFor = (index, _) => index == 0 ? "<Activity><broken>" : good }.Build();
+        FakeOrganization organization = new() { WorkflowCount = 4, XamlFor = (index, _) => index == 0 ? "<Activity><broken>" : good };
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.Equal(ExitCode.Success, code);
         Assert.Single(Directory.GetFiles(Path.Combine(runRoot, "ara-model")));
@@ -49,8 +49,8 @@ public sealed class IrStageTests
     {
         string xaml = XamlWorkflowParserTests.Fixture("child-and-custom.xaml");
         using TemporaryOutput output = new();
-        (_, string first, _) = await RunHarness.RunAsync(new FakeOrganization { WorkflowCount = 2, XamlFor = (_, _) => xaml }.Build(), output);
-        (_, string second, _) = await RunHarness.RunAsync(new FakeOrganization { WorkflowCount = 2, XamlFor = (_, _) => xaml }.Build(), output);
+        (_, string first, _) = await RunHarness.RunAsync(new FakeOrganization { WorkflowCount = 2, XamlFor = (_, _) => xaml }, output);
+        (_, string second, _) = await RunHarness.RunAsync(new FakeOrganization { WorkflowCount = 2, XamlFor = (_, _) => xaml }, output);
 
         string file = FakeOrganization.WorkflowId(0).ToString("D") + ".json";
         Assert.Equal(WithoutExtractedAt(Path.Combine(first, "ara-model", file)), WithoutExtractedAt(Path.Combine(second, "ara-model", file)));

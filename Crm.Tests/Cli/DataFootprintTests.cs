@@ -92,9 +92,9 @@ public sealed class DataFootprintTests
     public async Task A_Reprocessed_Run_Says_Who_Read_The_Data_Instead_Of_Claiming_WhoAmI_Failed()
     {
         using TemporaryOutput output = new();
-        (_, string first, _) = await RunHarness.RunAsync(new FakeOrganization().Build(), output);
+        (_, string first, _) = await RunHarness.RunAsync(new FakeOrganization(), output);
 
-        (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, reprocessRunId: Path.GetFileName(first));
+        (ExitCode code, _, string console) = await RunHarness.RunAsync(new FakeOrganization(), output, reprocessRunId: Path.GetFileName(first));
 
         Assert.True(code == ExitCode.Success, console);
         Assert.Contains("svc-crm-read", console, StringComparison.Ordinal);
@@ -106,8 +106,8 @@ public sealed class DataFootprintTests
     {
         using TemporaryOutput output = new();
 
-        (_, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output,
-            importFile: Path.Combine(AppContext.BaseDirectory, "Fixtures", "BrowserExport", "mock-crm-export.json"));
+        (_, string runRoot, string console) = await RunHarness.ImportAsync(output,
+            Path.Combine(AppContext.BaseDirectory, "Fixtures", "BrowserExport", "mock-crm-export.json"));
 
         Assert.False(File.Exists(Path.Combine(runRoot, "raporlar", "veri-ayak-izi.csv")), console);
         Workbook data = Workbook.Open(Path.Combine(runRoot, "raporlar", "veri-analizi.xlsx"));

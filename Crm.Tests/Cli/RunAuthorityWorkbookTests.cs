@@ -22,7 +22,7 @@ public sealed class RunAuthorityWorkbookTests
     {
         using TemporaryOutput output = new();
 
-        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: Fixture());
+        (ExitCode code, string runRoot, string console) = await RunHarness.ImportAsync(output, Fixture());
 
         Assert.True(code == ExitCode.Success, console);
         Workbook workbook = Workbook.Open(Path.Combine(runRoot, RunPaths.RunAuthorityWorkbook));
