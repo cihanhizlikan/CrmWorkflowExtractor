@@ -34,25 +34,26 @@ public sealed class UsageStageTests
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
         IReadOnlyList<IReadOnlyList<string>> work = plan.Rows("Taşıma planı");
         IReadOnlyList<string> ran = Assert.Single(work, row => row.Contains(DefinitionThatRan.ToString("D")));
-        Assert.Contains("2026-09-20", ran);
-        Assert.Contains("çalışıyor · 2026-09-20", ran);
+        // UNDER ITS OWN HEADER, not anywhere in the row. "Somewhere in the row" is how the plan's columns sat two to
+        // the right of their names from 2026-10-02 to 2026-10-09 with every test passing.
+        List<string> headers = [.. work[0]];
+        Assert.Equal(headers.Count, ran.Count);
+        Assert.Equal("çalışıyor · 2026-09-20", ran[headers.IndexOf("kullanim")]);
+        Assert.StartsWith("2026-09-20", ran[headers.IndexOf("son_kayitli_calisma")], StringComparison.Ordinal);
+        Assert.EndsWith(".bpmn", ran[headers.IndexOf("bpmn_dosyasi")], StringComparison.Ordinal);
+        Assert.Equal(DefinitionThatRan.ToString("D"), ran[headers.IndexOf("is_akisi_id")]);
         Assert.Contains(work, row => row.Contains("kayıtlı çalışma yok"));
         // The short cell is only honest because the caveat is said in full where the columns are explained.
         Assert.Contains(plan.Rows("Nasıl okunur"), row => row.Any(cell => cell.Contains("KANITLAMAZ", StringComparison.Ordinal)));
 
         // 44 drafts in the fixture, one without XAML (the simulated failure), so 43 IR documents: out of the plan and
-        // into its counterpart book with the reason beside them, absent from the families, and the count chain still balances.
+        // into its counterpart book with the reason beside them, and the count chain still balances.
         Workbook excluded = Workbook.Open(Path.Combine(runRoot, "raporlar", "kapsam-disi.xlsx"));
         IReadOnlyList<IReadOnlyList<string>> out_ = excluded.Rows("Kapsam dışı");
         Assert.Equal(43, out_.Skip(1).Count(row => row[0].StartsWith("taslak", StringComparison.Ordinal)));
         Assert.All(out_.Skip(1), row => Assert.NotEmpty(row[0]));
-        Workbook families = Workbook.Open(Path.Combine(runRoot, "raporlar", "aileler.xlsx"));
-        IReadOnlyList<IReadOnlyList<string>> clusters = families.Rows("Aileler");
-        Assert.DoesNotContain(clusters, row => row.Any(cell => cell.StartsWith("Hasar Onay", StringComparison.Ordinal)));
-        Assert.Contains(clusters, row => row.Contains("2026-09-20"));
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
         Assert.All(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— uygun", link.GetString(), StringComparison.Ordinal));
-        Assert.Contains(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => link.GetString()!.Contains("aileye yerleşen + ayrı tutulan taslak", StringComparison.Ordinal));
     }
 
     [Fact]

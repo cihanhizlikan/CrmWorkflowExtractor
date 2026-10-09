@@ -4,7 +4,6 @@ using Crm.Bpmn;
 using Crm.Cli.Reports;
 using Crm.Extract.Runs;
 using Crm.Ir.Model;
-using Crm.Similarity;
 using Microsoft.Extensions.Logging;
 
 namespace Crm.Cli.Stages;
@@ -17,7 +16,7 @@ namespace Crm.Cli.Stages;
 public static class BpmnStage
 {
     public static async Task RunAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents,
-        SimilarityResult families, UsageEvidence? usage, ILogger logger, CancellationToken token)
+        UsageEvidence? usage, ILogger logger, CancellationToken token)
     {
         int invalid = 0;
         int lost = 0;
@@ -27,7 +26,7 @@ public static class BpmnStage
         Dictionary<Guid, string> fileNames = documents.ToDictionary(
             document => document.Identity.WorkflowId,
             document => $"{BpmnFileNames.Slug(document.Identity.Category)}/{BpmnFileNames.Slug(document.Identity.PrimaryEntity ?? "no entity")}/{stems[document.Identity.WorkflowId]}");
-        Facts facts = new(documents, families, usage, state.Drift, state.Plugins);
+        Facts facts = new(documents, usage, state.Drift, state.Plugins);
         foreach (WorkflowIr document in documents)
         {
             string file = $"{RunPaths.Bpmn}/{fileNames[document.Identity.WorkflowId]}.bpmn";
@@ -74,37 +73,19 @@ public static class BpmnStage
     /// The four things a reader of one diagram would otherwise have to open a workbook to learn. Worked out once
     /// for the whole run, because each of them takes a pass over every workflow.
     /// </summary>
-    private sealed class Facts
+    private sealed class Facts(IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage,
+        Crm.Extract.Xaml.DriftReport? drift, Crm.Extract.Metadata.PluginRegistry plugins)
     {
-        private readonly CallGraph _calls;
-        private readonly UsageEvidence? _usage;
-        private readonly Dictionary<Guid, WorkflowCluster> _familyOf = [];
-        private readonly Dictionary<Guid, string> _names;
-        private readonly HashSet<Guid> _drifted;
-        private readonly IReadOnlyDictionary<string, string> _addresses;
-
-        public Facts(IReadOnlyList<WorkflowIr> documents, SimilarityResult families, UsageEvidence? usage,
-            Crm.Extract.Xaml.DriftReport? drift, Crm.Extract.Metadata.PluginRegistry plugins)
-        {
-            _addresses = ExternalSystems.AddressesByActivity(plugins);
-            _calls = CallGraph.Build(documents);
-            _usage = usage;
-            _names = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity.Name);
-            foreach (WorkflowCluster cluster in families.Clusters.Where(cluster => cluster.Members.Count > 1))
-            {
-                foreach (ClusterMember member in cluster.Members)
-                {
-                    _familyOf[member.WorkflowId] = cluster;
-                }
-            }
-            _drifted = [.. (drift?.Drifted ?? []).Where(finding => finding.StructureDiffers).Select(finding => finding.DefinitionId)];
-        }
+        private readonly CallGraph _calls = CallGraph.Build(documents);
+        private readonly UsageEvidence? _usage = usage;
+        private readonly HashSet<Guid> _drifted = [.. (drift?.Drifted ?? []).Where(finding => finding.StructureDiffers).Select(finding => finding.DefinitionId)];
+        private readonly IReadOnlyDictionary<string, string> _addresses = ExternalSystems.AddressesByActivity(plugins);
 
         public DiagramFacts For(WorkflowIr document)
         {
             Guid id = document.Identity.WorkflowId;
             // The short verdict, because the header note is read at a glance; the caveat behind it is in the guide.
-            return new DiagramFacts(Role(id), Family(id), UsageStage.ShortVerdict(document.Identity, _usage) is { Length: > 0 } verdict ? verdict : null,
+            return new DiagramFacts(Role(id), UsageStage.ShortVerdict(document.Identity, _usage) is { Length: > 0 } verdict ? verdict : null,
                 _drifted.Contains(id), Called(document));
         }
 
@@ -135,18 +116,6 @@ public static class BpmnStage
                 ? "giriş noktası — bunu başka bir iş akışı çağırmıyor"
                 : string.Create(CultureInfo.InvariantCulture, $"yapı taşı — {callers} iş akışı bunu çağırıyor, tek başına taşınmaz");
             return children == 0 ? role : role + string.Create(CultureInfo.InvariantCulture, $"; kendisi {children} alt akış çağırıyor");
-        }
-
-        /// <summary>Whether someone is about to redesign the same process several times over.</summary>
-        private string? Family(Guid id)
-        {
-            if (!_familyOf.TryGetValue(id, out WorkflowCluster? cluster))
-            {
-                return null;
-            }
-            string medoid = _names.GetValueOrDefault(cluster.Medoid, cluster.ClusterId);
-            return string.Create(CultureInfo.InvariantCulture,
-                $"\"{medoid}\" ailesinden {cluster.Members.Count} benzer akıştan biri — hepsini birlikte ele alın (aileler.xlsx)");
         }
     }
 }

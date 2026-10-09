@@ -23,8 +23,6 @@ public static class RunStages
     public const string Bpmn = "bpmn";
 
     public const string StageMaps = "aşama akışları";
-    public const string Similarity = "benzerlik";
-    public const string Consolidation = "birleştirme";
     public const string MigrationPlan = "taşıma planı";
 
     public static string Import(string fileName)

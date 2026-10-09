@@ -97,8 +97,6 @@ public sealed class MigrationPlanTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.True(code == ExitCode.Success, console);
-        Workbook families = Workbook.Open(Path.Combine(runRoot, "raporlar", "aileler.xlsx"));
-        Assert.DoesNotContain(families.Rows("Aileler"), row => row.Contains("Poliçe İptal Süreci 6"));
 
         // It leaves the plan for its counterpart book, with the reason beside it, and keeps its diagram: nothing
         // disappears silently, and nobody has to filter the plan to find the work that is actually theirs.
@@ -112,8 +110,6 @@ public sealed class MigrationPlanTests
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
         Assert.All(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— uygun", link.GetString(), StringComparison.Ordinal));
-        Assert.Contains(manifest.RootElement.GetProperty("countChain").EnumerateArray(),
-            link => link.GetString()!.Contains("ürünle gelen", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -153,14 +149,15 @@ public sealed class MigrationPlanTests
     {
         Crm.Ir.Model.WorkflowIr ir = BpmnEmissionTests.IrFor("condition-update-stop.xaml");
         DiagramFacts facts = new("yapı taşı — 3 iş akışı bunu çağırıyor, tek başına taşınmaz",
-            "\"Poliçe İptal\" ailesinden 4 benzer akıştan biri — hepsini birlikte ele alın (aileler.xlsx)",
             "Kullanılıyor: son kayıtlı çalışma 2026-09-20 (sistem işi)", RunningCopyDiffers: true);
 
         XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(ir, null, facts), "test");
 
         string note = xml.Descendants(BpmnSerializer.Model + "textAnnotation").Single().Element(BpmnSerializer.Model + "text")!.Value;
         Assert.Contains("Rol: yapı taşı — 3 iş akışı bunu çağırıyor", note, StringComparison.Ordinal);
-        Assert.Contains("Aile: \"Poliçe İptal\" ailesinden 4 benzer akıştan biri", note, StringComparison.Ordinal);
+        // Families were grouping by resemblance, and answered the wrong question (maintainer, 2026-10-09): how a
+        // workflow is used is in the stage that fires it. No diagram names one any more.
+        Assert.DoesNotContain("Aile", note, StringComparison.Ordinal);
         Assert.Contains("Kullanım: Kullanılıyor: son kayıtlı çalışma 2026-09-20", note, StringComparison.Ordinal);
         Assert.Contains("UYARI: CRM'de çalışan kopya bu tanımdan farklı", note, StringComparison.Ordinal);
 

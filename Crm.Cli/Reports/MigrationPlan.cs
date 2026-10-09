@@ -1,14 +1,13 @@
 using System.Globalization;
 using Crm.Cli.Stages;
 using Crm.Ir.Model;
-using Crm.Similarity;
 
 namespace Crm.Cli.Reports;
 
 /// <summary>
 /// The migration plan and its counterpart, the out-of-scope list. One row per workflow, with everything an analyst
-/// needs to plan the rebuild in another product — what it is, what it touches, who calls it, which family it belongs
-/// to, whether it is known to run, and how much of it the parser could not read. What is not this company's to
+/// needs to plan the rebuild in another product — what it is, what it touches, who calls it, whether it is known
+/// to run, and how much of it the parser could not read. What is not this company's to
 /// rebuild goes into the second book instead, so nobody has to filter the first one to find the real work.
 /// </summary>
 public static class MigrationPlan
@@ -18,14 +17,12 @@ public static class MigrationPlan
     private const string TestNamedReason = "adı deneme gibi ve hiç kayıtlı çalışması yok";
 
     /// <summary>The work itself: everything that is this company's to rebuild.</summary>
-    public static Sheet Build(RunState state, IReadOnlyList<WorkflowIr> documents, SimilarityResult? similarity, UsageEvidence? usage)
+    public static Sheet Build(RunState state, IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage)
     {
-        Rows rows = new(state, documents, similarity, usage);
+        Rows rows = new(state, documents, usage);
         // Column order is the order an analyst asks the questions in while redrawing a process: what is it, what
-        // starts it, how big is it, does it span time, does it stand alone, is it a duplicate, is it alive, how much
-        // of the drawing can I trust, what does it drag along with it.
-        // No aile, aile_rolu or birlesik_dosya: the first delivery is the original diagrams only (maintainer,
-        // 2026-10-02), and a column naming a workbook and a folder the reader was not given sends them looking.
+        // starts it, how big is it, does it span time, does it stand alone, is it alive, how much of the drawing can I
+        // trust, what does it drag along with it.
         Sheet sheet = new(SheetNames.Plan, "is_akisi", "kategori", "birincil_varlik", "tetikleyici", "adim", "bekleme_var",
             "rol", "kullanim", "son_kayitli_calisma", "okunamayan_adim",
             "ozel_etkinlikler", "baslattigi_is_akisi", "paylasilan_alan", "yazdigi_varliklar",
@@ -152,33 +149,20 @@ public static class MigrationPlan
         private readonly RunState _state;
         private readonly UsageEvidence? _usage;
         private readonly CallGraph _calls;
-        private readonly Dictionary<Guid, WorkflowCluster> _familyOf = [];
-        private readonly Dictionary<Guid, string> _names;
         private readonly IReadOnlyDictionary<Guid, int> _sharedFields;
         private readonly IReadOnlyDictionary<Guid, int> _starts;
 
-        public Rows(RunState state, IReadOnlyList<WorkflowIr> documents, SimilarityResult? similarity, UsageEvidence? usage)
+        public Rows(RunState state, IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage)
         {
             _state = state;
             _usage = usage;
             _calls = CallGraph.Build(documents);
-            foreach (WorkflowCluster cluster in similarity?.Clusters ?? [])
-            {
-                foreach (ClusterMember member in cluster.Members)
-                {
-                    _familyOf[member.WorkflowId] = cluster;
-                }
-            }
-            // A family is named after the workflow the analysts start from, not after its internal cluster id.
-            _names = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity.Name);
             (_sharedFields, _starts) = DataFootprint.PerWorkflow(documents);
         }
 
         public void Plan(Sheet sheet, WorkflowIr document)
         {
             WorkflowIdentity identity = document.Identity;
-            WorkflowCluster? family = _familyOf.GetValueOrDefault(identity.WorkflowId);
-            bool inFamily = family is not null && family.Members.Count > 1;
             sheet.Row(
                 identity.Name,
                 identity.Category,
@@ -187,8 +171,6 @@ public static class MigrationPlan
                 CountSteps(document.Steps),
                 Waits(document.Steps),
                 _calls.RoleOf(identity.WorkflowId),
-                inFamily ? _names.GetValueOrDefault(family!.Medoid, family.ClusterId) : "",
-                inFamily ? family!.Medoid == identity.WorkflowId ? "başlangıç noktası" : "üye" : "",
                 UsageStage.ShortVerdict(identity, _usage),
                 LastRun(_usage, identity),
                 _state.UnmappedSteps.GetValueOrDefault(identity.WorkflowId),
@@ -199,7 +181,6 @@ public static class MigrationPlan
                 identity.Mode,
                 _state.SensitiveWorkflows.Contains(identity.WorkflowId),
                 _state.BpmnFiles.TryGetValue(identity.WorkflowId, out string? file) ? file + ".bpmn" : "",
-                inFamily && _state.CombinedFiles.TryGetValue(family!.ClusterId, out string? combined) ? combined + ".bpmn" : "",
                 identity.WorkflowId);
         }
     }

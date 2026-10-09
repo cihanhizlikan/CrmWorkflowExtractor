@@ -13,8 +13,6 @@ public static class SheetNames
     public const string Plan = "Taşıma planı";
     public const string Excluded = "Kapsam dışı";
     public const string CallGraph = "Çağrı ağacı";
-    public const string Families = "Aileler";
-    public const string Pairs = "Yakın çiftler";
     public const string DataFootprint = "Veri ayak izi";
     public const string ExternalDependencies = "Dış bağımlılıklar";
     public const string Addresses = "Adresler";
@@ -23,7 +21,6 @@ public static class SheetNames
     public const string Trees = "Süreç ağaçları";
     public const string Unmapped = "Okunamayan yapılar";
     public const string Drift = "Sapma";
-    public const string Consolidation = "Birleştirme";
     public const string Cascades = "Tetikleme zincirleri";
     public const string RunRoles = "Çalıştırma yetkisi";
     public const string RunAuthority = "Kim çalıştırabilir";
@@ -62,8 +59,25 @@ public sealed class Sheet(string name, params string[] headers)
             : string.Join(" | ", all.Take(most)) + string.Create(CultureInfo.InvariantCulture, $" | …ve {all.Count - most} tane daha");
     }
 
+    /// <summary>
+    /// One row, which must have exactly one value per column.
+    ///
+    /// <para>
+    /// It used to take any number. On 2026-10-02 three columns were removed from the plan's header and their three
+    /// values were left in the row, and every column of the delivered plan after <c>rol</c> sat two to the right of
+    /// its name. Nothing failed: the values were mostly empty, the writer leaves an empty cell out, and the test
+    /// reader of the day counted cells instead of reading their references, which shifted them back. A row that
+    /// does not fit its header is a programming error, and it now stops the run where it happens rather than reaching
+    /// an analyst's desk as a sheet that reads plausibly and means something else.
+    /// </para>
+    /// </summary>
     public void Row(params object?[] fields)
     {
+        if (fields.Length != Headers.Count)
+        {
+            throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture,
+                $"'{Name}': a row of {fields.Length} values under {Headers.Count} columns."));
+        }
         _rows.Add(fields);
     }
 

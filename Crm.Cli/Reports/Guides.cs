@@ -103,31 +103,6 @@ public static class Guides
         return sheet;
     }
 
-    public static Sheet Families(int families, int combined, int notCombined)
-    {
-        Sheet sheet = Empty();
-        sheet.Row("Bu kitap ne işe yarar", "Hangi iş akışlarının aslında aynı işi yaptığına karar vermenize yarar. "
-            + "Tek kararı siz verirsiniz: bu akışlar yeni üründe tek bir süreç mi olacak?");
-        sheet.Row("Sayfa sırası", "Aileler (kimler bir arada) → Birleştirme (ailenin tek modeli) → Yakın çiftler (aile olmayan ama benzeyenler)");
-        sheet.Row("Nasıl kullanılır",
-            "Aileler sayfasında bir aileyi seçin, üyelerin diyagramlarını ve ailenin birleşik modelini yan yana açın, "
-            + "aynı işi yapıp yapmadıklarına karar verin ve kararınızı karar sütununa yazın. Araç yalnızca benzerlik ölçer.");
-        sheet.Row("aile", "Ailenin adı, ailenin başlangıç noktası olan iş akışıdır: incelemeye o akıştan başlayın.");
-        sheet.Row("aile_rolu", "\"başlangıç noktası\" ailenin en merkezdeki üyesi; diğerlerini ona göre karşılaştırın.");
-        sheet.Row("baslangica_benzerlik", "Üyenin başlangıç noktasına benzerliği (0–1). Düşük olanlar aileye en zayıf bağlı üyelerdir: önce onları sorgulayın.");
-        sheet.Row("zayif_tutarlilik", "evet ise aile gevşek: muhtemelen tek bir süreç değildir, ayırmayı düşünün.");
-        sheet.Row("birincil_varlik · kategori", "Farklı varlıklar üzerinde çalışan iki akış nadiren aynı süreçtir. Karar verirken buna bakın.");
-        sheet.Row("son_kayitli_calisma", "Hangi üyenin canlı olduğu. Birleştirmede canlı olanı esas alın.");
-        sheet.Row("karar", "Sizin doldurmanız için boş bırakıldı: birleşsin / ayrı kalsın / incelenecek.");
-        sheet.Row("Birleştirme sayfası", "Ailenin birleşik modeli ve üyeleri. cesitleme_sayisi, üyelerin birbirinden ayrıldığı nokta sayısıdır: "
-            + "sıfırsa üyeler aynı işi yapıyor, büyüdükçe birleştirme tartışmalıdır. birlesik_dosya ve uye_bpmn açılacak dosyalardır.");
-        sheet.Row("Yakın çiftler sayfası", "Aile OLMAMIŞ ama karara değer çiftler: eşiğe yakın kalanlar ve \"aynı yapı, farklı ad\" olanlar — "
-            + "yani birinin kopyalanıp yeniden adlandırılmış olması muhtemel olanlar. Her karşılaştırmanın puanı değil, yalnızca bunlar listelenir.");
-        sheet.Row("Bu çalıştırma", string.Create(CultureInfo.InvariantCulture,
-            $"2+ üyeli {families} aile · {combined} birleştirildi · {notCombined} birleştirilmedi"));
-        return sheet;
-    }
-
     public static Sheet Data(int fields, int sharedFields, int cascades, int pairs)
     {
         Sheet sheet = Empty();

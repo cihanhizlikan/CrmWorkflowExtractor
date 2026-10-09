@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Text;
 using Crm.Extract.Inventory;
 using Crm.Extract.Runs;
-using Crm.Similarity;
 
 namespace Crm.Cli.Reports;
 
@@ -25,7 +24,6 @@ public static class RunReport
         text.AppendLine();
 
         AppendInventory(text, state);
-        AppendFamilies(text, state);
 
         AppendUsage(text, state);
 
@@ -34,8 +32,7 @@ public static class RunReport
             $"Sistem analisti `{Name(RunPaths.AnalystGuide)}` dosyasından başlar: dosyaların hangi sırayla açılacağını ve bir iş akışının adım adım nasıl çözümleneceğini anlatır.");
         text.AppendLine("Her kitabın ilk sayfası **Nasıl okunur**: sütunlar, uyarılar ve bu çalıştırmanın sayıları oradadır.").AppendLine();
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.PlanWorkbook)}` — **işin kendisi.** Sayfalar: {SheetNames.Stages} ({Count(state, "caseStages.active")} etkin aşama; {Count(state, "stageMaps.written")} aşama akışı `{RunPaths.StageMaps}/` altında) · {SheetNames.Plan} (taşınacak her iş akışı için bir satır) · {SheetNames.CallGraph} · {SheetNames.Trees} · {SheetNames.Unmapped} ({Count(state, "ir.workflowsWithUnmapped")} iş akışı) · {SheetNames.Drift} (çalışan kopyası farklı {Count(state, "drift.structureDiffers")} tanım).");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.OutOfScopeWorkbook)}` — **planın dışında kalanlar:** {Count(state, "plan.excluded")} iş akışı ({Count(state, "usage.drafts")} taslak, {Count(state, "clusters.suppliedHeldApart")} ürünle gelen, kalanı adı deneme gibi olup hiç çalışmamış olanlar). Plan sayfasını süzmeye gerek yok.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.FamilyWorkbook)}` — **hangileri aynı.** Sayfalar: {SheetNames.Families} · {SheetNames.Consolidation} ({Count(state, "consolidation.workflowsCombined")} iş akışını kapsayan {Count(state, "consolidation.combined")} aile birleştirildi, {Count(state, "consolidation.skipped")} birleştirilmedi) · {SheetNames.Pairs}.");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.OutOfScopeWorkbook)}` — **planın dışında kalanlar:** {Count(state, "plan.excluded")} iş akışı ({Count(state, "usage.drafts")} taslak, {Count(state, "plan.supplied")} ürünle gelen, kalanı adı deneme gibi olup hiç çalışmamış olanlar). Plan sayfasını süzmeye gerek yok.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.DataWorkbook)}` — **ne neye dokunuyor.** Birden fazla iş akışının yazdığı {Count(state, "data.sharedFields")} alan; {Count(state, "data.cascadePairs")} çift arasında {Count(state, "data.cascades")} tetikleme zinciri.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.ExternalSystemsWorkbook)}` — **CRM dışına ne uzanıyor.** {Count(state, "external.activities")} özel etkinlik; iş akışlarının geçirdiği {Count(state, "external.addresses")} farklı adres.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.RunAuthorityWorkbook)}` — **kim başlatır, kimin yetkisiyle çalışır.** Elle çalıştırma yetkisini taşıyan {Count(state, "roles.canRun")} güvenlik rolü; plandaki {Count(state, "roles.onDemand")} süreç elle başlatılabiliyor.");
@@ -112,29 +109,6 @@ public static class RunReport
             text.AppendLine(CultureInfo.InvariantCulture, $"| {category.Key} | {string.Join(" | ", cells)} | {category.Count()} |");
         }
         text.AppendLine().AppendLine("Yalnızca tanımlar; etkinleştirme kayıtları tanımın kopyasıdır ve yukarıdaki zincirde sayılır.").AppendLine();
-    }
-
-    private static void AppendFamilies(StringBuilder text, RunState state)
-    {
-        if (state.Similarity is not SimilarityResult similarity)
-        {
-            return;
-        }
-        text.AppendLine("## Aileler").AppendLine();
-        text.AppendLine("| Aile büyüklüğü | Aile sayısı |").AppendLine("|---:|---:|");
-        foreach (IGrouping<int, WorkflowCluster> size in similarity.Clusters.GroupBy(cluster => cluster.Members.Count).OrderByDescending(group => group.Key))
-        {
-            text.AppendLine(CultureInfo.InvariantCulture, $"| {size.Key} | {size.Count()} |");
-        }
-        text.AppendLine().AppendLine("### En büyük 20 aile").AppendLine();
-        text.AppendLine("| Aile | Üye | Önerilen başlangıç noktası | En zayıf iç benzerlik | Zincir derinliği | Tutarlılık |").AppendLine("|---|---:|---|---:|---:|---|");
-        foreach (WorkflowCluster cluster in similarity.Clusters.Where(cluster => cluster.Members.Count > 1).Take(20))
-        {
-            string medoid = cluster.Members.First(member => member.WorkflowId == cluster.Medoid).Name;
-            text.AppendLine(CultureInfo.InvariantCulture,
-                $"| `{cluster.ClusterId}` | {cluster.Members.Count} | {medoid} | {cluster.MinimumInternalScore:0.00} | {cluster.ChainDepth} | {(cluster.LowCohesion ? "**zayıf — önce ayırın**" : "uygun")} |");
-        }
-        text.AppendLine();
     }
 
     private static int Count(RunState state, string key)

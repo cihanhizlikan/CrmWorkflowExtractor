@@ -55,9 +55,6 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>How many steps of each workflow the parser did not understand.</summary>
     public IReadOnlyDictionary<Guid, int> UnmappedSteps { get; set; } = new Dictionary<Guid, int>();
 
-    /// <summary>The combined BPMN file written for each family, by cluster id.</summary>
-    public IReadOnlyDictionary<string, string> CombinedFiles { get; set; } = new Dictionary<string, string>();
-
     /// <summary>The case stages read from the export, active and not: the stage sheet and the stage maps are drawn from these.</summary>
     public IReadOnlyList<Crm.Ir.Model.CaseStage> CaseStages { get; set; } = [];
 
@@ -87,8 +84,6 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
 
     /// <summary>Every final API response in order, written verbatim to raw/http/ at the end of the run.</summary>
     public List<CrmResponse> Responses { get; } = [];
-
-    public Crm.Similarity.SimilarityResult? Similarity { get; set; }
 
     public IReadOnlyList<Crm.Cli.Reports.CountLink> CountChain { get; set; } = [];
 

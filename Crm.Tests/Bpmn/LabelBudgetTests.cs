@@ -35,7 +35,7 @@ public sealed class LabelBudgetTests
         Dictionary<string, string> addresses = new(StringComparer.Ordinal) { ["Partner.Crm.Activities.NotifyPolicyService"] = many };
 
         BpmnProcess process = BpmnBuilder.Build(Workflow(Custom("Partner.Crm.Activities.NotifyPolicyService, Partner.Crm")),
-            null, new DiagramFacts(null, null, null, false, addresses));
+            null, new DiagramFacts(null, null, false, addresses));
 
         Assert.All(process.Graph.Nodes, node => Assert.True(node.Name.Length <= BpmnBuilder.MaxLabel,
             $"'{node.Name[..Math.Min(80, node.Name.Length)]}…' is {node.Name.Length} characters"));

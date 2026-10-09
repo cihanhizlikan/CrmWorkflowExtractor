@@ -16,8 +16,8 @@ namespace Crm.Cli.Reports;
 /// </para>
 ///
 /// <para>
-/// It says nothing about combined models or families: the first delivery is the original diagrams only
-/// (maintainer, 2026-10-02), and a guide that named what the reader was not given would send them looking for it.
+/// It names only what the reader is given, because a guide that named anything else would send them looking for
+/// it — the delivery list is fixed by <c>DeliveryTests</c> and this guide's own tests.
 /// </para>
 /// </summary>
 public static class AnalystGuide

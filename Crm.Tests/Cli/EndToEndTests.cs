@@ -22,18 +22,24 @@ public sealed class EndToEndTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(server, output);
 
         Assert.True(code == ExitCode.Success, console);
-        // Two pages and four workbooks: what was moved into a workbook is not written as a file beside it.
+        // Two pages and the workbooks: what was moved into a workbook is not written as a file beside it.
         foreach (string file in new[] { "manifest.json", "ham/is-akislari.jsonl", "ham/xaml/dizin.json", "raporlar/rapor.md",
-            "raporlar/hassas-degerler.md", "raporlar/tasima-plani.xlsx", "raporlar/aileler.xlsx", "raporlar/veri-analizi.xlsx",
-            "raporlar/dis-sistemler.xlsx", "aileler/aileler.json", "elle-inceleme/dizin.md", "gunlukler/calistirma.log" })
+            "raporlar/hassas-degerler.md", "raporlar/tasima-plani.xlsx", "raporlar/kapsam-disi.xlsx", "raporlar/veri-analizi.xlsx",
+            "raporlar/dis-sistemler.xlsx", "elle-inceleme/dizin.md", "gunlukler/calistirma.log" })
         {
             Assert.True(File.Exists(Path.Combine(runRoot, file)), file + " is missing");
+        }
+        // Grouping workflows by resemblance answered the wrong question and is gone (maintainer, 2026-10-09): how a
+        // workflow is used is in the stage that fires it, and that is drawn in bpmn/asama-akislari/ instead.
+        foreach (string gone in new[] { "raporlar/aileler.xlsx", "aileler", "birlesik" })
+        {
+            Assert.False(File.Exists(Path.Combine(runRoot, gone)) || Directory.Exists(Path.Combine(runRoot, gone)), gone + " is still written");
         }
         Assert.Equal(5, Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Length);
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
         List<string> chain = [.. manifest.RootElement.GetProperty("countChain").EnumerateArray().Select(link => link.GetString()!)];
-        Assert.Equal(["kayıtlar", "sınıflandırma", "xaml", "ara model", "bpmn", "aileler"], chain.Select(link => link[..link.IndexOf(':', StringComparison.Ordinal)]));
+        Assert.Equal(["kayıtlar", "sınıflandırma", "xaml", "ara model", "bpmn"], chain.Select(link => link[..link.IndexOf(':', StringComparison.Ordinal)]));
         Assert.All(chain, link => Assert.EndsWith("— uygun", link, StringComparison.Ordinal));
         Assert.Contains("Sayım zinciri (§8):", console, StringComparison.Ordinal);
         Assert.Contains("ara model: tanım xaml dosyası 6 = ara model + elle inceleme + ayrıştırma hatası + karşılıksız xaml 6 — uygun", console, StringComparison.Ordinal);

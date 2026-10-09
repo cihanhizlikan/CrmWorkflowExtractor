@@ -1,7 +1,7 @@
 # Structure
 
 Folder, project and root namespace are the same name. Dependencies point one way: `Cli` → everything;
-`Bpmn` and `Similarity` → `Ir`; `Consolidation` → `Ir`, `Similarity`; `Ir` → nothing of ours; `Extract` → nothing of ours.
+`Bpmn` → `Ir`; `Ir` → nothing of ours; `Extract` → nothing of ours.
 The stages after retrieval read only the run folder, never the network.
 
 | Project | Owns | Network |
@@ -9,8 +9,6 @@ The stages after retrieval read only the run folder, never the network.
 | `Crm.Extract` | `CrmHttpClient` (the only network type), credentials, paging, preflight (WhoAmI, privileges, `$count`), inventory and XAML retrieval, raw persistence, run folder + manifest | **yes — GET only** |
 | `Crm.Ir` | XAML parsing, IR types, metadata resolution, `TurkishFold`, `HtmlEntities`, `DocumentText`, coverage, sensitive-literal scan, case stages (`CaseStageReader`, `CaseStageRules`) | no |
 | `Crm.Bpmn` | IR → BPMN 2.0, DI layout, embedded OMG XSD validation, stage maps (`StageMap`) | no |
-| `Crm.Similarity` | step signatures, structural + lexical scores, union-find clustering, cohesion | no |
-| `Crm.Consolidation` | combining a family into one workflow (prefix union with Variant splits), provenance reconciliation | no |
 | `Crm.Cli` | `Program.Main`, configuration binding, stage orchestration, reports, exit codes | via `Crm.Extract` |
 | `Crm.Tests` | xUnit v3 over recorded fixtures (`Crm.Tests/Fixtures/`) — never a live server | no |
 | `tools/` | `crm-browser-export.js` and `crm-usage-export.js` (run on a CRM page in the user's browser, GET only) and the bookmarklet pages generated from them | the user's browser |
@@ -19,17 +17,16 @@ The stages after retrieval read only the run folder, never the network.
 
 ```
 out/runs/<yyyyMMdd-HHmmss>/   manifest.json (written LAST — its presence seals the run)
-  ham/  ara-model/  aileler/  birlesik/  elle-inceleme/  raporlar/  gunlukler/
+  ham/  ara-model/  elle-inceleme/  raporlar/  gunlukler/
   bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn
   bpmn/asama-akislari/<talep konusu>.bpmn   one per active primary stage, workflows embedded
-  raporlar/  nasil-kullanilir.docx · rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · kapsam-disi.xlsx · aileler.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx · calistirma-yetkisi.xlsx
+  raporlar/  nasil-kullanilir.docx · rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · kapsam-disi.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx · calistirma-yetkisi.xlsx
 out/cache/metadata/           shared across runs, copied into each run's ham/ust-veri/
 ```
 
-**Every table is a sheet in a workbook, and no table is also a file.** Six workbooks, one per question the reader
+**Every table is a sheet in a workbook, and no table is also a file.** Five workbooks, one per question the reader
 has: `tasima-plani.xlsx` (what the work is), `kapsam-disi.xlsx` (what is NOT the work: drafts, product-supplied and
-never-run test names, so the plan itself needs no filtering), `aileler.xlsx` (which of these are the same),
-`veri-analizi.xlsx` (what touches what), `dis-sistemler.xlsx` (what reaches outside CRM),
+never-run test names, so the plan itself needs no filtering), `veri-analizi.xlsx` (what touches what), `dis-sistemler.xlsx` (what reaches outside CRM),
 `calistirma-yetkisi.xlsx` (who may start one by hand, and whose identity it then runs under). Each opens with a **Nasıl okunur** sheet
 carrying the columns, the caveats and that run's numbers, so a reader who has the file needs nothing beside it.
 **The package opens with a WORD DOCUMENT.** `nasil-kullanilir.docx` is the one document an analyst who
@@ -82,25 +79,31 @@ under `.json.gz`. Every stage of the write announces itself, because the failure
 workbooks a migration needs (`tasima-plani`, `veri-analizi`, `dis-sistemler`) and `bpmn/`.
 `calistirma-yetkisi.xlsx` is INTERNAL (maintainer, 2026-10-08): it names security roles and counts the people
 holding each, which is the estate's own business and not a migrator's.
-The first delivery is the ORIGINAL diagrams only (maintainer, 2026-10-02): `aileler.xlsx`, `birlesik/` and
-`aileler/` are still produced and still read by Enterprise Architecture, as are the evidence, `rapor.md`, the
-restricted findings, `kapsam-disi.xlsx` and `calistirma-yetkisi.xlsx` — but none is handed over, so a consolidation nobody has
-agreed to cannot be mistaken for the plan. A delivered file that names one of those sends a reader looking for
+The evidence, `rapor.md`, the restricted findings, `kapsam-disi.xlsx` and `calistirma-yetkisi.xlsx` stay with
+Enterprise Architecture. A delivered file that names one of those sends a reader looking for
 what they do not have, so none does — `DeliveryTests` opens every delivered workbook, and `AnalystGuideTests`
 the guide, and both fail on any text that mentions something left behind.
 
 **A column exists only if a line can be written in the workbook's guide saying what a reader does differently
 because of it**, and a page exists only if its rows are things to act on: the call pages carry only workflows that
-are part of a call, Sapma only the definitions whose running copy really differs, Yakın çiftler only the pairs that
-nearly became a family or carry one structure under two names. The diagrams are emitted AFTER grouping, because
-each one's header note carries what the rest of the run learned about it — role, family, usage, drift.
+are part of a call, Sapma only the definitions whose running copy really differs. Each workflow diagram's header
+note carries what the rest of the run learned about it — role, usage, drift.
+
+**A row has exactly one value per column** — `Sheet.Row` refuses anything else and stops the run. It used to take
+any number: on 2026-10-02 three columns left the plan's header and their three values stayed in the row, and from
+then until 2026-10-09 every delivered `Taşıma planı` had each column after `rol` two places right of its name.
+Nothing failed, for three reasons that all had to hold: the values were mostly empty, the writer omits an empty
+cell, and the test reader of the day placed cells by counting rather than by their references — which shifted them
+back. The reader now places cells by reference, and the plan's own test asserts values UNDER THEIR HEADERS, not
+"somewhere in the row", which is the assertion that let it through.
 
 **A case moves through STAGES, and the workflows are steps of that process** (chief analyst, 2026-10-09). In this
 estate the stages are not a Business Process Flow: they are records of Pensionsoft's own entity `ps_step`, each
 naming the stage that follows on success, failure and cancellation (`ps_nextstepfor{success,unsuccess,cancel}id`),
 the workflow fired on each (`ps_wffor…id`), the SMS sent, and the case subcategory it belongs to (`ps_categoryid`);
 `ps_primarystep` marks where a case of that subcategory starts. WHEN a workflow runs is therefore data, held in no
-workflow's XAML — which is why grouping workflows by similarity answered the wrong question. The
+workflow's XAML — which is why grouping workflows by similarity answered the wrong question, and similarity and
+consolidation were removed on 2026-10-09 (`aileler.xlsx`, `aileler/`, `birlesik/`, `StepKind.Variant`). The
 names were read off this organisation's metadata, never guessed: a console snippet found the entity by the
 signature of its fields (labelled "…Sonrası…"), because the system's own BPF stage entity may be called "Aşama" too.
 
@@ -211,5 +214,5 @@ run is not resumed in the prototype — the next run starts fresh.
 
 ## Milestones
 M1 inventory + privilege/count reconciliation · M2 XAML retrieval, resumable, hashed · M3 parser + IR + coverage ·
-M4 BPMN + DI + XSD · M5 similarity + clusters.csv · M5b consolidation (set union per family, combined IR + BPMN,
-`Crm.Consolidation` project) · M6 reports + end-to-end. Status lives in `plan.md`.
+M4 BPMN + DI + XSD · M5 similarity and M5b consolidation (both REMOVED 2026-10-09: the stage maps answer what
+they were for) · M6 reports + end-to-end · M7 case stages and stage maps. Status lives in `plan.md`.

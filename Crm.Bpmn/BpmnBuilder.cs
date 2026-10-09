@@ -8,12 +8,12 @@ namespace Crm.Bpmn;
 
 /// <summary>
 /// What the rest of the run knows about a workflow and the diagram cannot work out for itself: what calls it,
-/// which family it belongs to, whether it is known to run, and whether CRM's running copy differs from this
+/// whether it is known to run, and whether CRM's running copy differs from this
 /// definition, and per custom activity type the addresses written inside the assembly that type comes from —
 /// what the code behind a step reaches out to, which is the one thing no workflow record carries. Each is a
 /// finished sentence for the header note; how to say it is the caller's business.
 /// </summary>
-public sealed record DiagramFacts(string? Role, string? Family, string? Usage, bool RunningCopyDiffers,
+public sealed record DiagramFacts(string? Role, string? Usage, bool RunningCopyDiffers,
     IReadOnlyDictionary<string, string>? ActivityAddresses = null);
 
 /// <summary>A laid-out process ready to serialize.</summary>
@@ -27,24 +27,21 @@ public sealed record BpmnProcess(string ProcessId, string Name, string Documenta
 }
 
 /// <summary>
-/// IR → BPMN flow graph, per the §6.1 mapping. Element ids derive from the id base (the workflow id, or a cluster
-/// id for a combined workflow) plus the IR step path — never a counter — so unchanged input gives identical files.
+/// IR → BPMN flow graph, per the §6.1 mapping. Element ids derive from the workflow id plus the IR step path —
+/// never a counter — so unchanged input gives identical files.
 /// </summary>
 public sealed partial class BpmnBuilder
 {
     private readonly FlowGraph _graph = new();
     private readonly string _idBase;
     private readonly string _workflowName;
-    private readonly IReadOnlyDictionary<Guid, string> _memberNames;
     private readonly IReadOnlyDictionary<Guid, string> _workflowNames;
     private readonly IReadOnlyDictionary<string, string> _activityAddresses;
 
-    private BpmnBuilder(string idBase, string workflowName, IReadOnlyDictionary<Guid, string>? memberNames,
-        IReadOnlyDictionary<Guid, string>? workflowNames, DiagramFacts? facts)
+    private BpmnBuilder(string idBase, string workflowName, IReadOnlyDictionary<Guid, string>? workflowNames, DiagramFacts? facts)
     {
         _idBase = idBase;
         _workflowName = workflowName;
-        _memberNames = memberNames ?? new Dictionary<Guid, string>();
         _workflowNames = workflowNames ?? new Dictionary<Guid, string>();
         _activityAddresses = facts?.ActivityAddresses ?? new Dictionary<string, string>();
     }
@@ -56,17 +53,14 @@ public sealed partial class BpmnBuilder
 
     public static BpmnProcess Build(WorkflowIr ir, IReadOnlyDictionary<Guid, string>? workflowNames = null, DiagramFacts? facts = null)
     {
-        return Build(ProcessIdFor(ir.Identity.WorkflowId), ir.Identity.Name, ir, [new StepSource(ir.Identity.WorkflowId, "")], null, workflowNames, facts);
+        return Build(ProcessIdFor(ir.Identity.WorkflowId), ir.Identity.Name, ir, [new StepSource(ir.Identity.WorkflowId, "")], workflowNames, facts);
     }
 
-    /// <summary>
-    /// Builds from any IR; <paramref name="processId"/> also seeds every element id. For a combined workflow,
-    /// <paramref name="memberNames"/> names each source workflow in the documentation.
-    /// </summary>
-    public static BpmnProcess Build(string processId, string name, WorkflowIr ir, IReadOnlyList<StepSource> sources,
-        IReadOnlyDictionary<Guid, string>? memberNames = null, IReadOnlyDictionary<Guid, string>? workflowNames = null, DiagramFacts? facts = null)
+    /// <summary>Builds from an IR; <paramref name="processId"/> also seeds every element id.</summary>
+    private static BpmnProcess Build(string processId, string name, WorkflowIr ir, IReadOnlyList<StepSource> sources,
+        IReadOnlyDictionary<Guid, string>? workflowNames, DiagramFacts? facts)
     {
-        BpmnBuilder builder = new(processId[(processId.IndexOf('_', StringComparison.Ordinal) + 1)..], name, memberNames, workflowNames, facts);
+        BpmnBuilder builder = new(processId[(processId.IndexOf('_', StringComparison.Ordinal) + 1)..], name, workflowNames, facts);
         FlowNode start = builder._graph.Add(new FlowNode(builder.Id("start"), FlowNodeType.StartEvent, StartName(ir.Trigger))
         {
             Documentation = TriggerDocumentation(ir),
@@ -114,7 +108,6 @@ public sealed partial class BpmnBuilder
         {
             StepKind.Sequence => Sequence([.. step.Branches.SelectMany(branch => branch.Steps)]),
             StepKind.Condition => Split(step, FlowNodeType.ExclusiveGateway),
-            StepKind.Variant => Split(step, FlowNodeType.ExclusiveGateway),
             StepKind.WaitCondition => Wait(step),
             _ => new NodeBlock(_graph.Add(Task(step)))
         };
@@ -190,10 +183,6 @@ public sealed partial class BpmnBuilder
     /// </summary>
     private static string BranchLabel(StepNode step, Branch branch, bool asksTheComparison, string? shared, bool isDefault)
     {
-        if (step.Kind == StepKind.Variant)
-        {
-            return "Çeşitleme: " + branch.Label;
-        }
         if (branch.Predicate is not Predicate predicate)
         {
             return isDefault || branch.Label.Length == 0 ? Fallthrough(step) : branch.Label;
@@ -247,7 +236,7 @@ public sealed partial class BpmnBuilder
         {
             return AsksTheComparison(step) ? first.Text : Asked(first) + "?";
         }
-        return step.Kind == StepKind.Variant ? "Üyeler ayrışıyor" : "Koşul";
+        return "Koşul";
     }
 
     /// <summary>
@@ -365,7 +354,7 @@ public sealed partial class BpmnBuilder
             // The full condition, which the diamond has no room for and the branch's own arrow shows only once.
             text.Append(" Dal '").Append(branch.Label).Append("': ").Append(branch.Predicate!.Text).Append('.');
         }
-        text.Append(" Kaynak: ").Append(string.Join("; ", step.Sources.Select(source => $"{_memberNames.GetValueOrDefault(source.WorkflowId, _workflowName)} ({source.WorkflowId:D}) adım {source.Path}"))).Append('.');
+        text.Append(" Kaynak: ").Append(string.Join("; ", step.Sources.Select(source => $"{_workflowName} ({source.WorkflowId:D}) adım {source.Path}"))).Append('.');
         return text.ToString();
     }
 
@@ -390,7 +379,6 @@ public sealed partial class BpmnBuilder
             StepKind.UserInteraction => "Diyalog sayfası",
             StepKind.DataQuery => "Veri sorgulama",
             StepKind.FormAction => "Form eylemi",
-            StepKind.Variant => "Çeşitleme",
             _ => "Okunamayan yapı"
         };
     }
@@ -611,10 +599,6 @@ public sealed partial class BpmnBuilder
         if (facts?.Role is string role)
         {
             lines.Add("Rol: " + role);
-        }
-        if (facts?.Family is string family)
-        {
-            lines.Add("Aile: " + family);
         }
         if (facts?.Usage is string usage)
         {

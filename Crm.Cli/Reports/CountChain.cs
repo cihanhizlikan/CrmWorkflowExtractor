@@ -54,13 +54,6 @@ public static class CountChain
         {
             links.Add(new CountLink("bpmn", Get(counts, "ir.documents"), "ara model belgesi", Get(counts, "bpmn.written"), "bpmn dosyası"));
         }
-        if (counts.ContainsKey("clusters.total"))
-        {
-            links.Add(new CountLink("aileler", Get(counts, "ir.documents"), "ara model belgesi",
-                Get(counts, "clusters.members") + Get(counts, "clusters.draftsHeldApart") + Get(counts, "clusters.suppliedHeldApart")
-                    + Get(counts, "clusters.testNamedHeldApart"),
-                "aileye yerleşen + ayrı tutulan taslak + ürünle gelen + hiç çalışmamış deneme"));
-        }
         return links;
     }
 

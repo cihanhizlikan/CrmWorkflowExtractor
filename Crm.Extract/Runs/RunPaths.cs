@@ -18,8 +18,6 @@ public static class RunPaths
 
     /// <summary>One diagram per active primary stage: the process a case goes through, with its workflows inside.</summary>
     public const string StageMaps = Bpmn + "/asama-akislari";
-    public const string Families = "aileler";
-    public const string Combined = "birlesik";
     public const string ManualReview = "elle-inceleme";
     public const string Reports = "raporlar";
     public const string Logs = "gunlukler";
@@ -44,9 +42,6 @@ public static class RunPaths
     /// <summary>The planning workbook: the worksheet, usage, the call graph and the diagram index.</summary>
     public const string PlanWorkbook = Reports + "/tasima-plani.xlsx";
 
-    /// <summary>The grouping workbook: families, pair scores, drafts and what came with the product.</summary>
-    public const string FamilyWorkbook = Reports + "/aileler.xlsx";
-
     /// <summary>The plan's counterpart: what is not this company's to rebuild, so the plan itself needs no filtering.</summary>
     public const string OutOfScopeWorkbook = Reports + "/kapsam-disi.xlsx";
 
@@ -65,8 +60,6 @@ public static class RunPaths
 
 
 
-
-    public const string FamiliesJson = Families + "/aileler.json";
 
 
 

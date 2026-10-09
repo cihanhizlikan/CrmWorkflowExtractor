@@ -1190,3 +1190,30 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   map under `bpmn/asama-akislari/` and the Aşamalar sheet. **Pass:** the log prints "Case stages: N"; the map starts
   at the primary stage, the outcomes read olumlu/olumsuz/iptal, a workflow box can be entered (or shows as a named
   box where the viewer cannot drill); the sheet's first row is a primary stage and no row names a person.
+### Families and combined workflows removed; a plan that read wrong for a week (2026-10-09) — committed, awaiting merge
+- **Maintainer:** remove the families and combined-workflow steps — premature, built before anyone knew the
+  process lived in the stages. How and where workflows are used was always in the stages.
+- **Removed:** `Crm.Similarity` and `Crm.Consolidation` (both projects), their stages and tests, `aileler.xlsx`,
+  `aileler/`, `birlesik/`, the families line on every diagram's header note, the families section of `rapor.md`,
+  the families link of the count chain, the `Similarity` block of `appsettings.json`, `StepKind.Variant`,
+  `LiteralValue.Workflows`, the builder's member-name machinery and its public second overload, and
+  `BpmnFileNames.ForFamily`. Scope counts renamed from `clusters.*HeldApart` to `plan.supplied/drafts/testNamed`,
+  because nothing clusters any more — and the one reader of the old name, a line in `rapor.md`, was found by sweeping
+  for it after the build passed: it would have printed 0 silently.
+- **FOUND ON THE WAY — MY BUG, IN DELIVERED OUTPUT.** On 2026-10-02 I removed `aile`, `aile_rolu` and
+  `birlesik_dosya` from the plan's HEADER and left their three values in the ROW. `Sheet.Row` took any number of
+  values, so every delivered `Taşıma planı` since then has had each column after `rol` sitting two places right of
+  its name — `kullanim` empty, the usage verdict under `okunamayan_adim`, the BPMN path in a column with no header.
+  Any plan handed over between 2026-10-02 and this run must be regenerated.
+- **Why nothing caught it**, all three of which had to hold: the family cells were nearly always empty; the writer
+  leaves an empty cell out of the file; and the test reader placed cells by counting — which shifted them back into
+  line. That reader was corrected earlier today for an unrelated reason, but the plan's test asserted
+  `row.Contains(...)`, "somewhere in the row", so it still passed.
+- **Fixed three ways.** The values went with the removal. `Sheet.Row` now refuses a row that does not match its
+  header and stops the run — run against the code as it stood, it found exactly one offender in the whole tool:
+  "'Taşıma planı': a row of 21 values under 18 columns". And the usage test asserts the plan's values under their
+  own headers; confirmed by swapping two of them, which it now fails.
+- 388 tests pass (17 similarity and consolidation tests went with their code).
+- **Acceptance on the company network — Do:** reprocess. **Pass:** `raporlar/` has no `aileler.xlsx`, the run folder
+  has no `aileler/` or `birlesik/`, and in `Taşıma planı` every value sits under its own header — `kullanim` reads
+  like "çalışıyor · <tarih>", `bpmn_dosyasi` ends in `.bpmn`, `is_akisi_id` is a GUID.

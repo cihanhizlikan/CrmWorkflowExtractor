@@ -2,7 +2,6 @@ using Crm.Cli.Configuration;
 using Crm.Cli.Reports;
 using Crm.Extract.Runs;
 using Crm.Ir.Model;
-using Crm.Similarity;
 using Microsoft.Extensions.Logging;
 
 namespace Crm.Cli.Stages;
@@ -22,22 +21,18 @@ public static class OfflineStages
         state.Documents = documents;
         UsageStage.Summarize(state, documents, usage);
 
-        // What is not this company's to rebuild leaves the plan and every stage after it: a Draft, which cannot start
-        // a run; one CRM reports as part of a managed solution, which was shipped with the product; and one whose name
-        // reads like a test AND has no logged run. All three keep their IR and BPMN and are listed in their own book.
-        List<WorkflowIr> inScope = [.. MigrationPlan.InScope(documents, usage)];
-        state.Counts["clusters.suppliedHeldApart"] = documents.Count(document => document.Identity.IsManaged == true);
-        state.Counts["clusters.draftsHeldApart"] = documents.Count(document => document.Identity.IsManaged != true && document.Identity.State == UsageStage.DraftState);
-        state.Counts["plan.excluded"] = documents.Count - inScope.Count;
-        state.Counts["clusters.testNamedHeldApart"] = state.Counts["plan.excluded"]
-            - state.Counts["clusters.draftsHeldApart"] - state.Counts["clusters.suppliedHeldApart"];
-        SimilarityOptions similarity = settings.Similarity?.Value ?? new SimilarityOptions();
-        SimilarityResult families = await SimilarityStage.RunAsync(folder, state, inScope, usage, similarity, logger, token);
-        await BpmnStage.RunAsync(folder, state, documents, families, usage, logger, token);
+        // What is not this company's to rebuild leaves the plan: a Draft, which cannot start a run; one CRM reports
+        // as part of a managed solution, which was shipped with the product; and one whose name reads like a test AND
+        // has no logged run. All three keep their IR and BPMN and are listed in their own book.
+        int inScope = MigrationPlan.InScope(documents, usage).Count();
+        state.Counts["plan.supplied"] = documents.Count(document => document.Identity.IsManaged == true);
+        state.Counts["plan.drafts"] = documents.Count(document => document.Identity.IsManaged != true && document.Identity.State == UsageStage.DraftState);
+        state.Counts["plan.excluded"] = documents.Count - inScope;
+        state.Counts["plan.testNamed"] = state.Counts["plan.excluded"] - state.Counts["plan.drafts"] - state.Counts["plan.supplied"];
+        await BpmnStage.RunAsync(folder, state, documents, usage, logger, token);
         await StageMapStage.RunAsync(folder, state, documents, logger, token);
-        await ConsolidationStage.RunAsync(folder, state, inScope, families, logger, token);
 
-        await WriteAnalysisAsync(folder, state, documents, families, usage, settings.Run.Value.LogoFile, token);
+        await WriteAnalysisAsync(folder, state, documents, usage, settings.Run.Value.LogoFile, token);
     }
 
     /// <summary>
@@ -45,7 +40,7 @@ public static class OfflineStages
     /// the work is, which of these are the same, what touches what, and what reaches outside CRM.
     /// </summary>
     private static async Task WriteAnalysisAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents,
-        SimilarityResult families, UsageEvidence? usage, string logoFile, CancellationToken token)
+        UsageEvidence? usage, string logoFile, CancellationToken token)
     {
         CallGraph calls = CallGraph.Build(documents);
         HashSet<Guid> inPlan = [.. MigrationPlan.InScope(documents, usage).Select(document => document.Identity.WorkflowId)];
@@ -55,7 +50,7 @@ public static class OfflineStages
         {
             state.Sheets[SheetNames.Stages] = StageSheet.Build(state.CaseStages, state.StageMapFiles);
         }
-        state.Sheets[SheetNames.Plan] = MigrationPlan.Build(state, documents, families, usage);
+        state.Sheets[SheetNames.Plan] = MigrationPlan.Build(state, documents, usage);
         state.Sheets[SheetNames.Excluded] = MigrationPlan.BuildExcluded(state, documents, usage);
         state.Sheets[SheetNames.CallGraph] = calls.Build();
         state.Sheets[SheetNames.Trees] = calls.BuildTrees();
@@ -85,13 +80,8 @@ public static class OfflineStages
             [SheetNames.Guide, SheetNames.Stages, SheetNames.Plan, SheetNames.CallGraph, SheetNames.Trees, SheetNames.Drift, SheetNames.Unmapped], token);
 
         state.Sheets[SheetNames.Guide] = Guides.Excluded(Count(state, "plan.excluded"), Count(state, "usage.drafts"),
-            Count(state, "clusters.suppliedHeldApart"), documents.Count);
+            Count(state, "plan.supplied"), documents.Count);
         await WriteWorkbookAsync(folder, state, RunPaths.OutOfScopeWorkbook, [SheetNames.Guide, SheetNames.Excluded], token);
-
-        state.Sheets[SheetNames.Guide] = Guides.Families(Count(state, "clusters.families"), Count(state, "consolidation.combined"),
-            Count(state, "consolidation.skipped"));
-        await WriteWorkbookAsync(folder, state, RunPaths.FamilyWorkbook,
-            [SheetNames.Guide, SheetNames.Families, SheetNames.Consolidation, SheetNames.Pairs], token);
 
         state.Sheets[SheetNames.Guide] = Guides.Data(Count(state, "data.fields"), Count(state, "data.sharedFields"),
             Count(state, "data.cascades"), Count(state, "data.cascadePairs"));

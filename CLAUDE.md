@@ -1,8 +1,9 @@
 # CLAUDE.md — CRM Workflow Extractor
 
 Reads every process (workflow) definition from a Microsoft Dynamics CRM 8.2 on-premises organization over its
-Web API, parses the XAML into an intermediate representation, emits one BPMN 2.0 file per workflow, and proposes
-similarity families for Business Architects to consolidate. Every intermediate artifact is retained as evidence.
+Web API, parses the XAML into an intermediate representation, emits one BPMN 2.0 file per workflow, and draws one
+stage map per active primary case stage — the process a request goes through, with the workflows it fires embedded
+in it. Every intermediate artifact is retained as evidence.
 
 The requirement is the handout from Enterprise Architecture (2026-09-14); its decisions and the open questions are
 in @.claude/context/plan.md. Section numbers like "§2.4" in code comments refer to that handout.
@@ -12,12 +13,10 @@ in @.claude/context/plan.md. Section numbers like "§2.4" in code comments refer
   `BannedSymbols.txt` bans every other way to build a client or send a request (RS0030 is an error). Never
   suppress RS0030 anywhere except the one guarded call site in `CrmHttpClient`.
 - **No CRM SDK, no `Microsoft.Xrm.*`, no `System.Activities`.** Plain `HttpClient` + OData; XAML parsed as XML.
-- **The tool COMBINES similar workflows** (maintainer, 2026-09-14 — overrides the handout's "no automatic
-  consolidation" non-goal). Each family is merged by set union into one combined workflow, emitted as IR and BPMN.
-  The per-workflow BPMN files stay as the evidence against which a human checks that the right ones were combined
-  meaningfully. Every combined element carries the set of source workflows it came from.
-- **Non-goals:** no HOPEX, no writes to CRM (combining happens in the output only — nothing is deleted or changed
-  in CRM), no machine learning or external model calls, no Power Automate.
+- **The tool does NOT group or combine workflows** (maintainer, 2026-10-09 — reverses 2026-09-14). Grouping by
+  resemblance answered a question the analysts were not asking: how workflows are used together is DATA, held in
+  the case stages (`ps_step`) that fire them, and the stage maps draw it. Similarity and consolidation were removed.
+- **Non-goals:** no HOPEX, no writes to CRM, no machine learning or external model calls, no Power Automate.
 - **Verify with `dotnet build` / `dotnet test` yourself** — dotnet and git are on PATH. **This machine cannot reach
   the CRM server**: anything that needs it is stated as unverified, never reported as working.
 - **Never work directly on `main`.** A work package runs through `/wp-start` → work → `/wp-verify` → `/wp-finish`,

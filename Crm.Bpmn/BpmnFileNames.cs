@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using Crm.Ir.Text;
 
@@ -95,12 +94,5 @@ public static class BpmnFileNames
         }
         // Only an EXACT match is a device. "console" and "com10" are ordinary names and are left alone.
         return ReservedNames.Contains(slug) ? slug + "-ayrilmis" : slug;
-    }
-
-    /// <summary>A cluster's file name: its medoid's name, marked as the combined form of a family.</summary>
-    public static string ForFamily(string medoidName, string clusterId, int members)
-    {
-        string suffix = string.Create(CultureInfo.InvariantCulture, $"-combined-{members}");
-        return Slug(medoidName) + suffix + "-" + clusterId[^8..];
     }
 }

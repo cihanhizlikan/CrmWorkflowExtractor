@@ -2,7 +2,6 @@ using Crm.Cli;
 using Crm.Cli.Stages;
 using Crm.Extract.Runs;
 using Crm.Ir.Model;
-using Crm.Similarity;
 using Crm.Tests.Bpmn;
 using Crm.Tests.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -53,7 +52,7 @@ public sealed class BpmnStageGuardTests
         WorkflowIr sound = Named(Good, "Poliçe İptal");
         List<WorkflowIr> documents = [sound with { Identity = sound.Identity with { PrimaryEntity = "nul" } }];
 
-        await BpmnStage.RunAsync(folder, state, documents, new SimilarityResult([], []), null, NullLogger.Instance, CancellationToken.None);
+        await BpmnStage.RunAsync(folder, state, documents, null, NullLogger.Instance, CancellationToken.None);
 
         Assert.Empty(state.Failures);
         Assert.Equal(0, state.Counts["bpmn.lost"]);
@@ -75,7 +74,7 @@ public sealed class BpmnStageGuardTests
             Named(AlsoGood, "Teklif Onay")
         ];
 
-        await BpmnStage.RunAsync(folder, state, documents, new SimilarityResult([], []), null, NullLogger.Instance, CancellationToken.None);
+        await BpmnStage.RunAsync(folder, state, documents, null, NullLogger.Instance, CancellationToken.None);
 
         // The two sound ones are drawn; the broken one is not, and the stage returned rather than throwing.
         Assert.Equal(2, Directory.GetFiles(Path.Combine(folder.Root, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Length);
@@ -109,7 +108,7 @@ public sealed class BpmnStageGuardTests
         await cancelled.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => BpmnStage.RunAsync(
-            folder, state, documents, new SimilarityResult([], []), null, NullLogger.Instance, cancelled.Token));
+            folder, state, documents, null, NullLogger.Instance, cancelled.Token));
 
         Assert.Empty(state.Failures);
     }

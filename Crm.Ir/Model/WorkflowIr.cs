@@ -1,6 +1,6 @@
 namespace Crm.Ir.Model;
 
-/// <summary>§5.1 step kinds. <see cref="Variant"/> exists only in a combined workflow: a split between member workflows.</summary>
+/// <summary>§5.1 step kinds.</summary>
 public enum StepKind
 {
     Sequence,
@@ -22,7 +22,6 @@ public enum StepKind
     DataQuery,
     /// <summary>A business-rule action on the form (<see cref="StepNode.Detail"/> says which: show/hide, require, lock, set value, message).</summary>
     FormAction,
-    Variant,
     Unmapped
 }
 
@@ -39,10 +38,6 @@ public sealed record LiteralValue(string Raw, string? Resolved)
     /// alone otherwise.
     /// </summary>
     public const string Dynamic = "<dynamic>";
-
-    /// <summary>In a combined workflow: which member workflows set this value. Absent for a single workflow.</summary>
-    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyList<Guid>? Workflows { get; init; }
 }
 
 /// <summary>A resolved condition. <see cref="Text"/> is for people; the parts are for comparison.</summary>
