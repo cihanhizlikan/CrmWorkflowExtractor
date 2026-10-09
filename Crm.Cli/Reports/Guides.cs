@@ -14,15 +14,38 @@ namespace Crm.Cli.Reports;
 /// </summary>
 public static class Guides
 {
-    public static Sheet Plan(int workflows, int live, int excluded, int buildingBlocks)
+    public static Sheet Plan(int workflows, int live, int excluded, int buildingBlocks, int stages, int stageMaps)
     {
         Sheet sheet = Empty();
         sheet.Row("Bu kitap ne işe yarar",
-            "Taşınacak işin listesidir: her iş akışı için bir satır. Yalnızca sizin kurmanız gerekenler buradadır, "
-            + "süzmenize gerek yok. Plandan çıkarılanlar ve gerekçeleri Kurumsal Mimari'de ayrı bir dosyadadır.");
+            "Taşınacak işin listesidir: önce talebin geçtiği aşamalar, sonra her iş akışı için bir satır. Yalnızca sizin "
+            + "kurmanız gerekenler buradadır, süzmenize gerek yok. Plandan çıkarılanlar ve gerekçeleri Kurumsal Mimari'de ayrı bir dosyadadır.");
         sheet.Row("Sayfa sırası",
-            "Taşıma planı (ana liste) → Çağrı ağacı (bir akış tek başına mı) → Süreç ağaçları (işi kalemlere böl) → "
-            + "Sapma (çalışan kopya çizimden farklı) → Okunamayan yapılar (çizimin eksik yeri). Kılavuz da bu sırayı izler.");
+            "Aşamalar (talebin geçtiği süreç) → Taşıma planı (iş akışları) → Çağrı ağacı (bir akış tek başına mı) → "
+            + "Süreç ağaçları (işi kalemlere böl) → Sapma (çalışan kopya çizimden farklı) → Okunamayan yapılar (çizimin eksik yeri). "
+            + "Kılavuz da bu sırayı izler.");
+        sheet.Row("Aşamalar sayfası",
+            $"Bu çalıştırmada {stages} etkin aşama, {stageMaps} aşama akışı. Bir talep, konusunun (alt kategorisinin) BİRİNCİL "
+            + "aşamasında başlar; her aşama olumlu, olumsuz ya da iptal sonucuyla kapanır ve sonuca göre bir sonraki aşamaya geçer, "
+            + "yolda bir iş akışı çalıştırabilir. İş akışları bu makinenin adımlarıdır: önce aşamaları anlayın, sonra iş akışlarını. "
+            + "Satırlar talebin aşamalarla karşılaştığı sıradadır.");
+        sheet.Row("surec · asama · kisa_ad", "Aşamanın ait olduğu konu ve adı. Diyagramda aşama kısa adıyla görünür.");
+        sheet.Row("birincil · otomatik", "birincil evet ise o konudaki talepler bu aşamada başlar ve aşama akışının diyagramı buradan "
+            + "çizilir. otomatik evet ise aşama bir kişiyi beklemeden ilerler; yeni üründe bir otomasyon olarak kurulmalıdır.");
+        sheet.Row("olumlu_* · olumsuz_* · iptal_*", "Her sonuç için: talebin geçtiği sonraki aşama, çalıştırılan iş akışı ve müşteriye "
+            + "gönderilen SMS. \"(pasif)\" yazan sonraki aşama kapatılmış, \"(aşama kaydı yok)\" yazan silinmiştir: ikisi de bugün çıkmaz "
+            + "bir yoldur, yeni üründe aynen kurmadan önce sorun.");
+        sheet.Row("kullaniciya_atanir · kuyruk · takim", "Aşamanın işi kime düşürdüğü. Belirli bir kişiye atanıyorsa kişinin adı bu "
+            + "pakette yoktur; yalnızca öyle olduğu yazılır.");
+        sheet.Row("sla_* · calisilan_gun · asama_sla", "Aşamanın süre kuralı ve süre aşıldığında ne olduğu: kapatılıp kapatılmadığı, "
+            + "hangi statüye geçtiği, yöneticiye bildirilip bildirilmediği. Yeni üründe her biri bir kuraldır.");
+        sheet.Row("gecis_dokuman_tipi · dokuman_*", "Aşamaya geçmek için istenen doküman ve doküman geldiğinde aşamanın kendiliğinden "
+            + "kapanıp kapanmadığı.");
+        sheet.Row("Diğer aşama sütunları", "otomatik_cozum_*, geri_donus, ana_talep_yazilabilir, bu_asama_kapanis, atlanarak_gecilebilir, "
+            + "servis_talebi_limiti, kampanya_grubu, step_code, tanim, mobil_sube_*: aşamanın taşıdığı diğer kurallar, CRM'deki "
+            + "etiketleriyle. Boş hücre o kuralın bu aşamada kullanılmadığı demektir.");
+        sheet.Row("asama_akisi_bpmn · asama_id", "Aşamanın göründüğü aşama akışı diyagramları ve CRM'de aramak için kimliği. Diyagramda "
+            + "olumlu sonuç sağa, olumsuz aşağıdan, iptal yukarıdan çıkar; iş akışı kutularının içine girilerek adımları görülebilir.");
         sheet.Row("Sayfaların boş olması",
             "Çağrı ağacı ve Süreç ağaçları YALNIZCA birbirini çağıran akışları taşır; boşsa hiçbir akış başkasını çağırmıyor "
             + "demektir. Sapma boşsa iyi haberdir: CRM'de çalışan kopyalar tanımlarıyla aynı. Okunamayan yapılar boşsa "

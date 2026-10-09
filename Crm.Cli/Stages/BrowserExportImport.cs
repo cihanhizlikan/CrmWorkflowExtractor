@@ -264,6 +264,17 @@ public static class BrowserExportImport
             state.Warnings.Add("Dışa aktarımda süreç aşamaları var ama tetikleyici yok: aşamaların çağırdığı "
                 + "iş akışları bilinemeyecek. Dışa aktarımı güncel betikle yeniden alın.");
         }
+
+        // The estate's own stage machine. An export made before it was collected has no such key, and the run says
+        // so: a plan without it describes the workflows and not the process they are steps of.
+        List<JsonElement> caseStages = Rows(root, "caseStages");
+        await folder.WriteJsonAsync(CaseStageRetriever.IndexFile, caseStages, token);
+        state.Counts["caseStages"] = caseStages.Count;
+        if (!root.TryGetProperty("caseStages", out _))
+        {
+            state.Warnings.Add("Dışa aktarımda talep aşamaları (ps_step) yok: aşama akışları ve Aşamalar sayfası "
+                + "üretilmeyecek. Dışa aktarımı güncel betikle yeniden alın.");
+        }
     }
 
     private static List<JsonElement> Rows(JsonElement root, string name)

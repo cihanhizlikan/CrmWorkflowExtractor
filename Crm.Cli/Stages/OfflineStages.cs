@@ -34,6 +34,7 @@ public static class OfflineStages
         SimilarityOptions similarity = settings.Similarity?.Value ?? new SimilarityOptions();
         SimilarityResult families = await SimilarityStage.RunAsync(folder, state, inScope, usage, similarity, logger, token);
         await BpmnStage.RunAsync(folder, state, documents, families, usage, logger, token);
+        await StageMapStage.RunAsync(folder, state, documents, logger, token);
         await ConsolidationStage.RunAsync(folder, state, inScope, families, logger, token);
 
         await WriteAnalysisAsync(folder, state, documents, families, usage, settings.Run.Value.LogoFile, token);
@@ -48,6 +49,12 @@ public static class OfflineStages
     {
         CallGraph calls = CallGraph.Build(documents);
         HashSet<Guid> inPlan = [.. MigrationPlan.InScope(documents, usage).Select(document => document.Identity.WorkflowId)];
+        // The process first: the workflows are steps of it. An export made before the stages were collected
+        // has none, and then the plan opens on the workflows as it always did.
+        if (state.CaseStages.Any(stage => stage.Active))
+        {
+            state.Sheets[SheetNames.Stages] = StageSheet.Build(state.CaseStages, state.StageMapFiles);
+        }
         state.Sheets[SheetNames.Plan] = MigrationPlan.Build(state, documents, families, usage);
         state.Sheets[SheetNames.Excluded] = MigrationPlan.BuildExcluded(state, documents, usage);
         state.Sheets[SheetNames.CallGraph] = calls.Build();
@@ -72,9 +79,10 @@ public static class OfflineStages
         int inScopeCount = documents.Count - Count(state, "plan.excluded");
         state.Sheets[SheetNames.Guide] = Guides.Plan(inScopeCount,
             MigrationPlan.InScope(documents, usage).Count(MigrationPlan.IsLiveProcess),
-            Count(state, "plan.excluded"), Count(state, "callGraph.buildingBlocks"));
+            Count(state, "plan.excluded"), Count(state, "callGraph.buildingBlocks"),
+            Count(state, "caseStages.active"), Count(state, "stageMaps.written"));
         await WriteWorkbookAsync(folder, state, RunPaths.PlanWorkbook,
-            [SheetNames.Guide, SheetNames.Plan, SheetNames.CallGraph, SheetNames.Trees, SheetNames.Drift, SheetNames.Unmapped], token);
+            [SheetNames.Guide, SheetNames.Stages, SheetNames.Plan, SheetNames.CallGraph, SheetNames.Trees, SheetNames.Drift, SheetNames.Unmapped], token);
 
         state.Sheets[SheetNames.Guide] = Guides.Excluded(Count(state, "plan.excluded"), Count(state, "usage.drafts"),
             Count(state, "clusters.suppliedHeldApart"), documents.Count);

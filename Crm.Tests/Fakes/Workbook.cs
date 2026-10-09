@@ -40,7 +40,15 @@ internal sealed class Workbook
         return new Workbook(names, sheets);
     }
 
-    /// <summary>Every row of a sheet as text, header row first; an empty cell is an empty string.</summary>
+    /// <summary>
+    /// Every row of a sheet as text, header row first; an empty cell is an empty string.
+    ///
+    /// <para>
+    /// Placed by each cell's own reference, not by counting: the writer leaves an empty cell out of the file, so a row
+    /// with a gap in the middle used to come back shifted left, every value after the gap under the wrong header.
+    /// Nothing noticed until a sheet had gaps in the middle of a row as a matter of course.
+    /// </para>
+    /// </summary>
     public IReadOnlyList<IReadOnlyList<string>> Rows(string sheetName)
     {
         List<IReadOnlyList<string>> rows = [];
@@ -49,6 +57,11 @@ internal sealed class Workbook
             List<string> cells = [];
             foreach (XElement cell in row.Elements(Main + "c"))
             {
+                int column = cell.Attribute("r")?.Value is string reference ? Column(reference) : cells.Count;
+                while (cells.Count < column)
+                {
+                    cells.Add("");
+                }
                 cells.Add(cell.Attribute("t")?.Value == "inlineStr"
                     ? cell.Element(Main + "is")?.Element(Main + "t")?.Value ?? ""
                     : cell.Element(Main + "v")?.Value ?? "");
@@ -56,6 +69,17 @@ internal sealed class Workbook
             rows.Add(cells);
         }
         return rows;
+    }
+
+    /// <summary>The zero-based column of a reference such as <c>AB12</c>.</summary>
+    private static int Column(string reference)
+    {
+        int column = 0;
+        foreach (char letter in reference.TakeWhile(char.IsAsciiLetterUpper))
+        {
+            column = (column * 26) + (letter - 'A' + 1);
+        }
+        return column - 1;
     }
 
     public IReadOnlyList<string> Headers(string sheetName)

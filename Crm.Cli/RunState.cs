@@ -58,6 +58,12 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>The combined BPMN file written for each family, by cluster id.</summary>
     public IReadOnlyDictionary<string, string> CombinedFiles { get; set; } = new Dictionary<string, string>();
 
+    /// <summary>The case stages read from the export, active and not: the stage sheet and the stage maps are drawn from these.</summary>
+    public IReadOnlyList<Crm.Ir.Model.CaseStage> CaseStages { get; set; } = [];
+
+    /// <summary>Which stage maps each stage appears on, as paths relative to the run folder.</summary>
+    public IReadOnlyDictionary<Guid, IReadOnlyList<string>> StageMapFiles { get; set; } = new Dictionary<Guid, IReadOnlyList<string>>();
+
     /// <summary>The BPMN file path (relative to the run folder, without extension) written for each workflow.</summary>
     public IReadOnlyDictionary<Guid, string> BpmnFiles { get; set; } = new Dictionary<Guid, string>();
 

@@ -101,7 +101,7 @@ public static class BpmnSerializer
             new XAttribute("exporterVersion", toolVersion),
             processElement,
             new XElement(Di + "BPMNDiagram", new XAttribute("id", "diagram_" + process.ProcessId), plane));
-        return Writable(new XDocument(new XDeclaration("1.0", "UTF-8", null), definitions));
+        return Sweep(new XDocument(new XDeclaration("1.0", "UTF-8", null), definitions));
     }
 
     /// <summary>
@@ -116,7 +116,7 @@ public static class BpmnSerializer
     /// forget to call.
     /// </para>
     /// </summary>
-    private static XDocument Writable(XDocument document)
+    internal static XDocument Sweep(XDocument document)
     {
         foreach (XElement element in document.Descendants())
         {

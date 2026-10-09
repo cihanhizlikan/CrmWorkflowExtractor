@@ -135,7 +135,8 @@ public static class AnalystGuide
         parts.Add(new Table(
         [
             new DocumentRow(["Dosya", "Ne işe yarar"], Header: true),
-            new DocumentRow(["tasima-plani.xlsx", "Taşınacak işin listesi; her iş akışı için bir satır. Buradan başlarsınız."]),
+            new DocumentRow(["tasima-plani.xlsx", "Taşınacak işin listesi: önce talebin geçtiği aşamalar, sonra iş akışları. Buradan başlarsınız."]),
+            new DocumentRow(["bpmn/asama-akislari/", "Her talep konusunun aşama akışı: aşamalar, sonuçlar ve yolda çalışan iş akışları, iç içe."]),
             new DocumentRow(["bpmn/", "Her iş akışının diyagramı, kategori ve varlık klasörlerine ayrılmış."]),
             new DocumentRow(["veri-analizi.xlsx", "Hangi akış hangi veriye dokunuyor, hangisi hangisini tetikliyor."]),
             new DocumentRow(["dis-sistemler.xlsx", "CRM dışına uzanan çağrılar: entegrasyon yükü."])
@@ -144,6 +145,10 @@ public static class AnalystGuide
         parts.Add(new Paragraph("Heading2", "2.1  tasima-plani.xlsx — sizin iş listeniz"));
         parts.Add(new Paragraph("Normal", "İşin kendisi. Süzmeniz gerekmez: kurumun kurmadığı, taslak olan ve hiç "
             + "çalışmamış deneme akışları bu dosyada zaten yoktur."));
+        parts.Add(new Paragraph("NormalBullet", "talebin geçtiği her etkin aşama için bir satır. Bir talep, konusunun "
+            + "birincil aşamasında başlar; her aşama olumlu, olumsuz ya da iptal sonucuyla kapanır, sonuca göre bir sonraki "
+            + "aşamaya geçer ve yolda bir iş akışı çalıştırabilir. İş akışları bu sürecin adımlarıdır: önce burayı okuyun. "
+            + "Aşamanın SLA, atama, doküman ve SMS kuralları da aynı satırdadır.", "Aşamalar — "));
         parts.Add(new Paragraph("NormalBullet", "her iş akışı için bir satır. Çalışmanızı buradan seçeceğiniz bir "
             + "satırla başlatın; her sütun ya bir tasarım kararını ya da bir sorunu gösterir.", "Taşıma planı — "));
         parts.Add(new Paragraph("NormalBullet", "hangi akış hangisini çağırıyor. rol sütunu \"yapı taşı\" ise o akış "
@@ -161,6 +166,11 @@ public static class AnalystGuide
             + "soldan sağa izleyin; elmasların üzerindeki metin CRM'deki koşulun kendisidir. Solundaki ad çoğunlukla "
             + "bir alandır (varlik.alan); bir özel etkinliğin döndürdüğü değer karşılaştırılıyorsa o etkinliğin adı "
             + "ve çıktısı yazar (Etkinlik.Cikti)."));
+        parts.Add(new Paragraph("Normal", "bpmn/asama-akislari/ klasöründe her talep konusu için bir diyagram vardır: "
+            + "birincil aşamadan başlar ve talebin ulaşabileceği her aşamayı gösterir. Olumlu sonuç bir elmastan sağa, "
+            + "olumsuz aşağıdan, iptal yukarıdan çıkar; geri dönen bir sonuç diyagramın altından dolaşır. Sonuç üzerindeki "
+            + "kutu o sonuçta çalışan iş akışıdır ve içine girildiğinde o akışın kendi adımları görünür. Görüntüleyiciniz "
+            + "kutunun içine girmeyi desteklemiyorsa aynı akışın kendi diyagramı bpmn/ altındadır."));
 
         parts.Add(new Paragraph("Heading2", "2.3  veri-analizi.xlsx — bir akışı tek başına tasarlayamayacağınız yerler"));
         parts.Add(new Paragraph("NormalBullet", "alan alan: kaç akış yazıyor, kaç akış okuyor. yazan > 1 olan alanlarda "

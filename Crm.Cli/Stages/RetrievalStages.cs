@@ -85,6 +85,17 @@ public static class RetrievalStages
         {
             state.Warnings.Add("İş süreci akışı tetikleyicileri alınamadı; aşamaların çağırdığı iş akışları bilinemeyecek: " + error.Message);
         }
+
+        try
+        {
+            IReadOnlyList<JsonElement> caseStages = await new CaseStageRetriever(client, settings.Crm.Value.PageSize).RetrieveAsync(token);
+            await folder.WriteJsonAsync(CaseStageRetriever.IndexFile, caseStages, token);
+            state.Counts["caseStages"] = caseStages.Count;
+        }
+        catch (CrmRequestException error)
+        {
+            state.Warnings.Add("Talep aşamaları (ps_step) alınamadı; aşama akışları üretilmeyecek: " + error.Message);
+        }
     }
 
     /// <summary>Manual-review routing and drift: both work from the inventory and raw/xaml alone, so a reprocessed run repeats them.</summary>

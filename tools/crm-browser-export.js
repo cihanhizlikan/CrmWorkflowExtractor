@@ -357,6 +357,19 @@
   }
   log(`Process stage triggers: ${processTriggers.length}`);
 
+  // THE ESTATE'S OWN STAGE MACHINE. Cases here do not move through a Business Process Flow: they move through
+  // records of Pensionsoft's ps_step entity, each of which names the stage that follows on success, on failure and
+  // on cancellation, and the workflow fired on each. None of it is in any workflow's XAML, so a plan built from
+  // workflows alone could not say what a request actually goes through (chief analyst, 2026-10-09). Every field,
+  // because the SLA, document, SMS and assignment rules on a stage are the stage's logic too.
+  let caseStages = [];
+  try {
+    caseStages = await getAll("ps_steps");
+  } catch (error) {
+    log("Case stages could not be read:", error.message);
+  }
+  log(`Case stages: ${caseStages.length}`);
+
   // THE DOCUMENT IS TOO BIG TO EXIST TWICE. Writing it has failed twice on the TEST organisation, and each
   // failure cost a twenty-minute run:
   //   JSON.stringify(whole document)  -> RangeError: Invalid string length. One string cannot hold 512 million
@@ -456,7 +469,7 @@
     webApiRoot: WEB_API,
     whoAmI, user, privileges, userPrivileges, workflowAttributes,
     count, rawCount, countSource, columns, workflows, xaml, xamlErrors, optionSets, processStages, processTriggers,
-    plugins, runAuthority
+    caseStages, plugins, runAuthority
   };
   const stamp = started.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
   const saved = await writeDocument(exported, stamp);

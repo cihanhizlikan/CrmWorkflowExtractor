@@ -1158,3 +1158,35 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** re-run the export bookmarklet (it must be the regenerated
   `tools/crm-export.html`), then the program. **Pass:** the log prints "Process stages: N" and "Process stage
   triggers: M" with M > 0, and `ham/surec-tetikleyicileri.json` is not `[]`.
+### The process a case goes through (2026-10-09) — committed, awaiting merge
+- **Maintainer, with screenshots of `Parametreler › Aşamalar`:** primary active stages want BPMNs showing the
+  stages and the workflows inside them, and the plan opens with the stages.
+- **My previous reading was WRONG and I had recommended it.** I took "Aşama" for Business Process Flow stages. They
+  are Pensionsoft's own entity, `ps_step`: a data-driven state machine in which each stage names the next stage on
+  success, failure and cancellation, the workflow fired on each, and the SMS sent. The BPF collection merged
+  yesterday is harmless — two tables, zero rows if there are no BPFs — but it was not this.
+- **Names read, not guessed.** The page source sent arrived empty, and scraping `main.aspx` was the wrong road anyway
+  — 8.2 serves the entity on the Web API. A console snippet, verified against a stub before it was handed over,
+  found the entity by the signature of its fields (labelled "…Sonrası…") rather than its own label, because the
+  system's BPF stage entity may be "Aşama" in Turkish too. Two false positives matched on unrelated "Sonrası"
+  labels and were ignored.
+- **Collected whole**, `ps_steps` with no `$select` and with formatted values, kept verbatim as
+  `ham/talep-asamalari.json`. Verified by running the bookmarklet against a stubbed CRM.
+- **`StageMap` lays out a GRAPH, not a tree.** Layers by longest path over forward flows; a loop's flow found by a
+  depth-first walk and run in its own lane beneath everything. Routes are kept off shapes BY CONSTRUCTION — upright
+  runs only in gaps, three outcomes from three diamond corners. Twelve guards, two of them confirmed by removing the
+  corners (captions collide, the three-corner test fails) and the lanes (a flow back runs through a stage).
+- **Workflows are embedded, not linked**: a collapsed sub-process carrying the workflow's own diagram on its own
+  plane, ids prefixed per occurrence. A missing workflow and a stage that no longer exists are drawn and SAY so.
+- **The plan opens with Aşamalar**, one row per active stage in the order a case meets them, with the three
+  outcomes, the workflows, the SMS and every rule in `CaseStageRules`. The assigned USER is shown as "evet", never
+  by name — confirmed by putting the name back, which the end-to-end test catches.
+- **A test-helper bug surfaced and was fixed:** `Workbook.Rows` claimed "an empty cell is an empty string" but placed
+  cells by counting, and the writer omits empty cells — so a row with a gap came back shifted under the wrong
+  headers. Nothing had noticed because no sheet had gaps mid-row as a matter of course. Cells are now placed by
+  their own reference; every older workbook test still passes against it.
+- 15 new tests, 405 in all.
+- **Acceptance on the company network — Do:** re-export with the regenerated `tools/crm-export.html`, run, open a
+  map under `bpmn/asama-akislari/` and the Aşamalar sheet. **Pass:** the log prints "Case stages: N"; the map starts
+  at the primary stage, the outcomes read olumlu/olumsuz/iptal, a workflow box can be entered (or shows as a named
+  box where the viewer cannot drill); the sheet's first row is a primary stage and no row names a person.

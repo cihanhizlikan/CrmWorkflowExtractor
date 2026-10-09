@@ -7,8 +7,8 @@ The stages after retrieval read only the run folder, never the network.
 | Project | Owns | Network |
 |---|---|---|
 | `Crm.Extract` | `CrmHttpClient` (the only network type), credentials, paging, preflight (WhoAmI, privileges, `$count`), inventory and XAML retrieval, raw persistence, run folder + manifest | **yes — GET only** |
-| `Crm.Ir` | XAML parsing, IR types, metadata resolution, `TurkishFold`, `HtmlEntities`, `DocumentText`, coverage, sensitive-literal scan | no |
-| `Crm.Bpmn` | IR → BPMN 2.0, DI layout, embedded OMG XSD validation | no |
+| `Crm.Ir` | XAML parsing, IR types, metadata resolution, `TurkishFold`, `HtmlEntities`, `DocumentText`, coverage, sensitive-literal scan, case stages (`CaseStageReader`, `CaseStageRules`) | no |
+| `Crm.Bpmn` | IR → BPMN 2.0, DI layout, embedded OMG XSD validation, stage maps (`StageMap`) | no |
 | `Crm.Similarity` | step signatures, structural + lexical scores, union-find clustering, cohesion | no |
 | `Crm.Consolidation` | combining a family into one workflow (prefix union with Variant splits), provenance reconciliation | no |
 | `Crm.Cli` | `Program.Main`, configuration binding, stage orchestration, reports, exit codes | via `Crm.Extract` |
@@ -21,6 +21,7 @@ The stages after retrieval read only the run folder, never the network.
 out/runs/<yyyyMMdd-HHmmss>/   manifest.json (written LAST — its presence seals the run)
   ham/  ara-model/  aileler/  birlesik/  elle-inceleme/  raporlar/  gunlukler/
   bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn
+  bpmn/asama-akislari/<talep konusu>.bpmn   one per active primary stage, workflows embedded
   raporlar/  nasil-kullanilir.docx · rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · kapsam-disi.xlsx · aileler.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx · calistirma-yetkisi.xlsx
 out/cache/metadata/           shared across runs, copied into each run's ham/ust-veri/
 ```
@@ -94,11 +95,26 @@ are part of a call, Sapma only the definitions whose running copy really differs
 nearly became a family or carry one structure under two names. The diagrams are emitted AFTER grouping, because
 each one's header note carries what the rest of the run learned about it — role, family, usage, drift.
 
-**Dynamics works in STAGES, and a plan built from individual workflows does not describe the process they belong
-to** (chief analyst, 2026-10-09). A Business Process Flow is a category-4 process whose stages are `processstages`
-rows; the steps inside a stage are in that row's `clientdata`, and what a stage RUNS on the way in or out is a
-`processtriggers` row — a table nothing here had ever read. Their BPMN and the stage sheet are not built yet;
-this is what is COLLECTED, and why it is collected whole.
+**A case moves through STAGES, and the workflows are steps of that process** (chief analyst, 2026-10-09). In this
+estate the stages are not a Business Process Flow: they are records of Pensionsoft's own entity `ps_step`, each
+naming the stage that follows on success, failure and cancellation (`ps_nextstepfor{success,unsuccess,cancel}id`),
+the workflow fired on each (`ps_wffor…id`), the SMS sent, and the case subcategory it belongs to (`ps_categoryid`);
+`ps_primarystep` marks where a case of that subcategory starts. WHEN a workflow runs is therefore data, held in no
+workflow's XAML — which is why grouping workflows by similarity answered the wrong question. The
+names were read off this organisation's metadata, never guessed: a console snippet found the entity by the
+signature of its fields (labelled "…Sonrası…"), because the system's own BPF stage entity may be called "Aşama" too.
+
+**One stage map per ACTIVE PRIMARY stage** (`StageMap`), and the plan opens with the **Aşamalar** sheet, one row per
+active stage in the order a case meets them. The stages are a GRAPH — "Evrak bekleniyor" sends a case back — so
+the map is laid out in layers by longest path over the forward flows, a loop's flow found by a depth-first walk and
+routed in its own lane beneath the whole diagram. Every route is kept off every shape by construction: upright runs
+only in the gaps between layers, which hold no shapes; and a stage's three outcomes leave its diamond from three
+corners — success to the right, failure below, cancellation above — so they never share a line or a caption. A
+workflow fired on an outcome is EMBEDDED as a collapsed sub-process carrying its own diagram on a plane of its own
+(ids prefixed per occurrence), so the map is one file to drill into, and a viewer that cannot drill still shows a
+named box. `CaseStageRules` is the one table of a stage's other logic — SLA, assignment, documents, SMS, closing —
+read by the sheet for columns and by the map for documentation. The user a stage assigns to is reported as present
+or absent, NEVER by name: the plan goes to an outsource partner.
 
 **A column nobody named in advance has to survive the trip.** `processstages` was asked for five columns and
 `processtriggers` for none at all, so the one mistake that cannot be afforded — naming the fields we think we

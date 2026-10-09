@@ -15,6 +15,9 @@ public static class RunPaths
 
     public const string Ir = "ara-model";
     public const string Bpmn = "bpmn";
+
+    /// <summary>One diagram per active primary stage: the process a case goes through, with its workflows inside.</summary>
+    public const string StageMaps = Bpmn + "/asama-akislari";
     public const string Families = "aileler";
     public const string Combined = "birlesik";
     public const string ManualReview = "elle-inceleme";

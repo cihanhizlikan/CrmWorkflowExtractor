@@ -8,6 +8,8 @@ namespace Crm.Cli.Reports;
 /// </summary>
 public static class SheetNames
 {
+    public const string Stages = "Aşamalar";
+
     public const string Plan = "Taşıma planı";
     public const string Excluded = "Kapsam dışı";
     public const string CallGraph = "Çağrı ağacı";
