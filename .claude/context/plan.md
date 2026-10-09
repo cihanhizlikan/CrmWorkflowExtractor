@@ -1129,3 +1129,32 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess, open `close-cti-calls-systemclosed.bpmn`. **Pass:** the
   update box reads `description = …`, `ps_activityresultcode = 99`, `ps_activitysubresultid = … (…)`; the next box
   says which status it changes to; and nothing in `nasil-kullanilir.docx` mentions `calistirma-yetkisi.xlsx`.
+### What a process is made of, collected whole (2026-10-09) — committed, awaiting merge
+- **Chief analyst, through the maintainer, 2026-10-09:** Dynamics works in stages; individual workflows are not
+  enough. Primary stages want their own BPMN showing which workflows a step calls on success, failure and
+  cancellation, the rest of the step logic extracted, and a stage sheet FIRST in `tasima-plani.xlsx`.
+- **The gap, measured before answering.** `processstages` was retrieved and then DROPPED — written to
+  `ham/surec-asamalari.json` and read by nothing, its retriever's docstring claiming it was "used to name BPF
+  stages in BPMN", which was not true. `processtriggers` was absent from the code and from both scripts. `clientdata`,
+  where a stage's steps live, was excluded by a five-column `$select`. `StepKind.Stage` is never produced: its
+  only mention in the whole codebase is the Turkish label `"Aşama"`.
+- **What was NOT missing, and it matters:** BPF definitions and their XAML are already in `ham/`. The export
+  filters XAML by TYPE (definition or activation) and the workflow query carries no `$filter` at all, so every
+  category came through. So the re-export is for the two tables, not for the definitions.
+- **Collected whole rather than collected cleverly.** Both tables now go out with NO `$select` and their rows are
+  kept in `ham/` as CRM gave them. Naming the fields we think we need and finding out after a twenty-minute
+  production export that we named them wrong is the one mistake this cannot afford; a stub run proves `clientdata`
+  and an unasked-for `stageorder` both survive into the written document.
+- **Verified by RUNNING the bookmarklet script against a stubbed CRM in node**, not by reading it: both tables are
+  requested, neither with a `$select`, and the assembled document carries `processStages` and `processTriggers`
+  with `clientdata`, `stageorder` and `triggeroneventname` intact. `triggeroneventname` came back `Entry`, which
+  is the first real evidence of the trigger's shape — Entry/Exit, which is not yet the success/failure/cancel trio
+  the analyst described, and that difference is the next thing to settle against real data.
+- **An export made before this still reprocesses** — a sealed export is evidence and is never re-interpreted — and
+  warns that the stage logic will be missing until it is taken again, rather than drawing half a process silently.
+- 2 new tests, 390 in all; each confirmed by breaking it.
+- **Deliberately NOT done here:** parsing `clientdata`, the stage BPMN, and the stage sheet. The shape of
+  `clientdata` in this organisation is unknown, and a parser written against a guess would be a second re-export.
+- **Acceptance on the company network — Do:** re-run the export bookmarklet (it must be the regenerated
+  `tools/crm-export.html`), then the program. **Pass:** the log prints "Process stages: N" and "Process stage
+  triggers: M" with M > 0, and `ham/surec-tetikleyicileri.json` is not `[]`.

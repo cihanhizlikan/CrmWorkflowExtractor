@@ -44,6 +44,59 @@ public sealed partial class BrowserExportImportTests
         Assert.Contains("Simulated failure for one record", console, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A stage's steps live in <c>clientdata</c> and the workflows it fires live in a table of their own, and
+    /// neither was being collected. Both are kept EXACTLY as CRM gave them, because what reads them is written
+    /// once their real shape has been seen — so a field nobody named in advance has to survive the trip.
+    /// </summary>
+    [Fact]
+    public async Task A_Stage_And_Its_Trigger_Reach_The_Run_Folder_Whole()
+    {
+        JsonNode export = JsonNode.Parse(File.ReadAllText(Fixture()))!;
+        export["processStages"]![0]!["clientdata"] = "{\"steps\":[{\"stepname\":\"Tutar\"}]}";
+        export["processStages"]![0]!["stageorder"] = 1;
+        export["processTriggers"] = JsonNode.Parse("""
+            [{"processtriggerid":"33333333-3333-3333-3333-333333333333","triggeroneventname":"Entry",
+              "_processstageid_value":"11111111-1111-1111-1111-111111111111"}]
+            """);
+        using TemporaryOutput output = new();
+        Directory.CreateDirectory(output.Root);
+        string file = Path.Combine(output.Root, "with-stages.json");
+        File.WriteAllText(file, export.ToJsonString());
+
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: file);
+
+        Assert.True(code == ExitCode.Success, console);
+        JsonNode stages = JsonNode.Parse(File.ReadAllText(Path.Combine(runRoot, "ham", "surec-asamalari-ham.json")))!;
+        Assert.Equal("{\"steps\":[{\"stepname\":\"Tutar\"}]}", stages[0]!["clientdata"]!.GetValue<string>());
+        // A column this tool never names, kept because the rows are not filtered through a record on the way in.
+        Assert.Equal(1, stages[0]!["stageorder"]!.GetValue<int>());
+        JsonNode triggers = JsonNode.Parse(File.ReadAllText(Path.Combine(runRoot, "ham", "surec-tetikleyicileri.json")))!;
+        Assert.Equal("Entry", triggers[0]!["triggeroneventname"]!.GetValue<string>());
+        // The named index is still there beside the rows, derived from them.
+        JsonNode index = JsonNode.Parse(File.ReadAllText(Path.Combine(runRoot, "ham", "surec-asamalari.json")))!;
+        Assert.Equal(stages[0]!["stagename"]!.GetValue<string>(), index[0]!["name"]!.GetValue<string>());
+    }
+
+    /// <summary>
+    /// An export made before this change has the stages and not the triggers. That still reprocesses — a sealed
+    /// export is evidence and is never re-interpreted — but the run says plainly that the stage logic will be
+    /// missing until the export is taken again, rather than quietly drawing a process with half of it absent.
+    /// </summary>
+    [Fact]
+    public async Task An_Export_Made_Before_The_Triggers_Were_Collected_Says_So()
+    {
+        using TemporaryOutput output = new();
+
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(new FakeCrmServer(), output, importFile: Fixture());
+
+        Assert.True(code == ExitCode.Success, console);
+        Assert.Equal("[]", File.ReadAllText(Path.Combine(runRoot, "ham", "surec-tetikleyicileri.json")).Trim());
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
+        Assert.Contains(manifest.RootElement.GetProperty("warnings").EnumerateArray().Select(warning => warning.GetString()),
+            warning => warning!.Contains("tetikleyici yok", StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task An_Export_Whose_Count_Does_Not_Match_Its_Records_Fails()
     {

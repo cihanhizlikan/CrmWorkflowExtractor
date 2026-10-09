@@ -333,12 +333,29 @@
 
   const runAuthority = await readRunAuthority();
 
+  // EVERY FIELD, not five of them. Dynamics works in stages, and the steps inside a stage live in clientdata —
+  // a column this asked CRM to leave out. Naming the fields we think we need and finding out after a
+  // twenty-minute production export that we named them wrong is the one mistake this cannot afford, so the
+  // $select is gone and the rows go into ham/ as they arrive.
   let processStages = [];
   try {
-    processStages = await getAll("processstages?$select=processstageid,stagename,stagecategory,_processid_value,primaryentitytypecode");
+    processStages = await getAll("processstages");
   } catch (error) {
     log("Process stages could not be read:", error.message);
   }
+  log(`Process stages: ${processStages.length}`);
+
+  // What a stage RUNS on the way in or out. No workflow record mentions it: it is a table of its own, and
+  // nothing had ever read it, so a process could be drawn without saying what running it does. The entity is
+  // there in 8.2 but its columns differ between versions, hence no $select here either — and an organisation
+  // with no business process flows has an empty table, which is not a failure.
+  let processTriggers = [];
+  try {
+    processTriggers = await getAll("processtriggers");
+  } catch (error) {
+    log("Process stage triggers could not be read:", error.message);
+  }
+  log(`Process stage triggers: ${processTriggers.length}`);
 
   // THE DOCUMENT IS TOO BIG TO EXIST TWICE. Writing it has failed twice on the TEST organisation, and each
   // failure cost a twenty-minute run:
@@ -438,8 +455,8 @@
     startedAtUtc: started.toISOString(),
     webApiRoot: WEB_API,
     whoAmI, user, privileges, userPrivileges, workflowAttributes,
-    count, rawCount, countSource, columns, workflows, xaml, xamlErrors, optionSets, processStages, plugins,
-    runAuthority
+    count, rawCount, countSource, columns, workflows, xaml, xamlErrors, optionSets, processStages, processTriggers,
+    plugins, runAuthority
   };
   const stamp = started.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
   const saved = await writeDocument(exported, stamp);

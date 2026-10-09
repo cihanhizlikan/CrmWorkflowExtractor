@@ -29,6 +29,9 @@ public static class RunPaths
     public const string RawHttpIndex = RawHttp + "/dizin.jsonl";
     public const string RawXaml = Raw + "/xaml";
 
+    /// <summary>The processstages rows exactly as CRM gave them; the index beside it is derived from these.</summary>
+    public const string RawProcessStages = Raw + "/surec-asamalari-ham.json";
+
     public const string RunLog = Logs + "/calistirma.log";
     public const string WarningLog = Logs + "/uyarilar.txt";
 

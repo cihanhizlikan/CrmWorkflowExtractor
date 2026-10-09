@@ -94,6 +94,21 @@ are part of a call, Sapma only the definitions whose running copy really differs
 nearly became a family or carry one structure under two names. The diagrams are emitted AFTER grouping, because
 each one's header note carries what the rest of the run learned about it — role, family, usage, drift.
 
+**Dynamics works in STAGES, and a plan built from individual workflows does not describe the process they belong
+to** (chief analyst, 2026-10-09). A Business Process Flow is a category-4 process whose stages are `processstages`
+rows; the steps inside a stage are in that row's `clientdata`, and what a stage RUNS on the way in or out is a
+`processtriggers` row — a table nothing here had ever read. Their BPMN and the stage sheet are not built yet;
+this is what is COLLECTED, and why it is collected whole.
+
+**A column nobody named in advance has to survive the trip.** `processstages` was asked for five columns and
+`processtriggers` for none at all, so the one mistake that cannot be afforded — naming the fields we think we
+need and finding out after a twenty-minute production export that we named them wrong — is avoided by dropping
+`$select` from both and keeping the rows in `ham/` exactly as CRM gave them
+(`surec-asamalari-ham.json`, `surec-tetikleyicileri.json`), with the named index beside them. BPF XAML was
+already in hand: the export filters XAML by TYPE (definition or activation), never by category. An export made
+before this carries stages and no triggers; that still reprocesses, and the run says so rather than drawing a
+process with half of it missing.
+
 **A step box says what a step writes AND what it writes there.** A field whose value the definition FIXES is
 shown as `description = …`, an option as `Aramadan İşlem Yapılmıştır (3)` — the label for the reader, the number
 for CRM. A value CRM works out as it runs is not one: that field is named alone, because `= <dynamic>` costs a

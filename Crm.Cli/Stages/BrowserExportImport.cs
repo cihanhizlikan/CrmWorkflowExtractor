@@ -243,13 +243,33 @@ public static class BrowserExportImport
         }
     }
 
+    /// <summary>
+    /// The stages and the stage triggers, kept as the browser sent them as well as indexed. What reads a stage's
+    /// steps out of <c>clientdata</c> is written once its real shape has been seen, so the rows are evidence and
+    /// not just a name list; an export made before this carries neither and simply writes nothing.
+    /// </summary>
     private static async Task WriteProcessStagesAsync(RunFolder folder, RunState state, JsonElement root, CancellationToken token)
     {
-        List<ProcessStage> stages = root.TryGetProperty("processStages", out JsonElement rows) && rows.ValueKind == JsonValueKind.Array
-            ? [.. rows.EnumerateArray().Select(ProcessStageRetriever.Parse).OfType<ProcessStage>().OrderBy(stage => stage.ProcessId).ThenBy(stage => stage.StageId)]
-            : [];
-        await folder.WriteJsonAsync(ProcessStageRetriever.IndexFile, stages, token);
+        List<JsonElement> stages = Rows(root, "processStages");
+        await folder.WriteJsonAsync(RunPaths.RawProcessStages, stages, token);
+        await folder.WriteJsonAsync(ProcessStageRetriever.IndexFile, ProcessStageRetriever.Index(stages), token);
         state.Counts["processStages"] = stages.Count;
         state.StagesRun.Add(RunStages.ProcessStages);
+
+        List<JsonElement> triggers = Rows(root, "processTriggers");
+        await folder.WriteJsonAsync(ProcessTriggerRetriever.IndexFile, triggers, token);
+        state.Counts["processTriggers"] = triggers.Count;
+        if (stages.Count > 0 && triggers.Count == 0)
+        {
+            state.Warnings.Add("Dışa aktarımda süreç aşamaları var ama tetikleyici yok: aşamaların çağırdığı "
+                + "iş akışları bilinemeyecek. Dışa aktarımı güncel betikle yeniden alın.");
+        }
+    }
+
+    private static List<JsonElement> Rows(JsonElement root, string name)
+    {
+        return root.TryGetProperty(name, out JsonElement rows) && rows.ValueKind == JsonValueKind.Array
+            ? [.. rows.EnumerateArray().Select(row => row.Clone())]
+            : [];
     }
 }

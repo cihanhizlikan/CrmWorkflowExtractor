@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Globalization;
 using System.Text;
 using Crm.Cli.Configuration;
@@ -61,14 +62,28 @@ public static class RetrievalStages
 
         try
         {
-            IReadOnlyList<ProcessStage> stages = await new ProcessStageRetriever(client, settings.Crm.Value.PageSize).RetrieveAsync(token);
-            await folder.WriteJsonAsync(ProcessStageRetriever.IndexFile, stages, token);
+            // The rows are kept as CRM gave them as well as indexed: what reads a stage's steps out of clientdata
+            // is written once its real shape has been seen, and ham/ is the evidence it will be written against.
+            IReadOnlyList<JsonElement> stages = await new ProcessStageRetriever(client, settings.Crm.Value.PageSize).RetrieveAsync(token);
+            await folder.WriteJsonAsync(RunPaths.RawProcessStages, stages, token);
+            await folder.WriteJsonAsync(ProcessStageRetriever.IndexFile, ProcessStageRetriever.Index(stages), token);
             state.Counts["processStages"] = stages.Count;
             state.StagesRun.Add(RunStages.ProcessStages);
         }
         catch (CrmRequestException error)
         {
             state.Warnings.Add("İş süreci akışı aşamaları alınamadı; bu akışların aşamaları adsız kalacak: " + error.Message);
+        }
+
+        try
+        {
+            IReadOnlyList<JsonElement> triggers = await new ProcessTriggerRetriever(client, settings.Crm.Value.PageSize).RetrieveAsync(token);
+            await folder.WriteJsonAsync(ProcessTriggerRetriever.IndexFile, triggers, token);
+            state.Counts["processTriggers"] = triggers.Count;
+        }
+        catch (CrmRequestException error)
+        {
+            state.Warnings.Add("İş süreci akışı tetikleyicileri alınamadı; aşamaların çağırdığı iş akışları bilinemeyecek: " + error.Message);
         }
     }
 
