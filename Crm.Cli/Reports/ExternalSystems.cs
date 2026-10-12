@@ -12,7 +12,11 @@ namespace Crm.Cli.Reports;
 /// inside the assembly it comes from. The last of those is the only record anywhere of where the call goes.
 /// </summary>
 public sealed record ExternalDependency(string Activity, string Assembly, IReadOnlyList<string> Workflows,
-    IReadOnlyList<string> Parameters, IReadOnlyList<string> Addresses, bool? Registered);
+    IReadOnlyList<string> Parameters, IReadOnlyList<string> Addresses, bool? Registered)
+{
+    /// <summary>How the assembly's code calls out, as far as its words say: client class, verb, content type.</summary>
+    public IReadOnlyList<string> Hints { get; init; } = [];
+}
 
 /// <summary>One address written into a workflow's definition, and the workflow that carries it.</summary>
 public sealed record ExternalAddress(string Host, string Address, string Workflow, Guid WorkflowId = default);
@@ -78,7 +82,10 @@ public static partial class ExternalSystems
         [
             .. callers.Select(entry => new ExternalDependency(ShortName(entry.Key), AssemblyOf(entry.Key),
                     [.. entry.Value.Order(StringComparer.Ordinal)], [.. parameters[entry.Key].Order(StringComparer.Ordinal)],
-                    registered.AddressesOf(entry.Key), registered.IsRegistered(entry.Key)))
+                    registered.AddressesOf(entry.Key), registered.IsRegistered(entry.Key))
+                {
+                    Hints = Hints(registered.HintsOf(entry.Key))
+                })
                 .OrderByDescending(dependency => dependency.Workflows.Count)
                 .ThenBy(dependency => dependency.Activity, StringComparer.Ordinal)
         ];
@@ -104,11 +111,11 @@ public static partial class ExternalSystems
 
     public static Sheet BuildDependencies(IReadOnlyList<WorkflowIr> documents, PluginRegistry plugins)
     {
-        Sheet sheet = new(SheetNames.ExternalDependencies, "etkinlik", "derlemedeki_adresler", "cagiran_is_akisi_sayisi",
-            "parametreler", "cagiran_is_akislari", "derleme", "kayitli");
+        Sheet sheet = new(SheetNames.ExternalDependencies, "etkinlik", "derlemedeki_adresler", "derlemedeki_cagri_ipuclari",
+            "cagiran_is_akisi_sayisi", "parametreler", "cagiran_is_akislari", "derleme", "kayitli");
         foreach (ExternalDependency dependency in Dependencies(documents, plugins))
         {
-            sheet.Row(dependency.Activity, Sheet.List(dependency.Addresses), dependency.Workflows.Count,
+            sheet.Row(dependency.Activity, Sheet.List(dependency.Addresses), Sheet.List(dependency.Hints), dependency.Workflows.Count,
                 Sheet.List(dependency.Parameters, 80), Sheet.List(dependency.Workflows), dependency.Assembly,
                 dependency.Registered);
         }
@@ -123,12 +130,20 @@ public static partial class ExternalSystems
     {
         Dictionary<Guid, PluginType> types = plugins.Types.ToDictionary(type => type.TypeId);
         Dictionary<Guid, PluginAssembly> assemblies = plugins.Assemblies.ToDictionary(assembly => assembly.AssemblyId);
-        Sheet sheet = new(SheetNames.Plugins, "kod", "adim", "durum", "mod", "konfigurasyondaki_adresler", "derleme");
-        foreach (PluginStep step in plugins.Steps.OrderBy(step => step.Name, StringComparer.Ordinal))
+        Sheet sheet = new(SheetNames.Plugins, "kod", "mesaj", "varlik", "talep_surecinde", "calisma_ani", "adim", "durum", "mod",
+            "konfigurasyondaki_adresler", "derleme");
+        // The case process first: the code that runs when a case or one of its stages changes is where what decides a
+        // stage's outcome lives, and it is the first thing a reader of the stage maps comes here for.
+        foreach (PluginStep step in plugins.Steps
+            .OrderBy(step => InCaseProcess(step) ? 0 : 1)
+            .ThenBy(step => step.Entity ?? "\uffff", StringComparer.Ordinal)
+            .ThenBy(step => step.Message, StringComparer.Ordinal)
+            .ThenBy(step => step.Name, StringComparer.Ordinal))
         {
             PluginType? type = step.TypeId is Guid id ? types.GetValueOrDefault(id) : null;
             PluginAssembly? assembly = type?.AssemblyId is Guid owner ? assemblies.GetValueOrDefault(owner) : null;
-            sheet.Row(ShortName(type?.TypeName ?? ""), step.Name, step.State == 0 ? "etkin" : "devre dışı",
+            sheet.Row(ShortName(type?.TypeName ?? ""), step.Message, step.Entity, step.Entity is null ? null : InCaseProcess(step),
+                Moment(step.Stage), step.Name, step.State == 0 ? "etkin" : "devre dışı",
                 step.Mode == 1 ? "eşzamansız" : "eşzamanlı",
                 Sheet.List(AssemblyStrings.Addresses(Encoding.UTF8.GetBytes(step.Configuration ?? ""))),
                 assembly?.Name ?? "");
@@ -136,7 +151,44 @@ public static partial class ExternalSystems
         return sheet;
     }
 
-    /// <summary>The server first, so that sorting the sheet answers "which outside systems do we touch" at a glance.</summary>
+    /// <summary>The entities of the case process: the case itself and the stage records it moves through.</summary>
+    private static readonly HashSet<string> CaseProcess = new(StringComparer.OrdinalIgnoreCase) { "incident", "ps_step" };
+
+    private static bool InCaseProcess(PluginStep step)
+    {
+        return step.Entity is string entity && CaseProcess.Contains(entity);
+    }
+
+    /// <summary>When in CRM's handling of the message the step runs, in the words of its registration screen.</summary>
+    private static string? Moment(int? stage)
+    {
+        return stage switch
+        {
+            10 => "doğrulama öncesi",
+            20 => "işlem öncesi",
+            40 => "işlem sonrası",
+            null => null,
+            _ => stage.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        };
+    }
+
+    /// <summary>
+    /// The hints in a reader's words. A client class says the most — a SOAP proxy posts an XML envelope, whatever
+    /// else the code does — so it is named for what it is, with CRM's own word beside it.
+    /// </summary>
+    public static IReadOnlyList<string> Hints(IReadOnlyList<string> raw)
+    {
+        return [.. raw.Select(hint => hint switch
+        {
+            "SoapHttpClientProtocol" => "SOAP istemcisi (SoapHttpClientProtocol)",
+            "ChannelFactory" or "BasicHttpBinding" or "WSHttpBinding" => $"WCF istemcisi ({hint})",
+            "HttpWebRequest" or "WebClient" or "HttpClient" or "RestClient" => $"HTTP istemcisi ({hint})",
+            "SOAPAction" => "SOAPAction başlığı",
+            _ => hint
+        }).OrderBy(hint => hint.Contains('(', StringComparison.Ordinal) || hint.StartsWith("SOAP", StringComparison.Ordinal) ? 0 : 1)
+            .ThenBy(hint => hint, StringComparer.Ordinal)];
+    }
+
     /// <summary>
     /// Every address in the plan's workflows, with the diagram to open and the id to search for: two workflows can
     /// share a name, and a name alone sent a reader to the wrong one.
@@ -176,6 +228,21 @@ public static partial class ExternalSystems
         return addresses;
     }
 
+    /// <summary>Per registered workflow activity, how its assembly calls out, in a reader's words: what the diagram's note carries.</summary>
+    public static IReadOnlyDictionary<string, string> HintsByActivity(PluginRegistry plugins)
+    {
+        Dictionary<Guid, PluginAssembly> assemblies = plugins.Assemblies.ToDictionary(assembly => assembly.AssemblyId);
+        Dictionary<string, string> hints = new(StringComparer.Ordinal);
+        foreach (PluginType type in plugins.Types.Where(type => type.AssemblyId is not null))
+        {
+            if (assemblies.TryGetValue(type.AssemblyId!.Value, out PluginAssembly? assembly) && assembly.Hints.Count > 0)
+            {
+                hints[type.TypeName] = string.Join(", ", Hints(assembly.Hints));
+            }
+        }
+        return hints;
+    }
+
     /// <summary>
     /// The registered types by name, so a workflow's activity can be matched to the assembly it comes from. The
     /// workflow carries an assembly-qualified name; CRM's registration carries the type name alone.
@@ -192,6 +259,12 @@ public static partial class ExternalSystems
             {
                 _types[type.TypeName] = type;
             }
+        }
+
+        public IReadOnlyList<string> HintsOf(string assemblyQualifiedName)
+        {
+            PluginType? type = _types.GetValueOrDefault(TypeNameOf(assemblyQualifiedName));
+            return type?.AssemblyId is Guid id && _assemblies.TryGetValue(id, out PluginAssembly? assembly) ? assembly.Hints : [];
         }
 
         public IReadOnlyList<string> AddressesOf(string assemblyQualifiedName)

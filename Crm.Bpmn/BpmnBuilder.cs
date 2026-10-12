@@ -21,6 +21,9 @@ public sealed record DiagramFacts(string? Role, string? Usage, bool RunningCopyD
 
     /// <summary>The workflows that call this one as a child.</summary>
     public IReadOnlyList<string> Callers { get; init; } = [];
+
+    /// <summary>Per custom activity type this workflow calls, how its code calls out: client class, verb, content type.</summary>
+    public IReadOnlyDictionary<string, string> ActivityHints { get; init; } = new Dictionary<string, string>();
 }
 
 /// <summary>A laid-out process ready to serialize.</summary>
@@ -617,6 +620,11 @@ public sealed partial class BpmnBuilder
         if (facts?.ActivityAddresses is { Count: > 0 } addresses)
         {
             lines.Add("Dış çağrı (kodda yazılı adres): " + string.Join(" · ", addresses.Select(entry => entry.Key[(entry.Key.LastIndexOf('.') + 1)..] + " → " + entry.Value)));
+        }
+        if (facts?.ActivityHints is { Count: > 0 } hints)
+        {
+            lines.Add("Çağrı ipucu (kodda geçen, hangi çağrıya ait olduğu bilinmez): "
+                + string.Join(" · ", hints.Select(entry => entry.Key[(entry.Key.LastIndexOf('.') + 1)..] + " → " + entry.Value)));
         }
         if (facts?.RunningCopyDiffers == true)
         {

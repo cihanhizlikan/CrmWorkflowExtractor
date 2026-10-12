@@ -104,10 +104,18 @@ public sealed class ExternalSystemsTests
         Assert.Equal("NotifyPolicyService", row[0]);
         Assert.Equal(FakeOrganization.AssemblyAddress, row[1]);
         Assert.Equal("evet", row[^1]);
+        // How it calls out, as far as the assembly's words say: the client class first, named for what it is.
+        Assert.Equal("SOAP istemcisi (SoapHttpClientProtocol) | POST | text/xml", row[2]);
 
         // Plug-in steps are not workflows and never enter the process inventory; the other half of what CRM
         // reaches outside is listed on its own page.
         Assert.Contains(workbook.Rows("Eklentiler"), line => line.Contains("https://kuyruk.ornek.local/route"));
+        // What each runs on, and the case process first: the code that runs when a case changes is where a stage's
+        // outcome is decided, and it is what a reader of the stage maps comes to this page for.
+        IReadOnlyList<IReadOnlyList<string>> plugins = workbook.Rows("Eklentiler");
+        Assert.Equal(["kod", "mesaj", "varlik", "talep_surecinde", "calisma_ani"], plugins[0].Take(5));
+        Assert.Equal(["NotifyPolicyService", "Create", "incident", "evet", "işlem sonrası"], plugins[1].Take(5));
+        Assert.Equal(["NotifyPolicyService", "Update", "contact", "hayır", "işlem öncesi"], plugins[2].Take(5));
 
         // And on the diagram, where the analyst actually is: on the step's own label and in the header note. The
         // diagram carries the HOST, not the address — one assembly on the real estate holds nearly five hundred
@@ -117,6 +125,8 @@ public sealed class ExternalSystemsTests
         Assert.Contains("→ nova.ornek.local", diagram, StringComparison.Ordinal);
         Assert.Contains("Dış çağrı (kodda yazılı adres): NotifyPolicyService → nova.ornek.local", diagram, StringComparison.Ordinal);
         Assert.DoesNotContain(FakeOrganization.AssemblyAddress, diagram, StringComparison.Ordinal);
+        Assert.Contains("Çağrı ipucu (kodda geçen, hangi çağrıya ait olduğu bilinmez): NotifyPolicyService → SOAP istemcisi (SoapHttpClientProtocol), POST, text/xml",
+            diagram, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -131,7 +141,7 @@ public sealed class ExternalSystemsTests
         Assert.True(code == ExitCode.Success, console);
         Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "dis-sistemler.xlsx"));
         Assert.Equal(["Nasıl okunur", "Dış bağımlılıklar", "Adresler", "Eklentiler"], workbook.Names);
-        Assert.Equal(["etkinlik", "derlemedeki_adresler", "cagiran_is_akisi_sayisi", "parametreler", "cagiran_is_akislari", "derleme", "kayitli"],
+        Assert.Equal(["etkinlik", "derlemedeki_adresler", "derlemedeki_cagri_ipuclari", "cagiran_is_akisi_sayisi", "parametreler", "cagiran_is_akislari", "derleme", "kayitli"],
             workbook.Headers("Dış bağımlılıklar"));
         Assert.Contains(workbook.Rows("Dış bağımlılıklar"), row => row.Contains("NotifyPolicyService"));
         // The diagram and the id beside the name: two workflows can share a name, and a name alone sent a reader to the wrong one.

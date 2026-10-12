@@ -157,6 +157,48 @@
     return [...found].sort();
   }
 
+  // What else the code says about HOW it calls out: an HTTP verb, a content type, the client class it is built on.
+  // These are HINTS, never a call: they say the assembly contains the word, not which call uses it. Matched as whole
+  // words, in the UTF-16 string constants (verbs, content types) and the ASCII type references (client classes).
+  const VERB = /(?<![A-Za-z0-9_])(GET|POST|PUT|PATCH|DELETE)(?![A-Za-z0-9_])/g;
+  const CONTENT_TYPE = /(?<![A-Za-z0-9_+./-])(application\/json|application\/soap\+xml|text\/xml|application\/xml|application\/x-www-form-urlencoded|multipart\/form-data)(?![A-Za-z0-9_+./-])/gi;
+  const CLIENT = /(?<![A-Za-z0-9_])(SoapHttpClientProtocol|HttpWebRequest|WebClient|HttpClient|ChannelFactory|BasicHttpBinding|WSHttpBinding|RestClient|SOAPAction)(?![A-Za-z0-9_])/g;
+  function hintsIn(base64) {
+    const raw = atob(base64);
+    const wide = raw.replace(/\0/g, "");
+    const found = new Set();
+    for (const match of wide.matchAll(VERB)) {
+      found.add(match[1]);
+    }
+    for (const match of wide.matchAll(CONTENT_TYPE)) {
+      found.add(match[1].toLowerCase());
+    }
+    for (const match of raw.matchAll(CLIENT)) {
+      found.add(match[1]);
+    }
+    return [...found].sort();
+  }
+
+  // The entity each plug-in step is registered on is held by its message filter, which a step only points at. Asked
+  // for by id, a few at a time, rather than all of them: the filters table holds one row for every message and
+  // entity pair CRM knows.
+  async function readFilters(ids) {
+    const entities = {};
+    for (let index = 0; index < ids.length; index += 15) {
+      const chunk = ids.slice(index, index + 15);
+      const filter = encodeURIComponent(chunk.map(id => `sdkmessagefilterid eq ${id}`).join(" or "));
+      try {
+        const page = await get(`sdkmessagefilters?$select=sdkmessagefilterid,primaryobjecttypecode&$filter=${filter}`);
+        for (const row of page.value) {
+          entities[row.sdkmessagefilterid] = row.primaryobjecttypecode;
+        }
+      } catch (error) {
+        log("Message filters could not be read:", error.message);
+      }
+    }
+    return entities;
+  }
+
   async function readPlugins() {
     let assemblies = [];
     let types = [];
@@ -164,10 +206,16 @@
     try {
       assemblies = await getAll("pluginassemblies?$select=pluginassemblyid,name,version,sourcetype,ismanaged");
       types = await getAll("plugintypes?$select=plugintypeid,typename,friendlyname,isworkflowactivity,workflowactivitygroupname,_pluginassemblyid_value");
-      steps = await getAll("sdkmessageprocessingsteps?$select=sdkmessageprocessingstepid,name,configuration,stage,mode,statecode,_plugintypeid_value");
+      steps = await getAll("sdkmessageprocessingsteps?$select=sdkmessageprocessingstepid,name,configuration,stage,mode,statecode,_plugintypeid_value,_sdkmessageid_value,_sdkmessagefilterid_value");
     } catch (error) {
       log("Plug-in registry could not be read:", error.message);
       return { assemblies: [], types: [], steps: [] };
+    }
+    // Which message and entity each step runs on: what says that a step runs when a case or a stage changes.
+    const filters = await readFilters([...new Set(steps.map(step => step._sdkmessagefilterid_value).filter(Boolean))]);
+    for (const step of steps) {
+      step.message = step["_sdkmessageid_value@OData.Community.Display.V1.FormattedValue"] ?? null;
+      step.primaryentity = filters[step._sdkmessagefilterid_value] ?? null;
     }
     // Only the assemblies a workflow's custom activities come from: the rest are plug-ins, whose own endpoints are
     // not what the diagrams are missing.
@@ -180,8 +228,10 @@
       try {
         const record = await get(`pluginassemblies(${assembly.pluginassemblyid})?$select=content`);
         assembly.addresses = record.content ? addressesIn(record.content) : [];
+        assembly.hints = record.content ? hintsIn(record.content) : [];
       } catch (error) {
         assembly.addresses = [];
+        assembly.hints = [];
         log(`Assembly ${assembly.name} could not be read:`, error.message);
       }
       scanned++;

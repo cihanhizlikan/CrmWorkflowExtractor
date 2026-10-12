@@ -68,6 +68,12 @@ public static class Guides
         sheet.Row("diger_kurallar", "Aşamanın taşıdığı diğer kurallar (otomatik çözüm, geri dönüş, kapanış, atlanabilirlik, limitler, "
             + "kampanya, adım kodu, mobil şube metinleri), CRM'deki etiketleriyle ve yalnızca doluysa. Boş hücre o kuralların bu "
             + "aşamada kullanılmadığı demektir.");
+        sheet.Row("Sonucu ne belirler",
+            "Bir aşamanın olumlu, olumsuz ya da iptal kapanmasına neyin karar verdiği aşama kaydında YAZILI DEĞİLDİR. Kullanıcı "
+            + "aşamalarında sonucu çoğunlukla kişi seçer; otomatik aşamalarda ve kendiliğinden kapanma kurallarında (SLA, doküman, "
+            + "otomatik çözüm) karar CRM'e kaydedilmiş koddadır. Bu kodun hangisi olduğu dis-sistemler.xlsx → Eklentiler sayfasında "
+            + "talep_surecinde = evet olan satırlardadır; içinde ne yaptığını yalnızca kodun sahibi söyleyebilir. Aşamada çalışan "
+            + "iş akışı sonucu belirlemez: sonuç belli olduktan SONRA çalışır.");
         sheet.Row("asama_haritasi · asama_id",
             "Aşamanın göründüğü aşama haritaları ve CRM'de aramak için kimliği. Haritada olumlu sonuç sağa, olumsuz aşağıdan, "
             + "iptal yukarıdan çıkar; aynı yere giden sonuçlar tek oktur (\"olumsuz / iptal\"). Geri dönüşler \"… aşamasına dön\" "
@@ -189,6 +195,12 @@ public static class Guides
         sheet.Row("kayitli",
             "Bu etkinlik CRM'de hâlâ kayıtlı mı. hayır ise iş akışı artık var olmayan bir koda gidiyor demektir: "
             + "üretimde kırık bir çağrıdır, önce onu sorun.");
+        sheet.Row("derlemedeki_cagri_ipuclari",
+            "Derlemenin içinde geçen, nasıl çağrı yapıldığına dair kelimeler: istemci sınıfı (SOAP, WCF ya da HTTP istemcisi), "
+            + "HTTP fiili (GET, POST…) ve içerik türü (text/xml, application/json…). Bunlar İPUCUDUR: derlemede o kelimenin "
+            + "geçtiğini söyler, hangi çağrının onu kullandığını söylemez. \"SOAP istemcisi\" varsa çağrı büyük olasılıkla POST "
+            + "ile gönderilen bir XML zarfıdır ve gövdesinin alanları parametreler sütunundaki adlardır. Fiil ve gövdenin kesin "
+            + "hali yalnızca kaynak kodda ya da servisin sözleşmesinde (WSDL, OpenAPI) vardır: onu derlemenin sahibinden isteyin.");
         sheet.Row("parametreler",
             "Etkinliğin iş akışından aldığı ve ona geri verdiği adların tamamı — CRM'in tuttuğu en yakın şey bir imzadır. "
             + "Adresi söylemez ama ARKADAKİ OPERASYONU söyler: \"GetPersonEntityInformationRq\" ya da \"ApproveClaimFundSellResult\" "
@@ -209,6 +221,13 @@ public static class Guides
             "Eklentiler iş akışı değildir: CRM'de bir mesaj üzerinde çalışan koddur ve taşıma planında hiç görünmezler. "
             + "Yeni üründe karşılıkları ayrıca kurulmalıdır. konfigurasyondaki_adresler, kayıt sırasında verilmiş "
             + "\"unsecure configuration\" metninde geçen adreslerdir; gizli konfigürasyon okunmaz, orada kimlik bilgisi tutulur.");
+        sheet.Row("mesaj · varlik · calisma_ani",
+            "Kodun ne zaman çalıştığı: hangi kayıt türünde (varlik) hangi işlemde (mesaj: Create, Update, SetState…) ve "
+            + "işlemin öncesinde mi sonrasında mı. Boşsa dışa aktarım bu bilgiyi taşımayan eski bir dışa aktarımdır.");
+        sheet.Row("talep_surecinde",
+            "evet ise kod bir talepte (incident) ya da bir talep aşaması kaydında (ps_step) çalışır: aşama haritalarındaki "
+            + "aşamaların nasıl kapandığına ve talebin nasıl ilerlediğine karar veren kod büyük olasılıkla bunlardır. Sayfa bu "
+            + "satırlarla başlar. Ne yaptıklarını kodun sahibine sorun; yeni üründe her biri bir kuraldır.");
         sheet.Row("Bu çalıştırma", string.Create(CultureInfo.InvariantCulture,
             $"{activities} özel etkinlik · {hosts} farklı sunucu · {addresses} farklı adres · "
             + $"derlemelerin içinde {assemblyAddresses} adres · {pluginSteps} eklenti adımı"));

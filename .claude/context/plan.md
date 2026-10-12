@@ -1308,3 +1308,21 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** reprocess the last run. **Pass:** `tasima-plani.xlsx` opens on
   Talep konuları; `bpmn/` holds only `is-akislari/` and `talep-asamalari/`; a workflow fired by a stage names the
   stage on its row and its diagram.
+
+### Where an outcome is decided; how a call is made (2026-10-12) — committed, awaiting merge
+- **Maintainer asked:** is what a stage does written anywhere, what decides success or failure, and do the diagrams
+  show a service call's URL, verb and body. Answered: a stage record is configuration (rules, next stages, the
+  workflow and SMS per outcome); the outcome is decided by a person or by registered code, and the fired workflow
+  runs after it; the diagrams show the call, its parameter names and the addresses in the code, not verb or body.
+  Asked for (1) the plug-in steps' message and entity and (3) call hints.
+- **Export:** plug-in steps now carry `message` (the message lookup's formatted name) and `primaryentity` (read from
+  their message filters, by id, fifteen at a time); activity assemblies carry `hints` — whole-word verbs and content
+  types in the UTF-16 constants, client classes in the ASCII names. Checked on a stubbed CRM in node with a fake
+  assembly: `POST`, `text/xml`, `SoapHttpClientProtocol` found; `POSTAL`, `GetPersonInformation`,
+  `HttpClientFactoryX` not. `tools/crm-export.html` regenerated. NEEDS A RE-EXPORT to take effect; an older export
+  leaves the new columns empty and the guide says so.
+- **Output:** Eklentiler gains `mesaj`, `varlik`, `talep_surecinde`, `calisma_ani` and opens on the case process;
+  Dış bağımlılıklar gains `derlemedeki_cagri_ipuclari`; the diagram note a "Çağrı ipucu" line; the stage sheet's
+  guide a "Sonucu ne belirler" row; the Word guide two traps. Each guard falsified. 372 pass.
+- **Acceptance on the company network — Do:** re-export with the regenerated page, run. **Pass:** Eklentiler opens
+  on rows with talep_surecinde = evet; a workflow calling a SOAP activity shows "Çağrı ipucu … SOAP istemcisi".

@@ -57,7 +57,13 @@ assemblies behind a workflow's activities, scans their string constants for addr
 the text; no DLL ever reaches this machine. `PluginRegistryReader` reads what it sent, and `AssemblyStrings` scans
 plug-in step configuration the same way. What this says is "the code this step runs contains these addresses", never "this step
 calls this address" — and it is said that way on the sheet, in the guide and on the diagram. Plug-in steps come
-with it: code CRM runs on a message, not a process, invisible to the plan and listed on its own page.
+with it: code CRM runs on a message, not a process, invisible to the plan and listed on its own page — with the
+message and entity each runs on (since 2026-10-12, read through its message filter), the case process's
+(`incident`, `ps_step`) first, because WHAT DECIDES A STAGE'S OUTCOME IS IN NO STAGE RECORD: a person picks it, or
+registered code decides it, and the workflow a stage fires runs after the outcome is known, never before. The same
+scan also brings CALL HINTS — a client class, an HTTP verb, a content type found as whole words in the assembly —
+shown on the dependency sheet and the diagram's note as hints, never as the verb or body of a particular call:
+those exist only in the source or the service's contract, and the guide says to ask the assembly's owner.
 
 **CRM has no per-workflow permission.** There is no record saying "role X may run workflow Y": starting a
 process by hand needs one estate-wide privilege, `prvExecuteWorkflowJob`, plus the right to read the process

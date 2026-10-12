@@ -5,17 +5,23 @@ namespace Crm.Extract.Metadata;
 /// <summary>
 /// An assembly registered in CRM: the unit a partner or an in-house team ships and owns. <see cref="Addresses"/>
 /// are the endpoints found in its own bytes — what the code reaches out to, which no workflow record carries.
+/// <see cref="Hints"/> are the words in it that say HOW it calls out — an HTTP verb, a content type, the client class
+/// it is built on — as the browser found them: evidence that the assembly contains the word, never of which call uses it.
 /// </summary>
-public sealed record PluginAssembly(Guid AssemblyId, string Name, string? Version, int? SourceType, bool? IsManaged, IReadOnlyList<string> Addresses);
+public sealed record PluginAssembly(Guid AssemblyId, string Name, string? Version, int? SourceType, bool? IsManaged,
+    IReadOnlyList<string> Addresses, IReadOnlyList<string> Hints);
 
 /// <summary>One type inside a registered assembly. A workflow's custom activity is one of these.</summary>
 public sealed record PluginType(Guid TypeId, Guid? AssemblyId, string TypeName, string? FriendlyName, bool? IsWorkflowActivity, string? ActivityGroup);
 
 /// <summary>
 /// A registered plug-in step: code CRM runs on a message, outside any workflow. Its <c>configuration</c> is the
-/// unsecure registration text, which is where an endpoint is classically put.
+/// unsecure registration text, which is where an endpoint is classically put. <see cref="Message"/> and
+/// <see cref="Entity"/> say what it runs on — <c>Update</c> of <c>ps_step</c> is code that runs when a case stage
+/// changes, which is where what decides a stage's outcome lives. An export made before 2026-10-12 carries neither.
 /// </summary>
-public sealed record PluginStep(Guid StepId, Guid? TypeId, string Name, string? Configuration, int? Stage, int? Mode, int? State);
+public sealed record PluginStep(Guid StepId, Guid? TypeId, string Name, string? Configuration, int? Stage, int? Mode, int? State,
+    string? Message, string? Entity);
 
 /// <summary>What CRM knows about the code registered in it.</summary>
 public sealed record PluginRegistry(IReadOnlyList<PluginAssembly> Assemblies, IReadOnlyList<PluginType> Types, IReadOnlyList<PluginStep> Steps)
@@ -42,18 +48,19 @@ public static class PluginRegistryReader
     {
         return Json.OptionalGuid(row, "pluginassemblyid") is Guid id
             ? new PluginAssembly(id, Json.OptionalString(row, "name") ?? "", Json.OptionalString(row, "version"),
-                Json.OptionalInt(row, "sourcetype"), Json.OptionalBool(row, "ismanaged"), Addresses(row))
+                Json.OptionalInt(row, "sourcetype"), Json.OptionalBool(row, "ismanaged"), Strings(row, "addresses"), Strings(row, "hints"))
             : null;
     }
 
     /// <summary>
-    /// The addresses an export already extracted. The browser export scans the assembly in the browser and sends
-    /// only the text, so a multi-megabyte DLL never lands in the export file or on this machine.
+    /// What an export already extracted from an assembly — its addresses, its call hints. The browser export scans
+    /// the assembly in the browser and sends only the text, so a multi-megabyte DLL never lands in the export file
+    /// or on this machine.
     /// </summary>
-    private static IReadOnlyList<string> Addresses(JsonElement row)
+    private static IReadOnlyList<string> Strings(JsonElement row, string name)
     {
-        return row.TryGetProperty("addresses", out JsonElement addresses) && addresses.ValueKind == JsonValueKind.Array
-            ? [.. addresses.EnumerateArray().Select(address => address.GetString()).OfType<string>()]
+        return row.TryGetProperty(name, out JsonElement values) && values.ValueKind == JsonValueKind.Array
+            ? [.. values.EnumerateArray().Select(value => value.GetString()).OfType<string>()]
             : [];
     }
 
@@ -71,7 +78,7 @@ public static class PluginRegistryReader
         return Json.OptionalGuid(row, "sdkmessageprocessingstepid") is Guid id
             ? new PluginStep(id, Json.OptionalGuid(row, "_plugintypeid_value"), Json.OptionalString(row, "name") ?? "",
                 Json.OptionalString(row, "configuration"), Json.OptionalInt(row, "stage"), Json.OptionalInt(row, "mode"),
-                Json.OptionalInt(row, "statecode"))
+                Json.OptionalInt(row, "statecode"), Json.OptionalString(row, "message"), Json.OptionalString(row, "primaryentity"))
             : null;
     }
 

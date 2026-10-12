@@ -347,7 +347,11 @@ public static class AnalystGuide
             "Bir aşama haritasındaki bitiş olayı talebin kapandığını söylemez: \"Sonraki aşama yok\", aşama kaydının o sonuç "
                 + "için bir devam göstermediği demektir. Talebin kapanıp kapanmadığı aşamanın kapanış kurallarındadır.",
             "Bir aşama hem bir iş akışı çalıştırıp hem bir sonraki aşamaya geçiyorsa, ikisinin sırası CRM'de doğrulanmadı; "
-                + "haritada iş akışı önce çizilir."
+                + "haritada iş akışı önce çizilir.",
+            "Bir aşamanın olumlu mu olumsuz mu kapandığına iş akışı karar vermez; iş akışı sonuç belli olduktan sonra çalışır. "
+                + "Karar ya kişinindir ya da CRM'e kaydedilmiş koddadır: dis-sistemler.xlsx → Eklentiler, talep_surecinde = evet.",
+            "Diyagramdaki \"Çağrı ipucu\" (SOAP istemcisi, POST, text/xml…) derlemede o kelimenin geçtiğini söyler; hangi "
+                + "çağrının kullandığını söylemez. Fiil ve gövdenin kesin hali kaynak kodda ya da servisin sözleşmesindedir (WSDL)."
         })
         {
             parts.Add(new Paragraph("NormalBullet", trap));

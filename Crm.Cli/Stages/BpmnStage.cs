@@ -90,14 +90,16 @@ public static class BpmnStage
         private readonly UsageEvidence? _usage = usage;
         private readonly HashSet<Guid> _drifted = [.. (state.Drift?.Drifted ?? []).Where(finding => finding.StructureDiffers).Select(finding => finding.DefinitionId)];
         private readonly IReadOnlyDictionary<string, string> _addresses = ExternalSystems.AddressesByActivity(state.Plugins);
+        private readonly IReadOnlyDictionary<string, string> _hints = ExternalSystems.HintsByActivity(state.Plugins);
 
         public DiagramFacts For(WorkflowIr document)
         {
             Guid id = document.Identity.WorkflowId;
             IReadOnlyList<StageFiring> fired = state.FiredBy.GetValueOrDefault(id, []);
             IReadOnlyList<Guid> callers = _calls.CalledBy.GetValueOrDefault(id, []);
-            return new DiagramFacts(Role(id, fired.Count), Usage(document.Identity), _drifted.Contains(id), Called(document))
+            return new DiagramFacts(Role(id, fired.Count), Usage(document.Identity), _drifted.Contains(id), Called(document, _addresses))
             {
+                ActivityHints = Called(document, _hints),
                 FiredBy = Listed(fired.Select(firing => firing.Text + Map(firing))),
                 Callers = Listed(callers.Select(caller => _calls.Names.GetValueOrDefault(caller, caller.ToString("D"))).Order(StringComparer.Ordinal))
             };
@@ -133,18 +135,18 @@ public static class BpmnStage
         }
 
         /// <summary>
-        /// The addresses behind the custom activities THIS workflow calls. Only those: a diagram should carry the
-        /// endpoints of its own steps, not the estate's.
+        /// What is known about the custom activities THIS workflow calls — their addresses, or their call hints.
+        /// Only those: a diagram should carry the endpoints of its own steps, not the estate's.
         /// </summary>
-        private IReadOnlyDictionary<string, string> Called(WorkflowIr document)
+        private static IReadOnlyDictionary<string, string> Called(WorkflowIr document, IReadOnlyDictionary<string, string> byActivity)
         {
             Dictionary<string, string> called = new(StringComparer.Ordinal);
             foreach (string activity in document.Dependencies.CustomActivities)
             {
                 string type = activity.Split(',')[0].Trim();
-                if (_addresses.TryGetValue(type, out string? addresses))
+                if (byActivity.TryGetValue(type, out string? found))
                 {
-                    called[type] = addresses;
+                    called[type] = found;
                 }
             }
             return called;

@@ -206,7 +206,8 @@ internal sealed class FakeOrganization
                 ["version"] = "2.1.0.0",
                 ["sourcetype"] = 0,
                 ["ismanaged"] = false,
-                ["addresses"] = new JsonArray(AssemblyAddress)
+                ["addresses"] = new JsonArray(AssemblyAddress),
+                ["hints"] = new JsonArray("POST", "SoapHttpClientProtocol", "text/xml")
             }),
             ["types"] = new JsonArray(new JsonObject
             {
@@ -225,7 +226,19 @@ internal sealed class FakeOrganization
                 ["stage"] = 40,
                 ["mode"] = 0,
                 ["statecode"] = 0,
-                ["_plugintypeid_value"] = PluginTypeId.ToString("D")
+                ["_plugintypeid_value"] = PluginTypeId.ToString("D"),
+                ["message"] = "Create",
+                ["primaryentity"] = "incident"
+            }, new JsonObject
+            {
+                ["sdkmessageprocessingstepid"] = "aaaaaaaa-0000-0000-0000-000000000004",
+                ["name"] = "Partner.Crm.Plugins.AuditTrail: Update of contact",
+                ["stage"] = 20,
+                ["mode"] = 1,
+                ["statecode"] = 0,
+                ["_plugintypeid_value"] = PluginTypeId.ToString("D"),
+                ["message"] = "Update",
+                ["primaryentity"] = "contact"
             })
         };
     }
