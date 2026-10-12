@@ -72,6 +72,10 @@
     }
   }
 
+  // An error CRM sends back can carry ids — the calling user's and the record owner's, in an access refusal — and this
+  // file holds totals and nothing else. The reason stays; the ids do not.
+  const reason = error => String(error.message || error).replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "<id>");
+
   async function lookupsTo(entity) {
     const page = await get(`EntityDefinitions(LogicalName='${entity}')/OneToManyRelationships?$select=ReferencingEntity,ReferencingAttribute`);
     return page.value;
@@ -166,31 +170,50 @@
     return total;
   };
 
-  // Every entity with a lookup to both the case and the stage record, in every pairing of those lookups.
-  const toStage = await lookupsTo(STAGE);
-  const toCase = await lookupsTo(CASE);
+  // Every entity with a lookup to both the case and the stage record, in every pairing of those lookups. An activity's
+  // "regarding" field can point at either, so every activity table qualifies through it — e-mail, phone call, mailbox
+  // tracking folder — and none of them is a stage history: they are named and left out rather than probed. (On the
+  // first production run every probe of them came back 400.)
+  const REGARDING = "regardingobjectid";
   const candidates = [];
-  for (const stage of toStage) {
-    for (const kase of toCase.filter(relation => relation.ReferencingEntity === stage.ReferencingEntity)) {
-      if (stage.ReferencingEntity === CASE || stage.ReferencingEntity === STAGE) {
-        continue;
+  const activityTables = new Set();
+  let discoveryError = null;
+  try {
+    const toStage = await lookupsTo(STAGE);
+    const toCase = await lookupsTo(CASE);
+    for (const stage of toStage) {
+      for (const kase of toCase.filter(relation => relation.ReferencingEntity === stage.ReferencingEntity)) {
+        if (stage.ReferencingEntity === CASE || stage.ReferencingEntity === STAGE) {
+          continue;
+        }
+        if (stage.ReferencingAttribute === REGARDING || kase.ReferencingAttribute === REGARDING) {
+          activityTables.add(stage.ReferencingEntity);
+          continue;
+        }
+        candidates.push({ entity: stage.ReferencingEntity, caseAttribute: kase.ReferencingAttribute, stageAttribute: stage.ReferencingAttribute });
       }
-      candidates.push({ entity: stage.ReferencingEntity, caseAttribute: kase.ReferencingAttribute, stageAttribute: stage.ReferencingAttribute });
     }
+  } catch (error) {
+    discoveryError = reason(error);
+    log("The relationships to the case and the stage record could not be read:", discoveryError);
   }
   for (const candidate of candidates) {
     try {
       const definition = await get(`EntityDefinitions(LogicalName='${candidate.entity}')?$select=EntitySetName`);
       candidate.entitySet = definition.EntitySetName;
-      // $count stops at 5000 on this version; enough to tell a history from a table that holds a handful of rows.
-      const counted = await get(`${candidate.entitySet}?$select=createdon&$count=true&$top=1`);
+      // One row a page and the total, without $top — which together with $count is what the server refused. The
+      // total stops at 5000 on this version; enough to tell a history from a table that holds a handful of rows.
+      const counted = await get(`${candidate.entitySet}?$select=_${candidate.caseAttribute}_value&$count=true`, "odata.maxpagesize=1");
       candidate.rows = counted["@odata.count"] ?? null;
     } catch (error) {
       candidate.rows = null;
-      candidate.error = String(error.message || error);
+      candidate.error = reason(error);
     }
   }
-  log("Entities with a lookup to both the case and the stage:", candidates);
+  log("Candidates for the stage history:", candidates.map(candidate => `${candidate.entity} (${candidate.caseAttribute} / ${candidate.stageAttribute}): ${candidate.error ?? (candidate.rows ?? "?") + " rows"}`));
+  if (activityTables.size > 0) {
+    log("Activity tables left out (their 'regarding' field reaches the case and the stage):", [...activityTables].sort());
+  }
 
   let chosen = null;
   let chosenBy = null;
@@ -219,6 +242,7 @@
   let skipped = 0;
   let first = null;
   let last = null;
+  let historyError = null;
   if (chosen) {
     log(`Reading the stage history from ${chosen.entity} (${chosenBy})`);
     const caseValue = `_${chosen.caseAttribute}_value`;
@@ -230,34 +254,49 @@
         lastRecorded.set(current.stage, (lastRecorded.get(current.stage) ?? 0) + 1);
       }
     };
-    await eachPage(`${chosen.entitySet}?$select=createdon,${caseValue},${stageValue}&$orderby=${caseValue} asc,createdon asc`, rows => {
-      for (const row of rows) {
-        const kase = row[caseValue];
-        const stage = row[stageValue];
-        const at = Date.parse(row.createdon);
-        if (!kase || !stage || Number.isNaN(at)) {
-          skipped++;
-          continue;
-        }
-        events++;
-        first = first === null || at < first ? at : first;
-        last = last === null || at > last ? at : last;
-        entries.set(stage, (entries.get(stage) ?? 0) + 1);
-        if (current && current.kase === kase) {
-          const key = `${current.stage}|${stage}`;
-          if (!steps.has(key)) {
-            steps.set(key, { hours: [], workDays: [] });
+    // A table the signed-in user may not read answers 403. That is an answer, not a crash: the file is still saved,
+    // saying which table and why, and nothing half-read is kept — a partial history would read as a whole one.
+    try {
+      await eachPage(`${chosen.entitySet}?$select=createdon,${caseValue},${stageValue}&$orderby=${caseValue} asc,createdon asc`, rows => {
+        for (const row of rows) {
+          const kase = row[caseValue];
+          const stage = row[stageValue];
+          const at = Date.parse(row.createdon);
+          if (!kase || !stage || Number.isNaN(at)) {
+            skipped++;
+            continue;
           }
-          steps.get(key).hours.push((at - current.at) / 3600000);
-          steps.get(key).workDays.push(workBetween(current.at, at) / DAY);
-        } else {
-          close();
-          cases++;
+          events++;
+          first = first === null || at < first ? at : first;
+          last = last === null || at > last ? at : last;
+          entries.set(stage, (entries.get(stage) ?? 0) + 1);
+          if (current && current.kase === kase) {
+            const key = `${current.stage}|${stage}`;
+            if (!steps.has(key)) {
+              steps.set(key, { hours: [], workDays: [] });
+            }
+            steps.get(key).hours.push((at - current.at) / 3600000);
+            steps.get(key).workDays.push(workBetween(current.at, at) / DAY);
+          } else {
+            close();
+            cases++;
+          }
+          current = { kase, stage, at };
         }
-        current = { kase, stage, at };
-      }
-    });
-    close();
+      });
+      close();
+    } catch (error) {
+      historyError = reason(error);
+      log(`The stage history in ${chosen.entity} could not be read:`, historyError);
+      entries.clear();
+      lastRecorded.clear();
+      steps.clear();
+      cases = 0;
+      events = 0;
+      skipped = 0;
+      first = null;
+      last = null;
+    }
   } else {
     log("No entity has a lookup to both the case and the stage record: there is no stage history to measure.");
   }
@@ -293,7 +332,9 @@
     exportedAtUtc: new Date().toISOString(),
     startedAtUtc: started.toISOString(),
     webApiRoot: WEB_API,
-    source: chosen ? { entity: chosen.entity, entitySet: chosen.entitySet, caseAttribute: chosen.caseAttribute, stageAttribute: chosen.stageAttribute, chosenBy } : null,
+    source: chosen ? { entity: chosen.entity, entitySet: chosen.entitySet, caseAttribute: chosen.caseAttribute, stageAttribute: chosen.stageAttribute, chosenBy, error: historyError } : null,
+    discoveryError,
+    activityTables: [...activityTables].sort(),
     candidates: candidates.map(candidate => ({ entity: candidate.entity, caseAttribute: candidate.caseAttribute, stageAttribute: candidate.stageAttribute, rows: candidate.rows, error: candidate.error ?? null })),
     minimumGroup: MINIMUM_GROUP,
     workingTime: {
@@ -317,5 +358,9 @@
   document.body.appendChild(link);
   link.click();
   link.remove();
+  if (historyError) {
+    log(`Saved ${link.download} WITHOUT a history: ${chosen.entity} could not be read — ${historyError.replace(/^GET .*? -> /, "").slice(0, 200)}. The extractor will say so.`);
+    return;
+  }
   log(`Done: ${cases} cases, ${events} stage entries, ${transitions.length} kinds of step, ${skipped} rows skipped. Saved ${link.download}`);
 })().catch(error => console.error("[crm-process-mining] FAILED:", error));

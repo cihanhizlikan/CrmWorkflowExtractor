@@ -316,14 +316,24 @@ public static class Guides
             "Sayılar CRM'den okunurken tarayıcıda toplandı. Bu dosyada ve kaynağında hiçbir talep, müşteri, ürün, kullanıcı ya da "
             + string.Create(CultureInfo.InvariantCulture, $"kesin zaman yoktur; yalnızca dönemin ilk ve son günü vardır. {mining.MinimumGroup} kezden az ")
             + "yaşanmış bir geçişin süresi verilmez, yalnızca sayısı verilir: üç geçişin dağılımı üç talebin kendisidir.");
+        string looked = (mining.Candidates.Count == 0 ? "yok" : string.Join("; ", mining.Candidates))
+            + (mining.ActivityTables.Count == 0 ? "" : ". Etkinlik tabloları (\"ilgili\" alanıyla bağlanır, aşama geçmişi değildir; bakılmadı): "
+                + string.Join(", ", mining.ActivityTables));
         if (mining.Source is null)
         {
             sheet.Row("Kaynak", "Talebe ve aşama kaydına aynı anda bağlanan bir varlık bulunamadı: aşama geçmişi tutulmuyor ya da "
-                + "bu yolla okunamıyor. Ölçülecek bir şey yok. Bakılan adaylar: " + (mining.Candidates.Count == 0 ? "yok" : string.Join("; ", mining.Candidates)));
+                + "bu yolla okunamıyor. Ölçülecek bir şey yok. Bakılan adaylar: " + looked
+                + (mining.SourceError is null ? "" : ". CRM'in cevabı: " + mining.SourceError));
             return sheet;
         }
-        sheet.Row("Kaynak", $"{mining.Source} — {mining.ChosenBy}. Talebe ve aşama kaydına aynı anda bağlanan bütün varlıklar: "
-            + string.Join("; ", mining.Candidates) + ".");
+        if (mining.SourceError is not null)
+        {
+            sheet.Row("Kaynak", $"Aşama geçmişi {mining.Source} tablosunda, ama dışa aktarımı çalıştıranın rolü onu okuyamadı. "
+                + "CRM'in cevabı: " + mining.SourceError + ". 403 bir yetki cevabıdır: bu tabloyu okuma yetkisi olan biri "
+                + "dışa aktarımı çalıştırmalı ya da rolünüze okuma yetkisi verilmelidir. Ölçülecek bir şey yok. Bakılan adaylar: " + looked);
+            return sheet;
+        }
+        sheet.Row("Kaynak", $"{mining.Source} — {mining.ChosenBy}. Talebe ve aşama kaydına aynı anda bağlanan bütün varlıklar: " + looked + ".");
         sheet.Row("Dönem", $"{mining.FromDate} – {mining.ToDate}. CRM bu geçmişi silmişse daha eskisi yoktur.");
         sheet.Row("Bu çalıştırma", string.Create(CultureInfo.InvariantCulture,
             $"{mining.Cases} talep · {mining.Events} aşama girişi · {mining.Steps.Count} farklı geçiş · {mining.Skipped} satır talep ya da aşama taşımadığı için atlandı · {maps} aşama haritası"));

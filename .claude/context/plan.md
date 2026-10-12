@@ -1366,3 +1366,18 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   (`surec-madenciligi.xlsx`, `surec-madenciligi-bpmn/`) stays Turkish. No file under the old name existed yet.
 - **Found while renaming:** the bookmarklet drift test listed only the other two pages, so this one could fall out
   of step with its script unnoticed. Added and falsified (a stale script fails it). 383 pass.
+
+### The process-mining export may not die without saving (2026-10-12) — committed, awaiting merge
+- **First production run:** every candidate probe (`…mailboxtrackingfolders?…`) answered 400, the last request 403,
+  and the script ended `[crm-process-mining] FAILED` with nothing saved. Read off the code: the probes were the row
+  counts, and every one failing points at their shape (`$count` with `$top`); one table answered its count, was taken
+  as the only candidate, and its rows were refused 403 — the one request left unguarded. The activity tables were
+  candidates at all because their "regarding" field reaches both the case and `ps_step`.
+- **Fixed:** "regarding" pairings are named (`activityTables`) and never probed; counts ask one row a page and the
+  total, no `$top`; the metadata lookups and the history read are guarded, so a refusal SAVES the file with the table
+  and the reason CRM gave and keeps nothing half-read; ids in any error text are blanked (an access refusal carries
+  the calling user's and the owner's). The extractor names the table and the reason and draws no maps.
+- **Reproduced** on the stubbed CRM (400 for any `$top`, 403 on the rows): no FAILED, file saved, activity tables not
+  probed, ids blanked; the three earlier stubs give the same results. UNVERIFIED: that `$top` caused the 400s — the
+  reason is now in the console and the file. If the history table is refused again, a role with read access to it
+  has to run the export. 384 pass.

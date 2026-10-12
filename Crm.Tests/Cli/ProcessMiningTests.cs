@@ -12,16 +12,18 @@ namespace Crm.Tests.Cli;
 /// </summary>
 public sealed class ProcessMiningTests
 {
-    private static string Totals(TemporaryOutput output, bool found = true, bool withWorkingDays = true, string? holidaySource = "calendar_calendar_rules")
+    private static string Totals(TemporaryOutput output, bool found = true, bool withWorkingDays = true, string? holidaySource = "calendar_calendar_rules",
+        string? refused = null)
     {
         JsonObject totals = new()
         {
             ["format"] = ProcessMiningStage.Format,
             ["exportedAtUtc"] = "2026-10-12T09:00:00Z",
             ["source"] = found
-                ? new JsonObject { ["entity"] = "ps_stephistory", ["caseAttribute"] = "ps_caseid", ["stageAttribute"] = "ps_stepid", ["chosenBy"] = "tek aday" }
+                ? new JsonObject { ["entity"] = "ps_stephistory", ["caseAttribute"] = "ps_caseid", ["stageAttribute"] = "ps_stepid", ["chosenBy"] = "tek aday", ["error"] = refused }
                 : null,
             ["candidates"] = new JsonArray(new JsonObject { ["entity"] = "ps_stephistory", ["caseAttribute"] = "ps_caseid", ["stageAttribute"] = "ps_stepid", ["rows"] = 5000 }),
+            ["activityTables"] = new JsonArray("email", "mailboxtrackingfolder"),
             ["minimumGroup"] = 5,
             ["workingTime"] = withWorkingDays
                 ? new JsonObject { ["holidaySource"] = holidaySource, ["holidays"] = holidaySource is null ? 0 : 12, ["holidayCandidates"] = new JsonArray("ps_holiday"), ["timeZoneOffsetMinutes"] = 180 }
@@ -132,6 +134,30 @@ public sealed class ProcessMiningTests
         Assert.True(code == ExitCode.Success, console);
         Workbook book = Workbook.Open(Path.Combine(runRoot, "raporlar", "surec-madenciligi.xlsx"));
         Assert.Contains(book.Rows("Nasıl okunur"), row => row.Count > 1 && row[1].Contains("bulunamadı", StringComparison.Ordinal));
+        Assert.False(Directory.Exists(Path.Combine(runRoot, "surec-madenciligi-bpmn")));
+    }
+
+    /// <summary>
+    /// The first production run: the history table was found, and the signed-in role could not read it. The book says
+    /// which table, what CRM answered and what to do — and draws no map of nothing.
+    /// </summary>
+    [Fact]
+    public async Task A_History_The_Role_Cannot_Read_Is_Named_With_Its_Reason()
+    {
+        using TemporaryOutput output = new();
+        string refusal = "GET ps_stephistories?$select=createdon -> 403: {\"error\":{\"message\":\"SecLib::AccessCheckEx failed. CallingUser: <id> prvReadps_stephistory\"}}";
+
+        (ExitCode code, string runRoot, string console) = await StageMapStageTests.RunAsync(output, withStages: true, processMiningFile: Totals(output, refused: refusal));
+
+        Assert.True(code == ExitCode.Success, console);
+        Workbook book = Workbook.Open(Path.Combine(runRoot, "raporlar", "surec-madenciligi.xlsx"));
+        string source = Assert.Single(book.Rows("Nasıl okunur"), row => row.Count > 1 && row[0] == "Kaynak")[1];
+        Assert.Contains("ps_stephistory", source, StringComparison.Ordinal);
+        Assert.Contains("403: ", source, StringComparison.Ordinal);
+        Assert.Contains("prvReadps_stephistory", source, StringComparison.Ordinal);
+        Assert.Contains("okuma yetkisi", source, StringComparison.Ordinal);
+        Assert.Contains("mailboxtrackingfolder", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("GET ps_stephistories", source, StringComparison.Ordinal);
         Assert.False(Directory.Exists(Path.Combine(runRoot, "surec-madenciligi-bpmn")));
     }
 

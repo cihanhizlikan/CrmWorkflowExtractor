@@ -31,6 +31,21 @@ public sealed record ProcessMining(string? Source, string? ChosenBy, IReadOnlyLi
 {
     /// <summary>How working time was measured: where the holidays came from (null when only weekends were left out), how many.</summary>
     public WorkingTime? Working { get; init; }
+
+    /// <summary>
+    /// Why the history could not be read, as CRM answered — a 403 is a role without read access to the table. Set, the
+    /// file holds no measurements: the export keeps nothing half-read.
+    /// </summary>
+    public string? SourceError { get; init; }
+
+    /// <summary>Activity tables whose "regarding" field reaches both the case and the stage: named, never a stage history.</summary>
+    public IReadOnlyList<string> ActivityTables { get; init; } = [];
+
+    /// <summary>Whether there are measurements to report: a source was found and read.</summary>
+    public bool Measured
+    {
+        get { return Source is not null && SourceError is null; }
+    }
 }
 
 /// <summary>
@@ -84,13 +99,18 @@ public static class ProcessMiningStage
         }
         string? source = null;
         string? chosenBy = null;
+        string? sourceError = null;
         if (root.TryGetProperty("source", out JsonElement found) && found.ValueKind == JsonValueKind.Object)
         {
             source = $"{Text(found, "entity")} ({Text(found, "caseAttribute")} → talep, {Text(found, "stageAttribute")} → aşama)";
             chosenBy = Text(found, "chosenBy");
+            sourceError = Text(found, "error");
         }
+        sourceError ??= Text(root, "discoveryError");
         List<string> candidates = [.. Rows(root, "candidates").Select(candidate => $"{Text(candidate, "entity")} ({Text(candidate, "caseAttribute")} / "
-            + $"{Text(candidate, "stageAttribute")}, {(Number(candidate, "rows") is double rows ? rows.ToString("0", CultureInfo.InvariantCulture) : "?")} satır)")];
+            + $"{Text(candidate, "stageAttribute")}, " + (Text(candidate, "error") is string refused
+                ? "okunamadı: " + Reason(refused)
+                : $"{(Number(candidate, "rows") is double rows ? rows.ToString("0", CultureInfo.InvariantCulture) : "?")} satır") + ")")];
         JsonElement window = root.TryGetProperty("window", out JsonElement span) ? span : default;
         WorkingTime? working = root.TryGetProperty("workingTime", out JsonElement time) && time.ValueKind == JsonValueKind.Object
             ? new WorkingTime(Text(time, "holidaySource"), (int)(Number(time, "holidays") ?? 0),
@@ -110,7 +130,9 @@ public static class ProcessMiningStage
                 P90WorkDays = Number(step, "p90WorkDays")
             })])
         {
-            Working = working
+            Working = working,
+            SourceError = sourceError is null ? null : Reason(sourceError),
+            ActivityTables = [.. Rows(root, "activityTables").Select(name => name.GetString()).OfType<string>()]
         };
     }
 
@@ -126,13 +148,14 @@ public static class ProcessMiningStage
         await folder.WriteBytesAsync(RunPaths.ProcessMiningWorkbook, ExcelWorkbook.Build(sheets), token);
         state.Counts["processMining.cases"] = mining.Cases;
         state.Counts["processMining.steps"] = mining.Steps.Count;
-        if (mining.Source is not null && state.CaseStages.Count > 0)
+        if (mining.Measured && state.CaseStages.Count > 0)
         {
             StageTraffic traffic = new(mining.Stages.ToDictionary(stage => stage.Stage, stage => stage.Entries),
                 mining.Steps.ToDictionary(step => (step.From, step.To), Caption));
             state.Counts["processMining.maps"] = await StageMapStage.DrawTrafficAsync(folder, state, documents, traffic, logger, token);
         }
-        logger.LogInformation("Process mining: {Cases} cases, {Steps} kinds of step from {Source}", mining.Cases, mining.Steps.Count, mining.Source ?? "(no history found)");
+        logger.LogInformation("Process mining: {Cases} cases, {Steps} kinds of step from {Source}", mining.Cases, mining.Steps.Count,
+            mining.Source is null ? "(no history found)" : mining.SourceError is null ? mining.Source : mining.Source + " — not readable");
     }
 
     /// <summary>What a step's arrow says on the internal map: how often, and the median when there are enough to have one.</summary>
@@ -151,6 +174,14 @@ public static class ProcessMiningStage
     public static string Duration(double hours)
     {
         return hours < 48 ? hours.ToString("0.#", Turkish) + " sa" : (hours / 24).ToString("0.#", Turkish) + " gün";
+    }
+
+    /// <summary>What CRM answered, without the request in front of it: "403: … prvReadps_x" rather than the URL.</summary>
+    private static string Reason(string error)
+    {
+        int arrow = error.IndexOf(" -> ", StringComparison.Ordinal);
+        string answer = arrow < 0 ? error : error[(arrow + 4)..];
+        return answer.Length <= 240 ? answer : answer[..240] + "…";
     }
 
     private static string? Text(JsonElement element, string name)
