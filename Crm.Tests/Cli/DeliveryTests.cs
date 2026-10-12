@@ -18,7 +18,7 @@ public sealed class DeliveryTests
     private static readonly string[] NotDelivered =
     [
         "hassas-degerler", "kapsam-disi", "ham/", "ara-model", "elle-inceleme", "gunlukler", "aileler", "birlesik",
-        "calistirma-yetkisi", ".json"
+        "calistirma-yetkisi", "surec-madenciligi", ".json"
     ];
 
     private static readonly string[] Delivered =

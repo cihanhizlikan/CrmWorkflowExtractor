@@ -11,7 +11,7 @@ Nothing in the tool reads the network: a run is made from an export file, or fro
 | `Crm.Bpmn` | IR → BPMN 2.0, DI layout, embedded OMG XSD validation, stage maps (`StageMap`) | no |
 | `Crm.Cli` | `Program.Main`, configuration binding, stage orchestration, reports, exit codes | via `Crm.Extract` |
 | `Crm.Tests` | xUnit v3 over recorded fixtures (`Crm.Tests/Fixtures/`) — never a live server | no |
-| `tools/` | `crm-browser-export.js` and `crm-usage-export.js` (run on a CRM page in the user's browser, GET only — the ONLY things that read CRM) and the bookmarklet pages generated from them | the user's browser |
+| `tools/` | `crm-browser-export.js`, `crm-usage-export.js` and `crm-process-mining-export.js` (run on a CRM page in the user's browser, GET only — the ONLY things that read CRM) and the bookmarklet pages generated from them | the user's browser |
 
 ## Run output (`out/`, gitignored)
 
@@ -21,6 +21,7 @@ out/runs/<yyyyMMdd-HHmmss>/   manifest.json (written LAST — its presence seals
   bpmn/is-akislari/<kategori>/<kayıt türü>/<iş akışı adı>.bpmn   one per workflow IN THE PLAN (delivered)
   bpmn/talep-asamalari/<talep konusu>--<başlangıç aşaması>.bpmn   one per active primary stage, workflows embedded
   kapsam-disi-bpmn/<kategori>/<kayıt türü>/<iş akışı adı>.bpmn   the workflows left out (internal)
+  surec-madenciligi-bpmn/<talep konusu>--<başlangıç aşaması>.bpmn   the stage maps with measured traffic (internal)
   raporlar/  nasil-kullanilir.docx · rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · kapsam-disi.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx · calistirma-yetkisi.xlsx
 ```
 
@@ -80,6 +81,16 @@ therefore GENERATES pieces and hands them to the browser in segments that leave 
 made, then gzips the result where `CompressionStream` exists — about tenfold on XAML. `BrowserExportImport`
 recognises a compressed export by its first two bytes rather than its name, and keeps it verbatim in `ham/`
 under `.json.gz`. Every stage of the write announces itself, because the failure that cost a run printed nothing.
+
+**Process mining is Enterprise Architecture's, not the partner's** (maintainer, 2026-10-12). `tools/crm-process-mining-export.js`
+(page `crm-surec.html`) reads the case stage history and REDUCES IT IN THE BROWSER: the file holds stage entries, steps
+between stages and their durations (count, mean, median, 90th percentile, calendar hours) and nothing that names a
+case, customer, product, user or exact time; a step taken fewer than five times has no durations. Which entity holds
+the history is not assumed: it is the one with a lookup to both `incident` and `ps_step`, found in metadata, and the
+user is asked when several qualify. A row's creation time is the entry time; consecutive rows of a case are a step;
+the outcome of a step is read off the stage record. `Run:ProcessMiningFile` feeds `raporlar/surec-madenciligi.xlsx`
+and `surec-madenciligi-bpmn/` — copies of the maps with the traffic on them, beside `bpmn/` and never in it. A
+delivered file that names either fails `DeliveryTests`.
 
 **What is delivered names only what is delivered.** The outsource partner gets `nasil-kullanilir.docx`, the three
 workbooks a migration needs (`tasima-plani`, `veri-analizi`, `dis-sistemler`) and `bpmn/` — which holds the

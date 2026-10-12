@@ -35,6 +35,11 @@ public static class OfflineStages
         state.Counts["plan.firedByStage"] = documents.Count(document => state.FiredBy.ContainsKey(document.Identity.WorkflowId));
         await BpmnStage.RunAsync(folder, state, documents, usage, logger, token);
         await StageMapStage.RunAsync(folder, state, documents, logger, token);
+        // For Enterprise Architecture only, beside the package and never in it.
+        if (await ProcessMiningStage.LoadAsync(folder, settings.Run.Value.ProcessMiningFile, token) is ProcessMining mining)
+        {
+            await ProcessMiningStage.WriteAsync(folder, state, documents, mining, logger, token);
+        }
 
         await WriteAnalysisAsync(folder, state, documents, usage, settings.Run.Value.LogoFile, token);
     }

@@ -38,7 +38,7 @@ public sealed class ConfigurationTests
         using JsonDocument settings = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "appsettings.json")));
         JsonElement run = settings.RootElement.GetProperty("Run");
 
-        foreach (string key in new[] { "ImportFile", "UsageFile", "ReprocessRunId", "LogoFile" })
+        foreach (string key in new[] { "ImportFile", "UsageFile", "ProcessMiningFile", "ReprocessRunId", "LogoFile" })
         {
             Assert.True(run.TryGetProperty(key, out _), $"appsettings.json has no Run:{key}");
         }

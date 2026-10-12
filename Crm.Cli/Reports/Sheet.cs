@@ -29,6 +29,8 @@ public static class SheetNames
     public const string Cascades = "Tetikleme zincirleri";
     public const string RunRoles = "Çalıştırma yetkisi";
     public const string RunAuthority = "Kim çalıştırabilir";
+    public const string StageEntries = "Aşama girişleri";
+    public const string Steps = "Geçişler";
 }
 
 /// <summary>

@@ -1326,3 +1326,21 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   guide a "Sonucu ne belirler" row; the Word guide two traps. Each guard falsified. 372 pass.
 - **Acceptance on the company network — Do:** re-export with the regenerated page, run. **Pass:** Eklentiler opens
   on rows with talep_surecinde = evet; a workflow calling a SOAP activity shows "Çağrı ipucu … SOAP istemcisi".
+
+### Process mining, for Enterprise Architecture only (2026-10-12) — committed, awaiting merge
+- **Maintainer:** delays between steps and how often a step occurs, processed anonymously, in a report for EA only;
+  built before the discovery snippet, so the script discovers the history itself instead.
+- **Export (`tools/crm-process-mining-export.js`, page `crm-surec.html`):** finds every entity with lookups to both
+  `incident` and `ps_step` in metadata, asks which one when several qualify (else the one with most rows), reads it in
+  case order and keeps only the current case; writes totals only. Checked on a stubbed CRM in node: a decoy candidate
+  offered, a case split across two pages counted once, mean/median/p90 right (median interpolated — the first cut took
+  the upper middle and said 8 for 2…12), a three-step group without durations, no case id or time in the file.
+- **Run:** `Run:ProcessMiningFile` → `raporlar/surec-madenciligi.xlsx` (Nasıl okunur · Aşama girişleri · Geçişler, with
+  the outcome read off the stage record and "tasarımda yok" for a step no outcome leads to) and
+  `surec-madenciligi-bpmn/` (maps with "· N giriş" on stages and "N kez · medyan X" on arrows). Delivered maps untouched.
+- **UNVERIFIED and the deciding question:** whether such an entity exists in production. If none does, the book says so
+  and lists what was looked at. Durations are calendar time; working-day measurement not built.
+- **Guards, each falsified:** traffic drawn over delivered maps, outcome derivation, captions, the report written at
+  all; `DeliveryTests` forbids naming it. 380 pass.
+- **Acceptance on the company network — Do:** run `crm-surec.html`, set `Run:ProcessMiningFile`, reprocess. **Pass:** the
+  console names the history entity; `surec-madenciligi.xlsx` and `surec-madenciligi-bpmn/` appear; nothing under `bpmn/` changes.

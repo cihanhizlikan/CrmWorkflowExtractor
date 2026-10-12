@@ -34,17 +34,17 @@ internal static class RunHarness
 
     /// <summary>A file the real browser script produced, or one a test built from it.</summary>
     public static Task<(ExitCode Code, string RunRoot, string Console)> ImportAsync(TemporaryOutput output, string importFile,
-        bool requirePrivileges = true, string usageFile = "")
+        bool requirePrivileges = true, string usageFile = "", string processMiningFile = "")
     {
-        return RunAsync(output, importFile, requirePrivileges, "", usageFile);
+        return RunAsync(output, importFile, requirePrivileges, "", usageFile, processMiningFile);
     }
 
     private static async Task<(ExitCode Code, string RunRoot, string Console)> RunAsync(TemporaryOutput output, string importFile,
-        bool requirePrivileges, string reprocessRunId, string usageFile)
+        bool requirePrivileges, string reprocessRunId, string usageFile, string processMiningFile = "")
     {
         ExtractorSettings settings = new(
             Options.Create(new OutputOptions { Root = output.Root }),
-            Options.Create(new RunOptions { RequireOrganizationReadPrivileges = requirePrivileges, ReprocessRunId = reprocessRunId, ImportFile = importFile, UsageFile = usageFile }));
+            Options.Create(new RunOptions { RequireOrganizationReadPrivileges = requirePrivileges, ReprocessRunId = reprocessRunId, ImportFile = importFile, UsageFile = usageFile, ProcessMiningFile = processMiningFile }));
         using StringWriter console = new();
         ExtractionRun run = new(settings, TimeProvider.System, console);
 

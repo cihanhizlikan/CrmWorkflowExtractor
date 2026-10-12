@@ -284,6 +284,46 @@ public static class Guides
         return sheet;
     }
 
+    /// <summary>The internal process-mining book: where the figures came from, how they were measured, and what they cannot say.</summary>
+    public static Sheet ProcessMining(Crm.Cli.Stages.ProcessMining mining, int maps)
+    {
+        Sheet sheet = Empty();
+        sheet.Row("Bu kitap ne işe yarar",
+            "Taleplerin aşamalar arasında GERÇEKTE nasıl ilerlediği: her aşamaya kaç kez girildiği, bir aşamadan diğerine kaç kez "
+            + "geçildiği ve bu geçişin ne kadar sürdüğü. YALNIZCA KURUMSAL MİMARİ İÇİNDİR: taşıma paketine girmez ve paketteki "
+            + "hiçbir dosya onu anmaz.");
+        sheet.Row("Anonimlik",
+            "Sayılar CRM'den okunurken tarayıcıda toplandı. Bu dosyada ve kaynağında hiçbir talep, müşteri, ürün, kullanıcı ya da "
+            + string.Create(CultureInfo.InvariantCulture, $"kesin zaman yoktur; yalnızca dönemin ilk ve son günü vardır. {mining.MinimumGroup} kezden az ")
+            + "yaşanmış bir geçişin süresi verilmez, yalnızca sayısı verilir: üç geçişin dağılımı üç talebin kendisidir.");
+        if (mining.Source is null)
+        {
+            sheet.Row("Kaynak", "Talebe ve aşama kaydına aynı anda bağlanan bir varlık bulunamadı: aşama geçmişi tutulmuyor ya da "
+                + "bu yolla okunamıyor. Ölçülecek bir şey yok. Bakılan adaylar: " + (mining.Candidates.Count == 0 ? "yok" : string.Join("; ", mining.Candidates)));
+            return sheet;
+        }
+        sheet.Row("Kaynak", $"{mining.Source} — {mining.ChosenBy}. Talebe ve aşama kaydına aynı anda bağlanan bütün varlıklar: "
+            + string.Join("; ", mining.Candidates) + ".");
+        sheet.Row("Dönem", $"{mining.FromDate} – {mining.ToDate}. CRM bu geçmişi silmişse daha eskisi yoktur.");
+        sheet.Row("Bu çalıştırma", string.Create(CultureInfo.InvariantCulture,
+            $"{mining.Cases} talep · {mining.Events} aşama girişi · {mining.Steps.Count} farklı geçiş · {mining.Skipped} satır talep ya da aşama taşımadığı için atlandı · {maps} aşama haritası"));
+        sheet.Row("Nasıl ölçüldü",
+            "Bir aşamaya giriş zamanı, geçmiş kaydının oluşturulduğu andır. Bir talebin art arda iki kaydı bir geçiştir; süresi, "
+            + "ilk aşamaya girişten ikinciye girişe kadar geçen TAKVİM saatidir (hafta sonu ve tatil dahil). Çalışma günüyle ölçülen "
+            + "SLA kurallarıyla doğrudan karşılaştırmayın.");
+        sheet.Row("Aşama girişleri sayfası", "giris_sayisi aynı talebin aynı aşamaya tekrar girişlerini de sayar: döngülerin yükü "
+            + "buradadır. son_kaydi_bu_asamada_olan_talep, geçmişi bu aşamada biten taleplerdir; talep açık da olabilir, kapanmış "
+            + "da — geçmiş bunu söylemez.");
+        sheet.Row("Geçişler sayfası", "sonuc, kaynak aşamanın kaydına göre o hedefe hangi sonuçla gidildiğidir. \""
+            + ProcessMiningReport.NotInDesign + "\", aşama kaydının hiçbir sonucunun o hedefe gitmediği bir geçiştir: tasarım "
+            + "değişmiş, aşama elle değiştirilmiş ya da kod başka bir yol izlemiş olabilir. Bunlar ilk bakılacak satırlardır.");
+        sheet.Row("ortalama_saat · medyan_saat · yuzde90_saat", "Geçiş süresinin ortalaması, ortancası ve geçişlerin yüzde 90'ının "
+            + "altında kaldığı süre, saat olarak. Ortalama birkaç çok uzun geçişle şişer; tipik süre için medyana bakın.");
+        sheet.Row("Haritalar", "surec-madenciligi-bpmn/ altında her aşama haritasının bir kopyası vardır: aşama kutularında giriş "
+            + "sayısı, oklarda geçiş sayısı ve medyan süre. Teslim edilen haritalar değişmedi.");
+        return sheet;
+    }
+
     private static Sheet Empty()
     {
         return new Sheet(SheetNames.Guide, "Konu", "Açıklama");

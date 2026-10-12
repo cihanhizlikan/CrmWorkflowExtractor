@@ -10,6 +10,12 @@ namespace Crm.Bpmn.Stages;
 /// <summary>A stage as one map draws it: the text on its box, which is what a reader searches the file for.</summary>
 public sealed record MapStage(Guid Id, string Label);
 
+/// <summary>
+/// What was measured on the process, to be written onto a copy of its map: how often each stage was entered, and per
+/// step from one stage to another the text that goes beside the outcome's caption. Internal copies only.
+/// </summary>
+public sealed record StageTraffic(IReadOnlyDictionary<Guid, int> Entries, IReadOnlyDictionary<(Guid From, Guid To), string> Steps);
+
 /// <summary>What one stage map drew: its stages, its distinct workflows, the boxes they took and those missing.</summary>
 public sealed record StageMapResult(XDocument Xml, IReadOnlyList<MapStage> Stages, int Workflows, int Boxes, int MissingWorkflows);
 
@@ -74,13 +80,14 @@ public static class StageMap
 
     private static readonly string[] Referring = ["id", "sourceRef", "targetRef", "default", "bpmnElement", "attachedToRef"];
     private static readonly string[] Outcomes = [StageOutcome.Success, StageOutcome.Failure, StageOutcome.Cancel];
+    private static readonly CultureInfo Turkish = new("tr-TR");
 
     public static StageMapResult Build(CaseStage primary, IReadOnlyDictionary<Guid, CaseStage> stages,
-        Func<Guid, XDocument?> workflowDiagram, IReadOnlyDictionary<Guid, string> workflowFiles, string toolVersion)
+        Func<Guid, XDocument?> workflowDiagram, IReadOnlyDictionary<Guid, string> workflowFiles, string toolVersion, StageTraffic? traffic = null)
     {
         string processId = "stagemap_" + primary.Id.ToString("N");
         string title = primary.Process.Length > 0 ? primary.Process : primary.Name;
-        Plan plan = Plan.From(primary, stages);
+        Plan plan = Plan.From(primary, stages, traffic);
         Layer(plan);
         List<string> lines = NoteLines(plan, title, workflowDiagram);
         plan.NoteHeight = NoteHeight(lines);
@@ -957,6 +964,7 @@ public static class StageMap
     private sealed class Plan
     {
         private readonly Dictionary<Unit, Unit> _catches = [];
+        private StageTraffic? _traffic;
 
         public List<Unit> Units { get; } = [];
 
@@ -966,9 +974,9 @@ public static class StageMap
 
         public double NoteHeight { get; set; }
 
-        public static Plan From(CaseStage primary, IReadOnlyDictionary<Guid, CaseStage> stages)
+        public static Plan From(CaseStage primary, IReadOnlyDictionary<Guid, CaseStage> stages, StageTraffic? traffic)
         {
-            Plan plan = new();
+            Plan plan = new() { _traffic = traffic };
             Unit start = plan.Add(UnitKind.Start, "baslangic", "Talep açılır");
             Dictionary<Guid, Unit> cells = [];
             Queue<CaseStage> queue = new();
@@ -1007,8 +1015,12 @@ public static class StageMap
             foreach (List<StageExit> group in groups)
             {
                 StageExit exit = group[0];
-                string outcome = string.Join(" / ", group.Select(member => member.Outcome));
                 string part = cell.TaskId + "_" + string.Join("-", group.Select(member => member.Outcome));
+                string outcome = string.Join(" / ", group.Select(member => member.Outcome));
+                // The caption alone carries the measured traffic; what a workflow box says fired it stays the outcome.
+                string caption = exit.NextStage is Guid target && _traffic?.Steps.TryGetValue((stage.Id, target), out string? measured) == true
+                    ? outcome + " · " + measured
+                    : outcome;
                 Unit next = exit.NextStage is Guid id
                     ? stages.TryGetValue(id, out CaseStage? found)
                         ? Cell(found, primary, cells, queue)
@@ -1027,8 +1039,8 @@ public static class StageMap
                     Link(message, next, null, null);
                     next = message;
                 }
-                cell.Captions[exit.Outcome] = LabelBox.HeightOf(outcome);
-                Link(cell, next, outcome, exit.Outcome);
+                cell.Captions[exit.Outcome] = LabelBox.HeightOf(caption);
+                Link(cell, next, caption, exit.Outcome);
             }
         }
 
@@ -1098,6 +1110,10 @@ public static class StageMap
             if (!stage.Active)
             {
                 name += " (pasif)";
+            }
+            if (_traffic is not null)
+            {
+                name += $" · {_traffic.Entries.GetValueOrDefault(stage.Id).ToString("N0", Turkish)} giriş";
             }
             Unit cell = Add(UnitKind.Cell, "asama_" + stage.Id.ToString("N"), name, stage);
             cells[stage.Id] = cell;

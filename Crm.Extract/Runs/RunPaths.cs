@@ -27,6 +27,12 @@ public static class RunPaths
     /// but beside <c>bpmn/</c> rather than in it: <c>bpmn/</c> is delivered, and the plan says the reader need not filter.
     /// </summary>
     public const string OutOfScopeDiagrams = "kapsam-disi-bpmn";
+
+    /// <summary>
+    /// The stage maps again, with how often each stage is entered and each step taken and how long a step takes on
+    /// them. INTERNAL: the measured traffic is Enterprise Architecture's, so these sit beside <c>bpmn/</c>, never in it.
+    /// </summary>
+    public const string ProcessMiningMaps = "surec-madenciligi-bpmn";
     public const string ManualReview = "elle-inceleme";
     public const string Reports = "raporlar";
     public const string Logs = "gunlukler";
@@ -34,6 +40,9 @@ public static class RunPaths
     public const string RawWorkflows = Raw + "/is-akislari.jsonl";
     public const string RawBrowserExport = Raw + "/tarayici-disa-aktarim.json";
     public const string RawUsageExport = Raw + "/kullanim-disa-aktarim.json";
+
+    /// <summary>The process-mining totals as the browser sent them: counts and durations, no case.</summary>
+    public const string RawProcessMining = Raw + "/surec-madenciligi.json";
     public const string RawMetadata = Raw + "/ust-veri";
     public const string RawXaml = Raw + "/xaml";
 
@@ -66,6 +75,9 @@ public static class RunPaths
 
     /// <summary>What the workflows reach outside CRM: the custom activities they call, and the addresses they pass.</summary>
     public const string ExternalSystemsWorkbook = Reports + "/dis-sistemler.xlsx";
+
+    /// <summary>How cases actually move through the stages: entries, steps and their durations. Internal.</summary>
+    public const string ProcessMiningWorkbook = Reports + "/surec-madenciligi.xlsx";
 
     /// <summary>Who may start a process by hand, whose identity it runs under, and which roles carry the right.</summary>
     public const string RunAuthorityWorkbook = Reports + "/calistirma-yetkisi.xlsx";

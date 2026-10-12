@@ -14,9 +14,9 @@ namespace Crm.Tests.Cli;
 /// </summary>
 public sealed class StageMapStageTests
 {
-    private const string Control = "10000000-0000-0000-0000-000000000001";
-    private const string Nova = "10000000-0000-0000-0000-000000000002";
-    private const string Waiting = "10000000-0000-0000-0000-000000000003";
+    internal const string Control = "10000000-0000-0000-0000-000000000001";
+    internal const string Nova = "10000000-0000-0000-0000-000000000002";
+    internal const string Waiting = "10000000-0000-0000-0000-000000000003";
     private const string Old = "10000000-0000-0000-0000-000000000004";
     private const string Category = "20000000-0000-0000-0000-000000000001";
     private const string Workflow = "00000000-0000-0000-0000-000000000002";
@@ -63,7 +63,9 @@ public sealed class StageMapStageTests
     /// Whether two more stages fire workflows the plan would otherwise leave out: one CRM reports as product-supplied,
     /// and a draft.
     /// </param>
-    private static async Task<(ExitCode Code, string RunRoot, string Console)> RunAsync(TemporaryOutput output, bool withStages, bool outOfScope = false)
+    /// <param name="processMiningFile">A process-mining totals file to give the run, or none.</param>
+    internal static async Task<(ExitCode Code, string RunRoot, string Console)> RunAsync(TemporaryOutput output, bool withStages, bool outOfScope = false,
+        string processMiningFile = "")
     {
         JsonNode export = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "BrowserExport", "mock-crm-export.json")))!;
         if (outOfScope)
@@ -96,7 +98,7 @@ public sealed class StageMapStageTests
         Directory.CreateDirectory(output.Root);
         string file = Path.Combine(output.Root, "with-stages.json");
         File.WriteAllText(file, export.ToJsonString());
-        return await RunHarness.ImportAsync(output, file);
+        return await RunHarness.ImportAsync(output, file, processMiningFile: processMiningFile);
     }
 
     [Fact]

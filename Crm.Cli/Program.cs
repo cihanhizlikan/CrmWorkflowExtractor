@@ -24,6 +24,7 @@ public static class Program
     private const string ReprocessRunId = "";               // e.g. "20260915-101500": rebuild from that run's ham/
     private const string ImportFile = "";                   // e.g. "D:/exports/crm-export-20260922-150000.json" (tools/crm-export.html)
     private const string UsageFile = "";                    // e.g. "D:/exports/crm-usage-20260923-090000.json" (tools/crm-usage.html)
+    private const string ProcessMiningFile = "";            // e.g. "D:/exports/crm-surec-20261012-090000.json" (tools/crm-surec.html)
     private const string LogoFile = "";                     // a PNG for the guide's cover; empty keeps the built-in logo
     // -----------------------------------------------------------------------------------------------------------
 
@@ -60,6 +61,7 @@ public static class Program
             ["Run:ReprocessRunId"] = ReprocessRunId,
             ["Run:ImportFile"] = ImportFile,
             ["Run:UsageFile"] = UsageFile,
+            ["Run:ProcessMiningFile"] = ProcessMiningFile,
             ["Run:LogoFile"] = LogoFile
         };
     }

@@ -39,6 +39,10 @@ public static class RunReport
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.RunAuthorityWorkbook)}` — **kim başlatır, kimin yetkisiyle çalışır.** Elle çalıştırma yetkisini taşıyan {Count(state, "roles.canRun")} güvenlik rolü; plandaki {Count(state, "roles.onDemand")} süreç elle başlatılabiliyor.");
         text.AppendLine();
         text.AppendLine("## Kısıtlı ve yardımcı dosyalar").AppendLine();
+        if (state.Counts.ContainsKey("processMining.cases"))
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.ProcessMiningWorkbook)}` ve `{RunPaths.ProcessMiningMaps}/` — süreç madenciliği: {Count(state, "processMining.cases")} talebin aşama geçişleri, yalnızca toplamlar. İÇ KULLANIM: pakete konmaz.");
+        }
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.SensitiveLiterals)}` — {Count(state, "sensitive.findings")} bulgu. KISITLI: bilgi güvenliği ekibi içindir, pakete konmaz.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- Ayrıştırılmayan, elle yazılmış {Count(state, "manualReview")} iş akışı var: ayrıştırılmadıkları için taşıma planında satırları YOKTUR. Listesi çalıştırma klasöründeki `{RunPaths.ManualReviewIndex}` dosyasındadır.");
         text.AppendLine();

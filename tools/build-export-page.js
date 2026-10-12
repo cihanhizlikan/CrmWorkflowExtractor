@@ -37,6 +37,22 @@ real-time workflows log only failures, and business rules are never logged.`,
     setting: `<code>"Run": { "UsageFile": "&lt;full path to that file&gt;" }</code> together with
 <code>ReprocessRunId</code> (or <code>ImportFile</code>)`,
     warning: `The file holds workflow ids and run dates, no record data. Keep it with the export all the same.`
+  },
+  {
+    script: "crm-process-mining-export.js",
+    page: "crm-surec.html",
+    title: "CRM Süreç",
+    colour: "#5a7a1a",
+    what: `Measures how cases actually move through their stages — how often each stage is entered, how often each step
+from one stage to the next happens and how long it takes — through <b>your own signed-in CRM session</b>, and saves
+the TOTALS as one small file <code>crm-surec-&lt;time&gt;.json</code>. Every request is a read (GET); nothing in CRM is
+changed. <b>Everything is reduced in this tab</b>: no case id, customer, product, user or exact time leaves it.
+If several entities could hold the stage history, it asks you which one.`,
+    file: "crm-surec-&lt;time&gt;.json",
+    duration: "It reads the whole stage history page by page, so on a large organisation it can take a long time; the console reports every ten pages",
+    setting: `<code>"Run": { "ProcessMiningFile": "&lt;full path to that file&gt;" }</code> together with
+<code>ReprocessRunId</code> (or <code>ImportFile</code>)`,
+    warning: `The file holds totals only. The report made from it is for Enterprise Architecture and is not delivered to the outsource partner.`
   }
 ];
 

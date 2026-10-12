@@ -82,6 +82,30 @@ public static class StageMapStage
     }
 
     /// <summary>
+    /// The maps again, with the measured traffic on them, into the internal folder beside <c>bpmn/</c>. Same names,
+    /// same layout; what differs is the counts on the boxes and the arrows. Returns how many were written.
+    /// </summary>
+    public static async Task<int> DrawTrafficAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents, StageTraffic traffic,
+        ILogger logger, CancellationToken token)
+    {
+        Drawing drawing = new(state, state.CaseStages, documents) { Traffic = traffic };
+        foreach (CaseStage primary in state.CaseStages.Where(stage => stage.Primary && stage.Active))
+        {
+            string file = RunPaths.ProcessMiningMaps + state.StageMapPaths[primary.Id][RunPaths.StageMaps.Length..];
+            try
+            {
+                await drawing.DrawAsync(folder, primary, file, token);
+            }
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                state.Warnings.Add($"{file} ('{primary.Name}') çizilemedi: {error.GetType().Name}: {error.Message}");
+                logger.LogError(error, "Process mining map: {File} could not be drawn", file);
+            }
+        }
+        return drawing.Written;
+    }
+
+    /// <summary>
     /// Each map's file, named for what a reader holds: the request's subject and the stage it starts at,
     /// <c>reklam--sikayet-aramasi-yap.bpmn</c>. An id is added only to the second of two that would collide.
     /// </summary>
@@ -183,6 +207,9 @@ public static class StageMapStage
 
         public int Lost { get; set; }
 
+        /// <summary>The measured traffic to write onto the map, for the internal copies; null for the delivered ones.</summary>
+        public StageTraffic? Traffic { get; init; }
+
         /// <summary>Distinct workflows embedded, counted once per map.</summary>
         public int Embedded { get; private set; }
 
@@ -197,7 +224,7 @@ public static class StageMapStage
 
         public async Task DrawAsync(RunFolder folder, CaseStage primary, string file, CancellationToken token)
         {
-            StageMapResult map = StageMap.Build(primary, _stages, Diagram, _delivered, state.ToolVersion);
+            StageMapResult map = StageMap.Build(primary, _stages, Diagram, _delivered, state.ToolVersion, Traffic);
             await folder.WriteBytesAsync(file, BpmnSerializer.ToBytes(map.Xml), token);
             IReadOnlyList<string> errors = BpmnSchemaValidator.Validate(map.Xml);
             if (errors.Count > 0)
