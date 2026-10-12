@@ -30,13 +30,14 @@ public static class ProcessMiningReport
     {
         Dictionary<Guid, CaseStage> byId = stages.ToDictionary(stage => stage.Id);
         Sheet sheet = new(SheetNames.Steps, "talep_konusu", "kaynak_asama", "hedef_asama", "sonuc", "gecis_sayisi",
-            "ortalama_saat", "medyan_saat", "yuzde90_saat", "kaynak_asama_id", "hedef_asama_id");
+            "ortalama_saat", "medyan_saat", "yuzde90_saat", "ortalama_is_gunu", "medyan_is_gunu", "yuzde90_is_gunu",
+            "kaynak_asama_id", "hedef_asama_id");
         foreach (MinedStep step in mining.Steps
             .OrderBy(step => TurkishFold.Fold(Subject(byId, step.From)), StringComparer.Ordinal)
             .ThenByDescending(step => step.Count))
         {
             sheet.Row(Subject(byId, step.From), Name(byId, step.From), Name(byId, step.To), Outcomes(byId, step), step.Count,
-                step.MeanHours, step.MedianHours, step.P90Hours, step.From, step.To);
+                step.MeanHours, step.MedianHours, step.P90Hours, step.MeanWorkDays, step.MedianWorkDays, step.P90WorkDays, step.From, step.To);
         }
         return sheet;
     }

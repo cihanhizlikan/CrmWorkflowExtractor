@@ -84,7 +84,9 @@ under `.json.gz`. Every stage of the write announces itself, because the failure
 
 **Process mining is Enterprise Architecture's, not the partner's** (maintainer, 2026-10-12). `tools/crm-process-mining-export.js`
 (page `crm-surec.html`) reads the case stage history and REDUCES IT IN THE BROWSER: the file holds stage entries, steps
-between stages and their durations (count, mean, median, 90th percentile, calendar hours) and nothing that names a
+between stages and their durations (count, mean, median, 90th percentile — in calendar hours and in WORKING DAYS: the
+part of a step on weekdays that are not holidays, over 24; holidays from the organisation's business-closure
+calendar, weekends only where it cannot be read, office hours never, since no record holds them) and nothing that names a
 case, customer, product, user or exact time; a step taken fewer than five times has no durations. Which entity holds
 the history is not assumed: it is the one with a lookup to both `incident` and `ps_step`, found in metadata, and the
 user is asked when several qualify. A row's creation time is the entry time; consecutive rows of a case are a step;

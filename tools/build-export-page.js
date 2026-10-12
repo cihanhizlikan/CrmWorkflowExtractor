@@ -44,7 +44,8 @@ real-time workflows log only failures, and business rules are never logged.`,
     title: "CRM Süreç",
     colour: "#5a7a1a",
     what: `Measures how cases actually move through their stages — how often each stage is entered, how often each step
-from one stage to the next happens and how long it takes — through <b>your own signed-in CRM session</b>, and saves
+from one stage to the next happens and how long it takes, in calendar hours and in working days (weekends and
+the holidays in CRM's closure calendar left out) — through <b>your own signed-in CRM session</b>, and saves
 the TOTALS as one small file <code>crm-surec-&lt;time&gt;.json</code>. Every request is a read (GET); nothing in CRM is
 changed. <b>Everything is reduced in this tab</b>: no case id, customer, product, user or exact time leaves it.
 If several entities could hold the stage history, it asks you which one.`,

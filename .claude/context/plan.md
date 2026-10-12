@@ -1344,3 +1344,17 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   all; `DeliveryTests` forbids naming it. 380 pass.
 - **Acceptance on the company network — Do:** run `crm-surec.html`, set `Run:ProcessMiningFile`, reprocess. **Pass:** the
   console names the history entity; `surec-madenciligi.xlsx` and `surec-madenciligi-bpmn/` appear; nothing under `bpmn/` changes.
+
+### Working days (2026-10-12) — committed, awaiting merge
+- **Maintainer:** add working-day durations. Asked whether the main and usage exports must be re-run: no — only the
+  process-mining export changed, and it had not been run yet.
+- **Definition:** a step's working days are the part of it on weekdays that are not holidays, divided by 24 — Friday
+  15:00 to Monday 10:00 is 0.79. Office hours are not used: no record holds them. Holidays come from the organisation's
+  business-closure calendar (`businessclosurecalendarid`), its rules read through the calendar or as `calendarrules`;
+  if neither answers, weekends only, and the book says so. Custom tables whose names look like a holiday list are
+  recorded by name, because Pensionsoft's SLA engine may keep its own. Day boundaries: the exporting computer's zone.
+- **Checked** on the stubbed CRM in Istanbul time: Fri 15:00→Mon 10:00 = 67 h / 0.79 working days; Tue→Thu across a
+  one-day holiday = 48 h / 1 working day, and 2 when the calendar cannot be read. UNVERIFIED: that production's
+  calendar answers either way, and that it is the calendar the SLA engine uses.
+- **Output:** `ortalama_is_gunu`, `medyan_is_gunu`, `yuzde90_is_gunu` on Geçişler; "(N iş günü)" on the internal maps'
+  arrows; the guide says where holidays came from or that they could not be read. Each guard falsified. 382 pass.

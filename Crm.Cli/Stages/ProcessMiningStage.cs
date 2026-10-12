@@ -13,13 +13,31 @@ public sealed record MinedStage(Guid Stage, int Entries, int LastRecorded);
 
 /// <summary>
 /// One step from a stage to the next, how often cases took it, and how long it took — calendar hours from entering
-/// the first to entering the second. The durations are absent below the export's minimum group.
+/// the first to entering the second, and the same span in working days: the time on working days, over 24. The
+/// durations are absent below the export's minimum group, and the working days in a file made before they existed.
 /// </summary>
-public sealed record MinedStep(Guid From, Guid To, int Count, double? MeanHours, double? MedianHours, double? P90Hours);
+public sealed record MinedStep(Guid From, Guid To, int Count, double? MeanHours, double? MedianHours, double? P90Hours)
+{
+    public double? MeanWorkDays { get; init; }
+
+    public double? MedianWorkDays { get; init; }
+
+    public double? P90WorkDays { get; init; }
+}
 
 /// <summary>A <c>crm-process-mining-export/1</c> file: totals only, reduced in the browser, with no case in it.</summary>
 public sealed record ProcessMining(string? Source, string? ChosenBy, IReadOnlyList<string> Candidates, int MinimumGroup,
-    string? FromDate, string? ToDate, int Cases, int Events, int Skipped, IReadOnlyList<MinedStage> Stages, IReadOnlyList<MinedStep> Steps);
+    string? FromDate, string? ToDate, int Cases, int Events, int Skipped, IReadOnlyList<MinedStage> Stages, IReadOnlyList<MinedStep> Steps)
+{
+    /// <summary>How working time was measured: where the holidays came from (null when only weekends were left out), how many.</summary>
+    public WorkingTime? Working { get; init; }
+}
+
+/// <summary>
+/// What a working day was, for this file: weekends out, and the holidays read from <see cref="HolidaySource"/>, or none.
+/// <see cref="HolidayCandidates"/> names the custom tables that look like a holiday list — names only.
+/// </summary>
+public sealed record WorkingTime(string? HolidaySource, int Holidays, IReadOnlyList<string> HolidayCandidates, int TimeZoneOffsetMinutes);
 
 /// <summary>
 /// How cases actually move through the stages, for Enterprise Architecture ONLY (maintainer, 2026-10-12): a workbook
@@ -74,6 +92,10 @@ public static class ProcessMiningStage
         List<string> candidates = [.. Rows(root, "candidates").Select(candidate => $"{Text(candidate, "entity")} ({Text(candidate, "caseAttribute")} / "
             + $"{Text(candidate, "stageAttribute")}, {(Number(candidate, "rows") is double rows ? rows.ToString("0", CultureInfo.InvariantCulture) : "?")} satır)")];
         JsonElement window = root.TryGetProperty("window", out JsonElement span) ? span : default;
+        WorkingTime? working = root.TryGetProperty("workingTime", out JsonElement time) && time.ValueKind == JsonValueKind.Object
+            ? new WorkingTime(Text(time, "holidaySource"), (int)(Number(time, "holidays") ?? 0),
+                [.. Rows(time, "holidayCandidates").Select(name => name.GetString()).OfType<string>()], (int)(Number(time, "timeZoneOffsetMinutes") ?? 0))
+            : null;
         return new ProcessMining(source, chosenBy, candidates, (int)(Number(root, "minimumGroup") ?? 0),
             window.ValueKind == JsonValueKind.Object ? Text(window, "fromDate") : null,
             window.ValueKind == JsonValueKind.Object ? Text(window, "toDate") : null,
@@ -81,7 +103,15 @@ public static class ProcessMiningStage
             [.. Rows(root, "stages").Select(stage => new MinedStage(Guid.Parse(Text(stage, "stage")!), (int)(Number(stage, "entries") ?? 0),
                 (int)(Number(stage, "lastRecorded") ?? 0)))],
             [.. Rows(root, "transitions").Select(step => new MinedStep(Guid.Parse(Text(step, "from")!), Guid.Parse(Text(step, "to")!),
-                (int)(Number(step, "count") ?? 0), Number(step, "meanHours"), Number(step, "medianHours"), Number(step, "p90Hours")))]);
+                (int)(Number(step, "count") ?? 0), Number(step, "meanHours"), Number(step, "medianHours"), Number(step, "p90Hours"))
+            {
+                MeanWorkDays = Number(step, "meanWorkDays"),
+                MedianWorkDays = Number(step, "medianWorkDays"),
+                P90WorkDays = Number(step, "p90WorkDays")
+            })])
+        {
+            Working = working
+        };
     }
 
     /// <summary>
@@ -109,7 +139,12 @@ public static class ProcessMiningStage
     public static string Caption(MinedStep step)
     {
         string count = step.Count.ToString("N0", Turkish) + " kez";
-        return step.MedianHours is double median ? count + " · medyan " + Duration(median) : count;
+        if (step.MedianHours is not double median)
+        {
+            return count;
+        }
+        string caption = count + " · medyan " + Duration(median);
+        return step.MedianWorkDays is double days ? caption + " (" + days.ToString("0.##", Turkish) + " iş günü)" : caption;
     }
 
     /// <summary>Hours up to two days, days beyond: "7 sa", "3,5 gün".</summary>

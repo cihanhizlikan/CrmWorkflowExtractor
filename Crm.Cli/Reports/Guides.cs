@@ -284,6 +284,26 @@ public static class Guides
         return sheet;
     }
 
+    /// <summary>What a working day meant in this file, said plainly, because the SLA it is set beside may count differently.</summary>
+    private static string WorkingDays(Crm.Cli.Stages.WorkingTime? working)
+    {
+        const string Definition = "Aynı süre İŞ GÜNÜ olarak: geçişin iş günlerine düşen kısmı, 24 saate bölünerek. Cumartesi, Pazar ve "
+            + "kurumun tatil günleri sayılmaz; bir iş gününün bütün saatleri sayılır, çünkü mesai saatleri hiçbir kayıtta yoktur. "
+            + "Cuma 15:00'ten Pazartesi 10:00'a bir geçiş 0,79 iş günüdür. ";
+        if (working is null)
+        {
+            return Definition + "Bu dosya iş günü ölçümünden önce alınmış: sütunlar boş. Süreç dışa aktarımını yeniden alın.";
+        }
+        string candidates = working.HolidayCandidates.Count == 0
+            ? ""
+            : " Tatil listesi tutuyor olabilecek özel tablolar (yalnızca adları): " + string.Join(", ", working.HolidayCandidates)
+                + ". SLA motoru tatilleri bunlardan birinden okuyorsa sonuçlar ondan farklı olabilir.";
+        string zone = string.Create(CultureInfo.InvariantCulture, $" Gün sınırları UTC{(working.TimeZoneOffsetMinutes >= 0 ? "+" : "-")}{Math.Abs(working.TimeZoneOffsetMinutes) / 60}'e göredir.");
+        return working.HolidaySource is null
+            ? Definition + "CRM'in tatil takvimi OKUNAMADI: yalnızca hafta sonları çıkarıldı, tatil günleri iş günü sayıldı." + zone + candidates
+            : Definition + string.Create(CultureInfo.InvariantCulture, $"Tatiller CRM'in kurum tatil takviminden okundu ({working.Holidays} kayıt).") + zone + candidates;
+    }
+
     /// <summary>The internal process-mining book: where the figures came from, how they were measured, and what they cannot say.</summary>
     public static Sheet ProcessMining(Crm.Cli.Stages.ProcessMining mining, int maps)
     {
@@ -310,7 +330,8 @@ public static class Guides
         sheet.Row("Nasıl ölçüldü",
             "Bir aşamaya giriş zamanı, geçmiş kaydının oluşturulduğu andır. Bir talebin art arda iki kaydı bir geçiştir; süresi, "
             + "ilk aşamaya girişten ikinciye girişe kadar geçen TAKVİM saatidir (hafta sonu ve tatil dahil). Çalışma günüyle ölçülen "
-            + "SLA kurallarıyla doğrudan karşılaştırmayın.");
+            + "SLA kurallarıyla karşılaştırmak için *_is_gunu sütunlarına bakın.");
+        sheet.Row("ortalama_is_gunu · medyan_is_gunu · yuzde90_is_gunu", WorkingDays(mining.Working));
         sheet.Row("Aşama girişleri sayfası", "giris_sayisi aynı talebin aynı aşamaya tekrar girişlerini de sayar: döngülerin yükü "
             + "buradadır. son_kaydi_bu_asamada_olan_talep, geçmişi bu aşamada biten taleplerdir; talep açık da olabilir, kapanmış "
             + "da — geçmiş bunu söylemez.");

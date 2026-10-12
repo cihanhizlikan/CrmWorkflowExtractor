@@ -12,7 +12,7 @@ namespace Crm.Tests.Cli;
 /// </summary>
 public sealed class ProcessMiningTests
 {
-    private static string Totals(TemporaryOutput output, bool found = true)
+    private static string Totals(TemporaryOutput output, bool found = true, bool withWorkingDays = true, string? holidaySource = "calendar_calendar_rules")
     {
         JsonObject totals = new()
         {
@@ -23,6 +23,9 @@ public sealed class ProcessMiningTests
                 : null,
             ["candidates"] = new JsonArray(new JsonObject { ["entity"] = "ps_stephistory", ["caseAttribute"] = "ps_caseid", ["stageAttribute"] = "ps_stepid", ["rows"] = 5000 }),
             ["minimumGroup"] = 5,
+            ["workingTime"] = withWorkingDays
+                ? new JsonObject { ["holidaySource"] = holidaySource, ["holidays"] = holidaySource is null ? 0 : 12, ["holidayCandidates"] = new JsonArray("ps_holiday"), ["timeZoneOffsetMinutes"] = 180 }
+                : null,
             ["window"] = new JsonObject { ["fromDate"] = "2025-01-02", ["toDate"] = "2026-10-11" },
             ["cases"] = 9,
             ["events"] = 21,
@@ -32,7 +35,18 @@ public sealed class ProcessMiningTests
                 new JsonObject { ["stage"] = StageMapStageTests.Nova, ["entries"] = 6, ["lastRecorded"] = 1 },
                 new JsonObject { ["stage"] = StageMapStageTests.Waiting, ["entries"] = 2, ["lastRecorded"] = 0 }),
             ["transitions"] = new JsonArray(
-                new JsonObject { ["from"] = StageMapStageTests.Control, ["to"] = StageMapStageTests.Nova, ["count"] = 6, ["meanHours"] = 9.5, ["medianHours"] = 7, ["p90Hours"] = 20 },
+                new JsonObject
+                {
+                    ["from"] = StageMapStageTests.Control,
+                    ["to"] = StageMapStageTests.Nova,
+                    ["count"] = 6,
+                    ["meanHours"] = 9.5,
+                    ["medianHours"] = 7,
+                    ["p90Hours"] = 20,
+                    ["meanWorkDays"] = withWorkingDays ? 0.4 : null,
+                    ["medianWorkDays"] = withWorkingDays ? 0.29 : null,
+                    ["p90WorkDays"] = withWorkingDays ? 0.83 : null
+                },
                 new JsonObject { ["from"] = StageMapStageTests.Control, ["to"] = StageMapStageTests.Waiting, ["count"] = 2 },
                 new JsonObject { ["from"] = StageMapStageTests.Nova, ["to"] = StageMapStageTests.Waiting, ["count"] = 5, ["meanHours"] = 60, ["medianHours"] = 72, ["p90Hours"] = 90 })
         };
@@ -59,6 +73,10 @@ public sealed class ProcessMiningTests
         Assert.Equal("olumlu", success[headers.IndexOf("sonuc")]);
         Assert.Equal("6", success[headers.IndexOf("gecis_sayisi")]);
         Assert.Equal("7", success[headers.IndexOf("medyan_saat")]);
+        Assert.Equal("0.29", success[headers.IndexOf("medyan_is_gunu")]);
+        // What a working day meant here is said beside the numbers: where the holidays came from, and what else might hold them.
+        Assert.Contains(book.Rows("Nasıl okunur"), row => row.Count > 1 && row[1].Contains("kurum tatil takviminden okundu (12 kayıt)", StringComparison.Ordinal)
+            && row[1].Contains("ps_holiday", StringComparison.Ordinal) && row[1].Contains("UTC+3", StringComparison.Ordinal));
         // A rare step has its count and no durations.
         IReadOnlyList<string> rare = Assert.Single(steps, row => row[headers.IndexOf("kaynak_asama")] == "CRM EVRAK KONTROL"
             && row[headers.IndexOf("hedef_asama")] == "EVRAK BEKLENİYOR");
@@ -83,7 +101,7 @@ public sealed class ProcessMiningTests
         Assert.True(code == ExitCode.Success, console);
         const string Map = "dt-maas-degisikligi--crm-evrak-kontrol.bpmn";
         string internalMap = File.ReadAllText(Path.Combine(runRoot, "surec-madenciligi-bpmn", Map));
-        Assert.Contains("olumlu · 6 kez · medyan 7 sa", internalMap, StringComparison.Ordinal);
+        Assert.Contains("olumlu · 6 kez · medyan 7 sa (0,29 iş günü)", internalMap, StringComparison.Ordinal);
         Assert.Contains("CRM EVRAK KONTROL · 8 giriş", internalMap, StringComparison.Ordinal);
 
         string delivered = File.ReadAllText(Path.Combine(runRoot, "bpmn", "talep-asamalari", Map));
@@ -115,6 +133,32 @@ public sealed class ProcessMiningTests
         Workbook book = Workbook.Open(Path.Combine(runRoot, "raporlar", "surec-madenciligi.xlsx"));
         Assert.Contains(book.Rows("Nasıl okunur"), row => row.Count > 1 && row[1].Contains("bulunamadı", StringComparison.Ordinal));
         Assert.False(Directory.Exists(Path.Combine(runRoot, "surec-madenciligi-bpmn")));
+    }
+
+    /// <summary>A totals file made before working days were measured still reads; the columns stay empty and the book says why.</summary>
+    [Fact]
+    public async Task A_File_Without_Working_Days_Says_To_Export_Again()
+    {
+        using TemporaryOutput output = new();
+
+        (ExitCode code, string runRoot, string console) = await StageMapStageTests.RunAsync(output, withStages: true, processMiningFile: Totals(output, withWorkingDays: false));
+
+        Assert.True(code == ExitCode.Success, console);
+        Workbook book = Workbook.Open(Path.Combine(runRoot, "raporlar", "surec-madenciligi.xlsx"));
+        Assert.Contains(book.Rows("Nasıl okunur"), row => row.Count > 1 && row[1].Contains("sütunlar boş", StringComparison.Ordinal));
+    }
+
+    /// <summary>Where CRM's holiday calendar could not be read, the book says the holidays were counted as working days.</summary>
+    [Fact]
+    public async Task Without_The_Holiday_Calendar_The_Book_Says_Only_Weekends_Were_Left_Out()
+    {
+        using TemporaryOutput output = new();
+
+        (ExitCode code, string runRoot, string console) = await StageMapStageTests.RunAsync(output, withStages: true, processMiningFile: Totals(output, holidaySource: null));
+
+        Assert.True(code == ExitCode.Success, console);
+        Workbook book = Workbook.Open(Path.Combine(runRoot, "raporlar", "surec-madenciligi.xlsx"));
+        Assert.Contains(book.Rows("Nasıl okunur"), row => row.Count > 1 && row[1].Contains("tatil takvimi OKUNAMADI", StringComparison.Ordinal));
     }
 
     [Fact]

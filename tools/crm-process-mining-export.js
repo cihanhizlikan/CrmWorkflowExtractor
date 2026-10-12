@@ -10,6 +10,11 @@
  * last DAY the history covers. A step taken fewer than MINIMUM_GROUP times carries its count but no durations, so a
  * rare path cannot point back to one case. While it runs, only the case being read is held in memory.
  *
+ * WORKING TIME: beside calendar time, every step is measured in WORKING DAYS — the time that falls on a working day,
+ * divided by 24. Saturdays, Sundays and the organisation's holidays do not count; the hours of a working day all do,
+ * because no record says when an office opens. The holidays are CRM's own business-closure calendar; where it cannot
+ * be read, only weekends are left out and the file says so. Day boundaries are this computer's time zone.
+ *
  * WHERE THE HISTORY IS: no stage record says which cases passed through it, so the script finds the entity that does
  * from metadata — one with a lookup to the case (incident) AND to the stage record (ps_step). Nothing about it is
  * assumed by name. When several qualify, it asks which to use. A row's creation time is taken as the moment the case
@@ -74,6 +79,92 @@
 
   const started = new Date();
   log("Web API root:", WEB_API);
+
+  // THE HOLIDAYS: the organisation's business-closure calendar, the one CRM's own service calendars subtract. Its rules
+  // are reached through the calendar; on some versions they are a table of their own. Either way only start and end
+  // are kept. Names of custom tables that look like a holiday list are recorded too — names only — in case the SLA
+  // engine keeps its own.
+  async function readHolidays() {
+    const result = { source: null, intervals: [], candidates: [] };
+    try {
+      const definitions = await get("EntityDefinitions?$select=LogicalName,IsCustomEntity");
+      result.candidates = definitions.value.filter(row => row.IsCustomEntity && /holiday|tatil|bayram|closure|calendar|takvim/i.test(row.LogicalName))
+        .map(row => row.LogicalName).sort();
+    } catch (error) {
+      log("Entity names could not be read:", error.message);
+    }
+    let calendar = null;
+    try {
+      const organizations = await get("organizations?$select=businessclosurecalendarid");
+      calendar = organizations.value[0] && organizations.value[0].businessclosurecalendarid;
+    } catch (error) {
+      log("The organisation's closure calendar could not be found:", error.message);
+    }
+    if (!calendar) {
+      return result;
+    }
+    const rule = row => {
+      const start = Date.parse(row.effectiveintervalstart || row.starttime);
+      const end = row.effectiveintervalend ? Date.parse(row.effectiveintervalend) : start + (row.duration || 0) * 60000;
+      return Number.isNaN(start) || Number.isNaN(end) || end <= start ? null : [start, end];
+    };
+    const ways = [
+      ["calendar_calendar_rules", async () => (await get(`calendars(${calendar})?$select=name&$expand=calendar_calendar_rules($select=starttime,duration,effectiveintervalstart,effectiveintervalend)`)).calendar_calendar_rules],
+      ["calendarrules", async () => (await get(`calendarrules?$select=starttime,duration,effectiveintervalstart,effectiveintervalend&$filter=_calendarid_value eq ${calendar}`)).value]
+    ];
+    for (const [way, read] of ways) {
+      try {
+        const rows = await read();
+        if (Array.isArray(rows)) {
+          result.intervals = rows.map(rule).filter(Boolean).sort((one, other) => one[0] - other[0]);
+          result.source = way;
+          return result;
+        }
+      } catch (error) {
+        log(`Holidays could not be read as ${way}:`, error.message);
+      }
+    }
+    return result;
+  }
+  const holidays = await readHolidays();
+  log(`Holidays: ${holidays.intervals.length} from ${holidays.source ?? "nowhere — weekends only"}`);
+
+  // Working milliseconds between two instants: what falls on a weekday, less what falls in a holiday. Each whole day
+  // in between is worked out once and remembered, so the history costs one pass over the calendar, not one per step.
+  const DAY = 86400000;
+  const dayStart = time => { const date = new Date(time); return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime(); };
+  const nextDay = start => { const date = new Date(start); return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1).getTime(); };
+  const weekend = start => { const weekday = new Date(start).getDay(); return weekday === 0 || weekday === 6; };
+  const holidayIn = (from, to) => {
+    let overlap = 0;
+    for (const [start, end] of holidays.intervals) {
+      if (start >= to) {
+        break;
+      }
+      overlap += Math.max(0, Math.min(end, to) - Math.max(start, from));
+    }
+    return overlap;
+  };
+  const workIn = (from, to) => from >= to || weekend(dayStart(from)) ? 0 : (to - from) - holidayIn(from, to);
+  const wholeDays = new Map();   // day start -> working ms from that day's start to the start of the reference day
+  const workBetween = (from, to) => {
+    if (to <= from) {
+      return 0;
+    }
+    const firstDay = dayStart(from);
+    const lastDay = dayStart(to);
+    if (firstDay === lastDay) {
+      return workIn(from, to);
+    }
+    let total = workIn(from, nextDay(firstDay)) + workIn(lastDay, to);
+    for (let day = nextDay(firstDay); day < lastDay; day = nextDay(day)) {
+      if (!wholeDays.has(day)) {
+        wholeDays.set(day, workIn(day, nextDay(day)));
+      }
+      total += wholeDays.get(day);
+    }
+    return total;
+  };
 
   // Every entity with a lookup to both the case and the stage record, in every pairing of those lookups.
   const toStage = await lookupsTo(STAGE);
@@ -155,9 +246,10 @@
         if (current && current.kase === kase) {
           const key = `${current.stage}|${stage}`;
           if (!steps.has(key)) {
-            steps.set(key, []);
+            steps.set(key, { hours: [], workDays: [] });
           }
-          steps.get(key).push((at - current.at) / 3600000);
+          steps.get(key).hours.push((at - current.at) / 3600000);
+          steps.get(key).workDays.push(workBetween(current.at, at) / DAY);
         } else {
           close();
           cases++;
@@ -178,14 +270,19 @@
     const above = Math.min(sorted.length - 1, below + 1);
     return sorted[below] + (sorted[above] - sorted[below]) * (position - below);
   };
-  const transitions = [...steps.entries()].map(([key, hours]) => {
+  const round2 = value => Math.round(value * 100) / 100;
+  const transitions = [...steps.entries()].map(([key, measured]) => {
     const [from, to] = key.split("|");
-    const step = { from, to, count: hours.length };
-    if (hours.length >= MINIMUM_GROUP) {
-      const sorted = hours.sort((one, other) => one - other);
-      step.meanHours = round(sorted.reduce((sum, value) => sum + value, 0) / sorted.length);
-      step.medianHours = round(at(sorted, 0.5));
-      step.p90Hours = round(at(sorted, 0.9));
+    const step = { from, to, count: measured.hours.length };
+    if (measured.hours.length >= MINIMUM_GROUP) {
+      const hours = measured.hours.sort((one, other) => one - other);
+      step.meanHours = round(hours.reduce((sum, value) => sum + value, 0) / hours.length);
+      step.medianHours = round(at(hours, 0.5));
+      step.p90Hours = round(at(hours, 0.9));
+      const workDays = measured.workDays.sort((one, other) => one - other);
+      step.meanWorkDays = round2(workDays.reduce((sum, value) => sum + value, 0) / workDays.length);
+      step.medianWorkDays = round2(at(workDays, 0.5));
+      step.p90WorkDays = round2(at(workDays, 0.9));
     }
     return step;
   });
@@ -199,6 +296,13 @@
     source: chosen ? { entity: chosen.entity, entitySet: chosen.entitySet, caseAttribute: chosen.caseAttribute, stageAttribute: chosen.stageAttribute, chosenBy } : null,
     candidates: candidates.map(candidate => ({ entity: candidate.entity, caseAttribute: candidate.caseAttribute, stageAttribute: candidate.stageAttribute, rows: candidate.rows, error: candidate.error ?? null })),
     minimumGroup: MINIMUM_GROUP,
+    workingTime: {
+      weekend: ["Cumartesi", "Pazar"],
+      holidaySource: holidays.source,
+      holidays: holidays.intervals.length,
+      holidayCandidates: holidays.candidates,
+      timeZoneOffsetMinutes: -started.getTimezoneOffset()
+    },
     window: { fromDate: day(first), toDate: day(last) },
     cases,
     events,
