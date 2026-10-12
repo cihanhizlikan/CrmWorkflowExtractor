@@ -181,6 +181,7 @@ public sealed partial class BrowserExportImportTests
     [Theory]
     [InlineData("crm-browser-export.js", "crm-export.html")]
     [InlineData("crm-usage-export.js", "crm-usage.html")]
+    [InlineData("crm-process-mining-export.js", "crm-process-mining.html")]
     public void The_Bookmarklet_Page_Was_Generated_From_The_Current_Script(string script, string pageName)
     {
         string tools = Path.Combine(RepositoryTree.Root().FullName, "tools");

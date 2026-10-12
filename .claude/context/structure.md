@@ -83,7 +83,7 @@ recognises a compressed export by its first two bytes rather than its name, and 
 under `.json.gz`. Every stage of the write announces itself, because the failure that cost a run printed nothing.
 
 **Process mining is Enterprise Architecture's, not the partner's** (maintainer, 2026-10-12). `tools/crm-process-mining-export.js`
-(page `crm-surec.html`) reads the case stage history and REDUCES IT IN THE BROWSER: the file holds stage entries, steps
+(page `crm-process-mining.html`) reads the case stage history and REDUCES IT IN THE BROWSER: the file holds stage entries, steps
 between stages and their durations (count, mean, median, 90th percentile — in calendar hours and in WORKING DAYS: the
 part of a step on weekdays that are not holidays, over 24; holidays from the organisation's business-closure
 calendar, weekends only where it cannot be read, office hours never, since no record holds them) and nothing that names a

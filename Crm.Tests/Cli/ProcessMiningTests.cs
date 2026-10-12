@@ -51,7 +51,7 @@ public sealed class ProcessMiningTests
                 new JsonObject { ["from"] = StageMapStageTests.Nova, ["to"] = StageMapStageTests.Waiting, ["count"] = 5, ["meanHours"] = 60, ["medianHours"] = 72, ["p90Hours"] = 90 })
         };
         Directory.CreateDirectory(output.Root);
-        string file = Path.Combine(output.Root, "crm-surec.json");
+        string file = Path.Combine(output.Root, "crm-process-mining.json");
         File.WriteAllText(file, totals.ToJsonString());
         return file;
     }

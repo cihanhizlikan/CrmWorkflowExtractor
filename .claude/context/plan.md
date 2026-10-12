@@ -1330,7 +1330,7 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 ### Process mining, for Enterprise Architecture only (2026-10-12) — committed, awaiting merge
 - **Maintainer:** delays between steps and how often a step occurs, processed anonymously, in a report for EA only;
   built before the discovery snippet, so the script discovers the history itself instead.
-- **Export (`tools/crm-process-mining-export.js`, page `crm-surec.html`):** finds every entity with lookups to both
+- **Export (`tools/crm-process-mining-export.js`, page `crm-process-mining.html`):** finds every entity with lookups to both
   `incident` and `ps_step` in metadata, asks which one when several qualify (else the one with most rows), reads it in
   case order and keeps only the current case; writes totals only. Checked on a stubbed CRM in node: a decoy candidate
   offered, a case split across two pages counted once, mean/median/p90 right (median interpolated — the first cut took
@@ -1342,7 +1342,7 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   and lists what was looked at. Durations are calendar time; working-day measurement not built.
 - **Guards, each falsified:** traffic drawn over delivered maps, outcome derivation, captions, the report written at
   all; `DeliveryTests` forbids naming it. 380 pass.
-- **Acceptance on the company network — Do:** run `crm-surec.html`, set `Run:ProcessMiningFile`, reprocess. **Pass:** the
+- **Acceptance on the company network — Do:** run `crm-process-mining.html`, set `Run:ProcessMiningFile`, reprocess. **Pass:** the
   console names the history entity; `surec-madenciligi.xlsx` and `surec-madenciligi-bpmn/` appear; nothing under `bpmn/` changes.
 
 ### Working days (2026-10-12) — committed, awaiting merge
@@ -1358,3 +1358,11 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   calendar answers either way, and that it is the calendar the SLA engine uses.
 - **Output:** `ortalama_is_gunu`, `medyan_is_gunu`, `yuzde90_is_gunu` on Geçişler; "(N iş günü)" on the internal maps'
   arrows; the guide says where holidays came from or that they could not be read. Each guard falsified. 382 pass.
+
+### The process-mining page named like its siblings (2026-10-12) — committed, awaiting merge
+- **Maintainer:** why `crm-surec` when the other tools are English? It was an inconsistency: run output is Turkish,
+  the browser tools and their downloads are English. Now `tools/crm-process-mining.html`, downloads
+  `crm-process-mining-<time>.json`, bookmark "CRM Process Mining", console tag `[crm-process-mining]`. The run output
+  (`surec-madenciligi.xlsx`, `surec-madenciligi-bpmn/`) stays Turkish. No file under the old name existed yet.
+- **Found while renaming:** the bookmarklet drift test listed only the other two pages, so this one could fall out
+  of step with its script unnoticed. Added and falsified (a stale script fails it). 383 pass.

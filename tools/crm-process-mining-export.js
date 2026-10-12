@@ -3,7 +3,7 @@
  *
  * WHAT IT DOES: measures how cases actually move through their stages — how often each stage is entered, how often
  * each step from one stage to the next happens, and how long it takes — through YOUR signed-in CRM browser session,
- * and saves the TOTALS as one small file, crm-surec-<time>.json.
+ * and saves the TOTALS as one small file, crm-process-mining-<time>.json.
  *
  * ANONYMOUS BY CONSTRUCTION: every row is reduced inside this browser tab. The file holds counts and durations per
  * stage and per step, nothing else: no case id, no customer, no product, no user, no exact time — only the first and
@@ -22,7 +22,7 @@
  *
  * READ-ONLY: every request below is a GET (there is no "method" in this file, so fetch defaults to GET).
  *
- * HOW TO RUN: sign in to CRM, stay on a CRM page, click the "CRM Süreç" bookmark (tools/crm-surec.html). Then set
+ * HOW TO RUN: sign in to CRM, stay on a CRM page, click the "CRM Process Mining" bookmark (tools/crm-process-mining.html). Then set
  * Run:ProcessMiningFile to the downloaded file and re-run the extractor. The report it feeds is for Enterprise
  * Architecture only and is never part of the package delivered to the outsource partner.
  */
@@ -36,7 +36,7 @@
   // Fewer steps than this and the durations are left out: a distribution of three is three cases.
   const MINIMUM_GROUP = 5;
 
-  const log = (...args) => console.log("%c[crm-surec]", "color:#7a3", ...args);
+  const log = (...args) => console.log("%c[crm-process-mining]", "color:#7a3", ...args);
 
   async function get(path, prefer) {
     const headers = { "Accept": "application/json", "OData-MaxVersion": "4.0", "OData-Version": "4.0" };
@@ -313,9 +313,9 @@
   const stamp = started.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob([JSON.stringify(exported)], { type: "application/json" }));
-  link.download = `crm-surec-${stamp}.json`;
+  link.download = `crm-process-mining-${stamp}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
   log(`Done: ${cases} cases, ${events} stage entries, ${transitions.length} kinds of step, ${skipped} rows skipped. Saved ${link.download}`);
-})().catch(error => console.error("[crm-surec] FAILED:", error));
+})().catch(error => console.error("[crm-process-mining] FAILED:", error));

@@ -45,7 +45,7 @@ public sealed class RunOptions
     public string UsageFile { get; set; } = "";
 
     /// <summary>
-    /// Path to a <c>crm-surec-*.json</c> file saved by <c>tools/crm-process-mining-export.js</c>: how often cases enter
+    /// Path to a <c>crm-process-mining-*.json</c> file saved by <c>tools/crm-process-mining-export.js</c>: how often cases enter
     /// each stage and take each step, and how long a step takes — totals only. Optional; it feeds an INTERNAL report,
     /// never the package delivered to the outsource partner, and a reprocessed run inherits it from its source run.
     /// </summary>

@@ -11,4 +11,4 @@ tools/crm-export.html -text
 tools/crm-usage-export.js -text
 tools/crm-usage.html -text
 tools/crm-process-mining-export.js -text
-tools/crm-surec.html -text
+tools/crm-process-mining.html -text
