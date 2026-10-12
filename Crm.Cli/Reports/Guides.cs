@@ -29,7 +29,7 @@ public static class Guides
             + "aşamasında başlar; her aşama olumlu, olumsuz ya da iptal sonucuyla kapanır ve sonuca göre bir sonraki aşamaya geçer, "
             + "yolda bir iş akışı çalıştırabilir. İş akışları bu makinenin adımlarıdır: önce aşamaları anlayın, sonra iş akışlarını. "
             + "Satırlar talebin aşamalarla karşılaştığı sıradadır.");
-        sheet.Row("surec · asama · kisa_ad", "Aşamanın ait olduğu konu ve adı. Diyagramda aşama kısa adıyla görünür.");
+        sheet.Row("surec · asama · haritadaki_ad", "Aşamanın ait olduğu konu ve adı. haritadaki_ad, aşamanın kutusunda yazan metindir: haritada bu metni aratın. Aynı adı taşıyan iki ayrı aşama haritada adım kodu ya da sıra numarasıyla ayrılır.");
         sheet.Row("birincil · otomatik", "birincil evet ise o konudaki talepler bu aşamada başlar ve aşama akışının diyagramı buradan "
             + "çizilir. otomatik evet ise aşama bir kişiyi beklemeden ilerler; yeni üründe bir otomasyon olarak kurulmalıdır.");
         sheet.Row("olumlu_* · olumsuz_* · iptal_*", "Her sonuç için: talebin geçtiği sonraki aşama, çalıştırılan iş akışı ve müşteriye "
@@ -45,7 +45,9 @@ public static class Guides
             + "servis_talebi_limiti, kampanya_grubu, step_code, tanim, mobil_sube_*: aşamanın taşıdığı diğer kurallar, CRM'deki "
             + "etiketleriyle. Boş hücre o kuralın bu aşamada kullanılmadığı demektir.");
         sheet.Row("asama_akisi_bpmn · asama_id", "Aşamanın göründüğü aşama akışı diyagramları ve CRM'de aramak için kimliği. Diyagramda "
-            + "olumlu sonuç sağa, olumsuz aşağıdan, iptal yukarıdan çıkar; iş akışı kutularının içine girilerek adımları görülebilir.");
+            + "olumlu sonuç sağa, olumsuz aşağıdan, iptal yukarıdan çıkar; aynı yere giden sonuçlar tek oktur (\"olumsuz / iptal\"). "
+            + "Geri dönüşler \"… aşamasına dön\" bağlantı olayında biter ve aynı adlı \"… aşamasına dönüş\" olayından devam eder. "
+            + "İş akışı kutularının içine girilerek adımları görülür; kalın kenarlı kutu, aynı iş akışının haritada ilk geçtiği kutuyu gösterir.");
         sheet.Row("Sayfaların boş olması",
             "Çağrı ağacı ve Süreç ağaçları YALNIZCA birbirini çağıran akışları taşır; boşsa hiçbir akış başkasını çağırmıyor "
             + "demektir. Sapma boşsa iyi haberdir: CRM'de çalışan kopyalar tanımlarıyla aynı. Okunamayan yapılar boşsa "

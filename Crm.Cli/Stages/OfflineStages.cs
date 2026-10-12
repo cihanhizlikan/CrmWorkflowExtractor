@@ -48,7 +48,7 @@ public static class OfflineStages
         // has none, and then the plan opens on the workflows as it always did.
         if (state.CaseStages.Any(stage => stage.Active))
         {
-            state.Sheets[SheetNames.Stages] = StageSheet.Build(state.CaseStages, state.StageMapFiles);
+            state.Sheets[SheetNames.Stages] = StageSheet.Build(state.CaseStages, state.StageMapFiles, state.StageMapLabels);
         }
         state.Sheets[SheetNames.Plan] = MigrationPlan.Build(state, documents, usage);
         state.Sheets[SheetNames.Excluded] = MigrationPlan.BuildExcluded(state, documents, usage);

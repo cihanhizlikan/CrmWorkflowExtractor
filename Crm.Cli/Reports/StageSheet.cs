@@ -16,9 +16,10 @@ namespace Crm.Cli.Reports;
 /// </summary>
 public static class StageSheet
 {
-    public static Sheet Build(IReadOnlyList<CaseStage> stages, IReadOnlyDictionary<Guid, IReadOnlyList<string>> maps)
+    public static Sheet Build(IReadOnlyList<CaseStage> stages, IReadOnlyDictionary<Guid, IReadOnlyList<string>> maps,
+        IReadOnlyDictionary<Guid, string> labels)
     {
-        List<string> columns = ["surec", "asama", "kisa_ad", "birincil", "otomatik",
+        List<string> columns = ["surec", "asama", "haritadaki_ad", "birincil", "otomatik",
             "olumlu_sonraki_asama", "olumlu_is_akisi", "olumlu_sms",
             "olumsuz_sonraki_asama", "olumsuz_is_akisi", "olumsuz_sms",
             "iptal_sonraki_asama", "iptal_is_akisi", "iptal_sms",
@@ -30,7 +31,7 @@ public static class StageSheet
         Dictionary<Guid, CaseStage> byId = stages.ToDictionary(stage => stage.Id);
         foreach (CaseStage stage in Ordered(stages, byId))
         {
-            List<object?> row = [stage.Process, stage.Name, stage.ShortName, YesNo(stage.Primary), YesNo(stage.Automatic)];
+            List<object?> row = [stage.Process, stage.Name, labels.GetValueOrDefault(stage.Id) ?? stage.ShortName, YesNo(stage.Primary), YesNo(stage.Automatic)];
             foreach (string outcome in new[] { StageOutcome.Success, StageOutcome.Failure, StageOutcome.Cancel })
             {
                 StageExit? exit = stage.Exits.FirstOrDefault(candidate => candidate.Outcome == outcome);

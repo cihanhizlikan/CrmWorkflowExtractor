@@ -108,13 +108,23 @@ signature of its fields (labelled "…Sonrası…"), because the system's own BP
 
 **One stage map per ACTIVE PRIMARY stage** (`StageMap`), and the plan opens with the **Aşamalar** sheet, one row per
 active stage in the order a case meets them. The stages are a GRAPH — "Evrak bekleniyor" sends a case back — so
-the map is laid out in layers by longest path over the forward flows, a loop's flow found by a depth-first walk and
-routed in its own lane beneath the whole diagram. Every route is kept off every shape by construction: upright runs
-only in the gaps between layers, which hold no shapes; and a stage's three outcomes leave its diamond from three
-corners — success to the right, failure below, cancellation above — so they never share a line or a caption. A
-workflow fired on an outcome is EMBEDDED as a collapsed sub-process carrying its own diagram on a plane of its own
-(ids prefixed per occurrence), so the map is one file to drill into, and a viewer that cannot drill still shows a
-named box. `CaseStageRules` is the one table of a stage's other logic — SLA, assignment, documents, SMS, closing —
+the map is laid out in layers by longest path over the forward flows, a loop's flow found by a depth-first walk.
+A flow BACK is not drawn back: it ends in a link event "… aşamasına dön", picked up by one "… aşamasına dönüş" beside
+the stage it returns to — on the real "Reklam" map (2026-10-12) the flows back ran in lanes beneath everything, up to
+7,958 px long, and made most of its 52 crossings. Every flow now runs between neighbouring layers; one that skips
+layers passes each on a row of its own that holds no shape. Every route is kept off every shape by construction:
+upright runs only in the gaps between layers, ordered to cross least; flows into one shape come in at heights of
+their own; and a stage's outcomes leave its diamond from three corners — success to the right, failure below,
+cancellation above — with the corner drop grown to fit the right corner's caption when it wraps. Outcomes that agree
+(same next stage, same workflow, same SMS) are ONE flow named "olumsuz / iptal", and a stage with nothing to decide
+has no diamond; a workflow fired on every outcome stands once between the task and the diamond. A workflow is
+EMBEDDED ONCE PER MAP, in the first box a reader meets, as a collapsed sub-process carrying its own diagram on a
+plane of its own; every later box for it is a call activity naming where that one is (fourteen copies of one
+workflow made most of a 2.6 MB map). SMS is a message throw event, so an outcome that only texts is drawn. Ids come
+from CRM ids (`asama_<id>`, `…_karar`, `…_<sonuç>_wf_<id>`), so a map compares between runs; two stages of one
+name are told apart by step code or number, and the sheet's `haritadaki_ad` is the exact text to search for. The
+Reklam shape is a test fixture with invented names; measured on the real graph: 1 crossing, no shared lines, the
+longest arrow 1,174 px. `CaseStageRules` is the one table of a stage's other logic — SLA, assignment, documents, SMS, closing —
 read by the sheet for columns and by the map for documentation. The user a stage assigns to is reported as present
 or absent, NEVER by name: the plan goes to an outsource partner.
 

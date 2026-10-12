@@ -1249,3 +1249,29 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Acceptance on the company network — Do:** fill `Run:ImportFile` (and `Run:UsageFile`) in `appsettings.json`, run.
   **Pass:** the run completes as before; `appsettings.json` has no `Crm` section; with both keys empty the tool says
   what to fill in and exits 2 without creating a run folder.
+
+### The stage map, untangled (2026-10-12) — committed, awaiting merge
+- **Maintainer:** the "Reklam" map still tangles; outgoing flows from the diamonds could be placed so what follows
+  crosses less. Asked for a multi-agent review of the whole delivery from the side of an outsource analyst who reads
+  BPMN and knows nothing of CRM, with one agent whose job is to cut. Seven lenses (two layout, terminology,
+  search, a first-day walkthrough, two weeders) proposed independently and a consolidator voted: 17 changes accepted.
+  This package is the stage-map half; the naming, plan-workbook and guide half follows as its own package.
+- **Measured on the real map, before → after** (graph rebuilt from the attached file, drawn by the new code, kept
+  in the scratchpad only): crossings 52 → 1; flows sharing a line 58 → 0; longest arrow 7,958 → 1,174 px; workflow
+  boxes 22 → 13, of which 5 carry a diagram (one per distinct workflow) and 8 are call activities.
+- **What changed:** agreeing outcomes are one flow ("olumlu / olumsuz / iptal") and a stage with nothing to decide
+  has no diamond; a workflow fired on every outcome stands once before the diamond; flows back are link-event pairs;
+  layer-skipping flows pass on rows of their own; units are placed level with the flows that arrive; upright runs
+  ordered to cross least; flows into one shape spread; the corner drop grows with the right corner's caption (a
+  two-line "olumlu / olumsuz" reached the cancellation run — found by the new fixture); SMS drawn as a message
+  event; ends say "Sonraki aşama yok" / "Aşamanın çıkışı tanımlı değil" instead of "Bitiş", which claimed a closure
+  the record does not state; start reads "Talep açılır"; stage documentation keeps only what is not drawn; no
+  "ps_step" in the file; the note counts distinct workflows and boxes and names the conventions. The stage sheet's
+  `kisa_ad` became `haritadaki_ad`, the box text.
+- **Reverses a recorded decision:** "a workflow fired from two places is embedded twice". Now once per map plus call
+  activities. Cheap to overrule (one condition in `Boxes.Box`).
+- **Guards, each falsified:** merging, entry spreading, caption-aware drop, embed-once, the always-box, link events,
+  disambiguation and reading order each fail a named test when broken. The two untangling mechanisms (initial order
+  and neighbour swaps) each suffice alone on both fixtures; removing both fails three tests.
+- **Acceptance on the company network — Do:** reprocess the last run (no new export needed). **Pass:** the Reklam map
+  opens; its note lists 5 workflows in 13 boxes; flows back end at "… aşamasına dön" events; no line runs under the map.

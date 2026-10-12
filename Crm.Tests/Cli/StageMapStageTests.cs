@@ -118,7 +118,7 @@ public sealed class StageMapStageTests
         Assert.Equal(["Nasıl okunur", "Aşamalar", "Taşıma planı"], plan.Names.Take(3));
         IReadOnlyList<IReadOnlyList<string>> rows = plan.Rows("Aşamalar");
         List<string> headers = [.. rows[0]];
-        Assert.Equal(["CRM EVRAK KONTROL", "TALEBİ NOVAYA GÖNDER", "EVRAK BEKLENİYOR"], rows.Skip(1).Select(row => row[headers.IndexOf("kisa_ad")]));
+        Assert.Equal(["CRM EVRAK KONTROL", "TALEBİ NOVAYA GÖNDER", "EVRAK BEKLENİYOR"], rows.Skip(1).Select(row => row[headers.IndexOf("haritadaki_ad")]));
         IReadOnlyList<string> control = rows[1];
         Assert.Equal("DT – Maaş Değişikliği | TALEBİ NOVAYA GÖNDER", control[headers.IndexOf("olumlu_sonraki_asama")]);
         Assert.Equal("Poliçe İptal Süreci 1", control[headers.IndexOf("olumlu_is_akisi")]);

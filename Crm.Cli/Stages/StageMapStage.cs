@@ -52,13 +52,15 @@ public static class StageMapStage
             }
         }
         state.StageMapFiles = drawing.AppearsOn();
+        state.StageMapLabels = drawing.Labels;
         state.Counts["stageMaps.written"] = drawing.Written;
         state.Counts["stageMaps.lost"] = drawing.Lost;
         state.Counts["stageMaps.workflowsEmbedded"] = drawing.Embedded;
+        state.Counts["stageMaps.workflowBoxes"] = drawing.Boxes;
         state.Counts["stageMaps.workflowsMissing"] = drawing.Missing;
         state.StagesRun.Add(RunStages.StageMaps);
-        logger.LogInformation("Stage maps: {Written} written from {Primaries} active primary stages, {Embedded} workflows embedded, {Missing} missing",
-            drawing.Written, primaries.Count, drawing.Embedded, drawing.Missing);
+        logger.LogInformation("Stage maps: {Written} written from {Primaries} active primary stages, {Embedded} workflows embedded in {Boxes} boxes, {Missing} missing",
+            drawing.Written, primaries.Count, drawing.Embedded, drawing.Boxes, drawing.Missing);
     }
 
     /// <summary>
@@ -72,12 +74,21 @@ public static class StageMapStage
         private readonly Dictionary<Guid, string> _names = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity.Name);
         private readonly Dictionary<Guid, XDocument> _drawn = [];
         private readonly Dictionary<Guid, List<string>> _appearsOn = [];
+        private readonly Dictionary<Guid, string> _labels = [];
 
         public int Written { get; private set; }
 
         public int Lost { get; set; }
 
+        /// <summary>Distinct workflows embedded, counted once per map.</summary>
         public int Embedded { get; private set; }
+
+        public int Boxes { get; private set; }
+
+        public IReadOnlyDictionary<Guid, string> Labels
+        {
+            get { return _labels; }
+        }
 
         public int Missing { get; private set; }
 
@@ -90,17 +101,19 @@ public static class StageMapStage
             {
                 state.Fail(ExitCode.RunFailed, $"{file} ('{primary.Name}') BPMN 2.0 şemasına uymuyor: {string.Join(" | ", errors.Take(3))}");
             }
-            foreach (Guid stage in map.Stages)
+            foreach (MapStage stage in map.Stages)
             {
-                if (!_appearsOn.TryGetValue(stage, out List<string>? files))
+                if (!_appearsOn.TryGetValue(stage.Id, out List<string>? files))
                 {
                     files = [];
-                    _appearsOn[stage] = files;
+                    _appearsOn[stage.Id] = files;
+                    _labels[stage.Id] = stage.Label;
                 }
                 files.Add(file);
             }
             Written++;
             Embedded += map.Workflows;
+            Boxes += map.Boxes;
             Missing += map.MissingWorkflows;
         }
 

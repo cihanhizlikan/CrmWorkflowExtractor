@@ -60,6 +60,9 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>Which stage maps each stage appears on, as paths relative to the run folder.</summary>
     public IReadOnlyDictionary<Guid, IReadOnlyList<string>> StageMapFiles { get; set; } = new Dictionary<Guid, IReadOnlyList<string>>();
 
+    /// <summary>The text each stage's box carries on the first map it appears on: what a reader searches the map for.</summary>
+    public IReadOnlyDictionary<Guid, string> StageMapLabels { get; set; } = new Dictionary<Guid, string>();
+
     /// <summary>The BPMN file path (relative to the run folder, without extension) written for each workflow.</summary>
     public IReadOnlyDictionary<Guid, string> BpmnFiles { get; set; } = new Dictionary<Guid, string>();
 
