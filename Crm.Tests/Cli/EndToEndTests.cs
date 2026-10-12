@@ -30,12 +30,12 @@ public sealed class EndToEndTests
             Assert.True(File.Exists(Path.Combine(runRoot, file)), file + " is missing");
         }
         // Grouping workflows by resemblance answered the wrong question and is gone (maintainer, 2026-10-09): how a
-        // workflow is used is in the stage that fires it, and that is drawn in bpmn/asama-akislari/ instead.
+        // workflow is used is in the stage that fires it, and that is drawn in bpmn/talep-asamalari/ instead.
         foreach (string gone in new[] { "raporlar/aileler.xlsx", "aileler", "birlesik" })
         {
             Assert.False(File.Exists(Path.Combine(runRoot, gone)) || Directory.Exists(Path.Combine(runRoot, gone)), gone + " is still written");
         }
-        Assert.Equal(5, Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Length);
+        Assert.Equal(5, Directory.GetFiles(Path.Combine(runRoot, "bpmn", "is-akislari"), "*.bpmn", SearchOption.AllDirectories).Length);
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, RunFolder.ManifestFileName)));
         List<string> chain = [.. manifest.RootElement.GetProperty("countChain").EnumerateArray().Select(link => link.GetString()!)];

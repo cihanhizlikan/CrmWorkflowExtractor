@@ -32,13 +32,13 @@ public sealed class UsageStageTests
 
         // The verdict travels in the plan's own row, beside the work it qualifies.
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        IReadOnlyList<IReadOnlyList<string>> work = plan.Rows("Taşıma planı");
+        IReadOnlyList<IReadOnlyList<string>> work = plan.Rows("İş akışları");
         IReadOnlyList<string> ran = Assert.Single(work, row => row.Contains(DefinitionThatRan.ToString("D")));
         // UNDER ITS OWN HEADER, not anywhere in the row. "Somewhere in the row" is how the plan's columns sat two to
         // the right of their names from 2026-10-02 to 2026-10-09 with every test passing.
         List<string> headers = [.. work[0]];
         Assert.Equal(headers.Count, ran.Count);
-        Assert.Equal("çalışıyor · 2026-09-20", ran[headers.IndexOf("kullanim")]);
+        Assert.Equal("çalışıyor", ran[headers.IndexOf("kullanim")]);
         Assert.StartsWith("2026-09-20", ran[headers.IndexOf("son_kayitli_calisma")], StringComparison.Ordinal);
         Assert.EndsWith(".bpmn", ran[headers.IndexOf("bpmn_dosyasi")], StringComparison.Ordinal);
         Assert.Equal(DefinitionThatRan.ToString("D"), ran[headers.IndexOf("is_akisi_id")]);
@@ -67,7 +67,7 @@ public sealed class UsageStageTests
 
         Assert.True(code == ExitCode.Success, console);
         Workbook plan = Workbook.Open(Path.Combine(second, "raporlar", "tasima-plani.xlsx"));
-        Assert.Contains(plan.Rows("Taşıma planı"), row => row.Contains("çalışıyor · 2026-09-20"));
+        Assert.Contains(plan.Rows("İş akışları"), row => row.Contains("çalışıyor") && row.Contains("2026-09-20"));
     }
 
     /// <summary>Asking the server for the oldest record of all sorts the whole System Job table; production leaves it pending.</summary>

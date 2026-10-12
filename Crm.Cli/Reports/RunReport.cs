@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using Crm.Extract.Inventory;
 using Crm.Extract.Runs;
+using Crm.Ir.Parsing;
 
 namespace Crm.Cli.Reports;
 
@@ -31,8 +32,8 @@ public static class RunReport
         text.AppendLine(CultureInfo.InvariantCulture,
             $"Sistem analisti `{Name(RunPaths.AnalystGuide)}` dosyasından başlar: dosyaların hangi sırayla açılacağını ve bir iş akışının adım adım nasıl çözümleneceğini anlatır.");
         text.AppendLine("Her kitabın ilk sayfası **Nasıl okunur**: sütunlar, uyarılar ve bu çalıştırmanın sayıları oradadır.").AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.PlanWorkbook)}` — **işin kendisi.** Sayfalar: {SheetNames.Stages} ({Count(state, "caseStages.active")} etkin aşama; {Count(state, "stageMaps.written")} aşama akışı `{RunPaths.StageMaps}/` altında) · {SheetNames.Plan} (taşınacak her iş akışı için bir satır) · {SheetNames.CallGraph} · {SheetNames.Trees} · {SheetNames.Unmapped} ({Count(state, "ir.workflowsWithUnmapped")} iş akışı) · {SheetNames.Drift} (çalışan kopyası farklı {Count(state, "drift.structureDiffers")} tanım).");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.OutOfScopeWorkbook)}` — **planın dışında kalanlar:** {Count(state, "plan.excluded")} iş akışı ({Count(state, "usage.drafts")} taslak, {Count(state, "plan.supplied")} ürünle gelen, kalanı adı deneme gibi olup hiç çalışmamış olanlar). Plan sayfasını süzmeye gerek yok.");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.PlanWorkbook)}` — **işin kendisi.** Sayfalar: {SheetNames.Topics} ({Count(state, "stageMaps.written")} aşama haritası `{RunPaths.StageMaps}/` altında) · {SheetNames.Stages} ({Count(state, "caseStages.active")} etkin aşama) · {SheetNames.Plan} (taşınacak her iş akışı için bir satır; {Count(state, "plan.firedByStage")} tanesini bir aşama çalıştırıyor; diyagramları `{RunPaths.WorkflowDiagrams}/` altında) · {SheetNames.Trees}.");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.OutOfScopeWorkbook)}` — **planın dışında kalanlar:** {Count(state, "plan.excluded")} iş akışı ({Count(state, "plan.drafts")} taslak, {Count(state, "plan.supplied")} ürünle gelen, {Count(state, "plan.testNamed")} adı deneme gibi olup hiç çalışmamış). Diyagramları pakete girmez, `{RunPaths.OutOfScopeDiagrams}/` altındadır. Bir talep aşamasının çalıştırdığı iş akışı taslak değilse planda kalır.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.DataWorkbook)}` — **ne neye dokunuyor.** Birden fazla iş akışının yazdığı {Count(state, "data.sharedFields")} alan; {Count(state, "data.cascadePairs")} çift arasında {Count(state, "data.cascades")} tetikleme zinciri.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.ExternalSystemsWorkbook)}` — **CRM dışına ne uzanıyor.** {Count(state, "external.activities")} özel etkinlik; iş akışlarının geçirdiği {Count(state, "external.addresses")} farklı adres.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.RunAuthorityWorkbook)}` — **kim başlatır, kimin yetkisiyle çalışır.** Elle çalıştırma yetkisini taşıyan {Count(state, "roles.canRun")} güvenlik rolü; plandaki {Count(state, "roles.onDemand")} süreç elle başlatılabiliyor.");
@@ -41,6 +42,8 @@ public static class RunReport
         text.AppendLine(CultureInfo.InvariantCulture, $"- `{Name(RunPaths.SensitiveLiterals)}` — {Count(state, "sensitive.findings")} bulgu. KISITLI: bilgi güvenliği ekibi içindir, pakete konmaz.");
         text.AppendLine(CultureInfo.InvariantCulture, $"- Ayrıştırılmayan, elle yazılmış {Count(state, "manualReview")} iş akışı var: ayrıştırılmadıkları için taşıma planında satırları YOKTUR. Listesi çalıştırma klasöründeki `{RunPaths.ManualReviewIndex}` dosyasındadır.");
         text.AppendLine();
+
+        AppendUnmapped(text, state);
 
         text.AppendLine(CultureInfo.InvariantCulture, $"## Uyarılar ({state.Warnings.Count})").AppendLine();
         foreach (string warning in state.Warnings.Take(50))
@@ -82,6 +85,37 @@ public static class RunReport
         }
         text.AppendLine().AppendLine(CultureInfo.InvariantCulture,
             $"Adı taslak veya deneme gibi okunan {Count(state, "usage.testNamedActive")} etkin iş akışı var; kayıtlı çalışması olanlar planda bırakıldı, ada göre temizlik yapmayın. Kalanlar `{Name(RunPaths.OutOfScopeWorkbook)}` kitabındadır.").AppendLine();
+    }
+
+    /// <summary>
+    /// What the parser could not read, by construct. It was a sheet of the delivered plan, but the only thing anyone
+    /// can do with it is teach the parser — the tool maintainer's work; the analyst has the count on each workflow's
+    /// row and the OKUNAMADI box on its diagram.
+    /// </summary>
+    private static void AppendUnmapped(StringBuilder text, RunState state)
+    {
+        List<IGrouping<string, (string Construct, Guid Workflow)>> constructs = [.. state.Coverage
+            .SelectMany(workflow => workflow.Observations.Where(observation => observation.Status == CoverageStatus.Unmapped)
+                .Select(observation => (observation.Construct, Workflow: workflow.WorkflowId)))
+            .GroupBy(entry => entry.Construct, StringComparer.Ordinal)
+            .OrderByDescending(group => group.Select(entry => entry.Workflow).Distinct().Count())
+            .ThenBy(group => group.Key, StringComparer.Ordinal)];
+        if (constructs.Count == 0)
+        {
+            return;
+        }
+        text.AppendLine(CultureInfo.InvariantCulture, $"## Okunamayan yapılar ({Count(state, "ir.workflowsWithUnmapped")} iş akışında)").AppendLine();
+        text.AppendLine("Ayrıştırıcının anlamadığı yapılar. Birçok iş akışında geçen bir yapı ayrıştırıcıya eklenecek ilk adaydır.").AppendLine();
+        text.AppendLine("| Yapı | İş akışı | Geçiş |").AppendLine("|---|---:|---:|");
+        foreach (IGrouping<string, (string Construct, Guid Workflow)> construct in constructs.Take(40))
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"| `{construct.Key}` | {construct.Select(entry => entry.Workflow).Distinct().Count()} | {construct.Count()} |");
+        }
+        if (constructs.Count > 40)
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"| … ve {constructs.Count - 40} yapı daha | | |");
+        }
+        text.AppendLine();
     }
 
     /// <summary>The file name on its own: inside raporlar/ the folder prefix is noise.</summary>

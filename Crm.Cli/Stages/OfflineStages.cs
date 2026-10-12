@@ -20,15 +20,19 @@ public static class OfflineStages
         IReadOnlyList<WorkflowIr> documents = await IrStage.RunAsync(folder, state, extractedAt, logger, token);
         state.Documents = documents;
         UsageStage.Summarize(state, documents, usage);
+        // Before any diagram: a workflow a stage fires is in scope for that reason, and says so.
+        await StageMapStage.ReadAsync(folder, state, token);
 
         // What is not this company's to rebuild leaves the plan: a Draft, which cannot start a run; one CRM reports
         // as part of a managed solution, which was shipped with the product; and one whose name reads like a test AND
-        // has no logged run. All three keep their IR and BPMN and are listed in their own book.
-        int inScope = MigrationPlan.InScope(documents, usage).Count();
-        state.Counts["plan.supplied"] = documents.Count(document => document.Identity.IsManaged == true);
-        state.Counts["plan.drafts"] = documents.Count(document => document.Identity.IsManaged != true && document.Identity.State == UsageStage.DraftState);
-        state.Counts["plan.excluded"] = documents.Count - inScope;
-        state.Counts["plan.testNamed"] = state.Counts["plan.excluded"] - state.Counts["plan.drafts"] - state.Counts["plan.supplied"];
+        // has no logged run — unless an active stage fires it. All keep their IR and an internal diagram, and are
+        // listed in their own book.
+        List<string?> reasons = [.. documents.Select(document => MigrationPlan.Reason(state, document.Identity, usage))];
+        state.Counts["plan.supplied"] = reasons.Count(reason => reason == MigrationPlan.SuppliedReason);
+        state.Counts["plan.drafts"] = reasons.Count(reason => reason == MigrationPlan.DraftReason);
+        state.Counts["plan.testNamed"] = reasons.Count(reason => reason == MigrationPlan.TestNamedReason);
+        state.Counts["plan.excluded"] = reasons.Count(reason => reason is not null);
+        state.Counts["plan.firedByStage"] = documents.Count(document => state.FiredBy.ContainsKey(document.Identity.WorkflowId));
         await BpmnStage.RunAsync(folder, state, documents, usage, logger, token);
         await StageMapStage.RunAsync(folder, state, documents, logger, token);
 
@@ -43,25 +47,22 @@ public static class OfflineStages
         UsageEvidence? usage, string logoFile, CancellationToken token)
     {
         CallGraph calls = CallGraph.Build(documents);
-        HashSet<Guid> inPlan = [.. MigrationPlan.InScope(documents, usage).Select(document => document.Identity.WorkflowId)];
+        HashSet<Guid> inPlan = [.. MigrationPlan.InScope(state, documents, usage).Select(document => document.Identity.WorkflowId)];
         // The process first: the workflows are steps of it. An export made before the stages were collected
         // has none, and then the plan opens on the workflows as it always did.
         if (state.CaseStages.Any(stage => stage.Active))
         {
+            state.Sheets[SheetNames.Topics] = StageSheet.BuildTopics(state, documents);
             state.Sheets[SheetNames.Stages] = StageSheet.Build(state.CaseStages, state.StageMapFiles, state.StageMapLabels);
         }
+        // Who calls whom and whether the running copy differs are columns of the workflow's own row now: two
+        // sheets that repeated the row's name to carry one fact each were two more tabs to cross-reference.
         state.Sheets[SheetNames.Plan] = MigrationPlan.Build(state, documents, usage);
         state.Sheets[SheetNames.Excluded] = MigrationPlan.BuildExcluded(state, documents, usage);
-        state.Sheets[SheetNames.CallGraph] = calls.Build();
         state.Sheets[SheetNames.Trees] = calls.BuildTrees();
         state.Sheets[SheetNames.DataFootprint] = DataFootprint.Build(documents);
         state.Sheets[SheetNames.Cascades] = DataFootprint.BuildCascades(documents);
-        ExternalSheets(state, documents);
-        state.Sheets[SheetNames.Unmapped] = QualitySheets.Unmapped(state.Coverage, state.BpmnFiles);
-        if (state.Drift is not null)
-        {
-            state.Sheets[SheetNames.Drift] = QualitySheets.Drift(state.Drift, inPlan);
-        }
+        ExternalSheets(state, documents, inPlan);
         state.Counts["callGraph.entryPoints"] = documents.Count(document => calls.RoleOf(document.Identity.WorkflowId) == CallGraph.EntryPoint);
         state.Counts["callGraph.buildingBlocks"] = calls.CalledBy.Count;
         state.Counts["data.fields"] = DataFootprint.Fields(documents).Count;
@@ -73,11 +74,11 @@ public static class OfflineStages
         // Each workbook opens with its own guide, so a reader who has the file has everything the file needs.
         int inScopeCount = documents.Count - Count(state, "plan.excluded");
         state.Sheets[SheetNames.Guide] = Guides.Plan(inScopeCount,
-            MigrationPlan.InScope(documents, usage).Count(MigrationPlan.IsLiveProcess),
+            MigrationPlan.InScope(state, documents, usage).Count(MigrationPlan.IsLiveProcess),
             Count(state, "plan.excluded"), Count(state, "callGraph.buildingBlocks"),
-            Count(state, "caseStages.active"), Count(state, "stageMaps.written"));
+            Count(state, "caseStages.active"), Count(state, "stageMaps.written"), Count(state, "plan.firedByStage"));
         await WriteWorkbookAsync(folder, state, RunPaths.PlanWorkbook,
-            [SheetNames.Guide, SheetNames.Stages, SheetNames.Plan, SheetNames.CallGraph, SheetNames.Trees, SheetNames.Drift, SheetNames.Unmapped], token);
+            [SheetNames.Guide, SheetNames.Topics, SheetNames.Stages, SheetNames.Plan, SheetNames.Trees], token);
 
         state.Sheets[SheetNames.Guide] = Guides.Excluded(Count(state, "plan.excluded"), Count(state, "usage.drafts"),
             Count(state, "plan.supplied"), documents.Count);
@@ -92,7 +93,7 @@ public static class OfflineStages
         await WriteWorkbookAsync(folder, state, RunPaths.ExternalSystemsWorkbook,
             [SheetNames.Guide, SheetNames.ExternalDependencies, SheetNames.Addresses, SheetNames.Plugins], token);
 
-        AuthoritySheets(state, MigrationPlan.InScope(documents, usage));
+        AuthoritySheets(state, MigrationPlan.InScope(state, documents, usage));
         await WriteWorkbookAsync(folder, state, RunPaths.RunAuthorityWorkbook,
             [SheetNames.Guide, SheetNames.RunRoles, SheetNames.RunAuthority], token);
 
@@ -106,11 +107,12 @@ public static class OfflineStages
     /// the one question whose answer comes from three different sources: the definitions, the registered code, and
     /// the assemblies behind it.
     /// </summary>
-    private static void ExternalSheets(RunState state, IReadOnlyList<WorkflowIr> documents)
+    private static void ExternalSheets(RunState state, IReadOnlyList<WorkflowIr> documents, IReadOnlySet<Guid> inPlan)
     {
         IReadOnlyList<ExternalDependency> dependencies = ExternalSystems.Dependencies(documents, state.Plugins);
         state.Sheets[SheetNames.ExternalDependencies] = ExternalSystems.BuildDependencies(documents, state.Plugins);
-        state.Sheets[SheetNames.Addresses] = ExternalSystems.BuildAddresses(state.Addresses);
+        state.Sheets[SheetNames.Addresses] = ExternalSystems.BuildAddresses(
+            [.. state.Addresses.Where(address => inPlan.Contains(address.WorkflowId))], state.BpmnFiles);
         if (state.Plugins.Steps.Count > 0)
         {
             state.Sheets[SheetNames.Plugins] = ExternalSystems.BuildPlugins(state.Plugins);

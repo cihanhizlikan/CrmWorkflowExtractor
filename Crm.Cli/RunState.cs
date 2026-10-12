@@ -60,10 +60,19 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>Which stage maps each stage appears on, as paths relative to the run folder.</summary>
     public IReadOnlyDictionary<Guid, IReadOnlyList<string>> StageMapFiles { get; set; } = new Dictionary<Guid, IReadOnlyList<string>>();
 
+    /// <summary>The file each active starting stage's map is written to, from the run folder.</summary>
+    public IReadOnlyDictionary<Guid, string> StageMapPaths { get; set; } = new Dictionary<Guid, string>();
+
+    /// <summary>Per workflow, the active stages that fire it: why it is in scope, and what its row and diagram say.</summary>
+    public IReadOnlyDictionary<Guid, IReadOnlyList<Crm.Cli.Stages.StageFiring>> FiredBy { get; set; } = new Dictionary<Guid, IReadOnlyList<Crm.Cli.Stages.StageFiring>>();
+
     /// <summary>The text each stage's box carries on the first map it appears on: what a reader searches the map for.</summary>
     public IReadOnlyDictionary<Guid, string> StageMapLabels { get; set; } = new Dictionary<Guid, string>();
 
-    /// <summary>The BPMN file path (relative to the run folder, without extension) written for each workflow.</summary>
+    /// <summary>
+    /// The BPMN file written for each workflow, from the run folder and without its extension —
+    /// <c>bpmn/is-akislari/…</c> for one in the plan, <c>kapsam-disi-bpmn/…</c> for one left out.
+    /// </summary>
     public IReadOnlyDictionary<Guid, string> BpmnFiles { get; set; } = new Dictionary<Guid, string>();
 
     /// <summary>How many definitions fell into each usage verdict; the run report prints them.</summary>

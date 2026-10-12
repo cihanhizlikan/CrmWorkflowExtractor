@@ -15,7 +15,7 @@ public sealed record ExternalDependency(string Activity, string Assembly, IReadO
     IReadOnlyList<string> Parameters, IReadOnlyList<string> Addresses, bool? Registered);
 
 /// <summary>One address written into a workflow's definition, and the workflow that carries it.</summary>
-public sealed record ExternalAddress(string Host, string Address, string Workflow);
+public sealed record ExternalAddress(string Host, string Address, string Workflow, Guid WorkflowId = default);
 
 /// <summary>
 /// What the workflows reach outside CRM. A CRM workflow cannot call a service by itself: the only way is a custom
@@ -88,7 +88,7 @@ public static partial class ExternalSystems
     /// Every address in one workflow's definition. The XAML's own schema and clr namespaces are not addresses, and
     /// a user name and password written into one are masked: this page is delivered, the restricted report is not.
     /// </summary>
-    public static IReadOnlyList<ExternalAddress> Find(string workflow, IReadOnlyList<XamlLiteral> literals)
+    public static IReadOnlyList<ExternalAddress> Find(string workflow, IReadOnlyList<XamlLiteral> literals, Guid workflowId = default)
     {
         List<ExternalAddress> found = [];
         foreach (XamlLiteral literal in literals.Where(literal => !SensitiveLiteralScanner.IsSchemaNamespace(literal.Text)))
@@ -96,7 +96,7 @@ public static partial class ExternalSystems
             foreach (Match match in Address().Matches(literal.Text))
             {
                 string address = Mask(match.Value);
-                found.Add(new ExternalAddress(HostOf(address), address, workflow));
+                found.Add(new ExternalAddress(HostOf(address), address, workflow, workflowId));
             }
         }
         return [.. found.DistinctBy(address => address.Address)];
@@ -137,15 +137,20 @@ public static partial class ExternalSystems
     }
 
     /// <summary>The server first, so that sorting the sheet answers "which outside systems do we touch" at a glance.</summary>
-    public static Sheet BuildAddresses(IReadOnlyList<ExternalAddress> addresses)
+    /// <summary>
+    /// Every address in the plan's workflows, with the diagram to open and the id to search for: two workflows can
+    /// share a name, and a name alone sent a reader to the wrong one.
+    /// </summary>
+    public static Sheet BuildAddresses(IReadOnlyList<ExternalAddress> addresses, IReadOnlyDictionary<Guid, string> bpmnFiles)
     {
-        Sheet sheet = new(SheetNames.Addresses, "sunucu", "adres", "is_akisi");
+        Sheet sheet = new(SheetNames.Addresses, "sunucu", "adres", "is_akisi", "bpmn_dosyasi", "is_akisi_id");
         foreach (ExternalAddress address in addresses
             .OrderBy(address => address.Host, StringComparer.OrdinalIgnoreCase)
             .ThenBy(address => address.Address, StringComparer.OrdinalIgnoreCase)
             .ThenBy(address => address.Workflow, StringComparer.Ordinal))
         {
-            sheet.Row(address.Host, address.Address, address.Workflow);
+            sheet.Row(address.Host, address.Address, address.Workflow,
+                bpmnFiles.TryGetValue(address.WorkflowId, out string? file) ? file + ".bpmn" : "", address.WorkflowId);
         }
         return sheet;
     }

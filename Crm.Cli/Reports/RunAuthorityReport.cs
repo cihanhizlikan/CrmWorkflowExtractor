@@ -66,7 +66,7 @@ public static class RunAuthorityReport
     public static Sheet Authority(IEnumerable<WorkflowIr> inScope, RunAuthority authority, IReadOnlyDictionary<Guid, string> bpmnFiles)
     {
         IReadOnlySet<Guid> teams = Teams(authority);
-        Sheet sheet = new(SheetNames.RunAuthority, "is_akisi", "kategori", "birincil_varlik", "elle_baslatilabilir",
+        Sheet sheet = new(SheetNames.RunAuthority, "is_akisi", "kategori", "kayit_turu", "elle_baslatilabilir",
             "calisma_kimligi", "sahip", "sahip_turu", "kaydin_is_birimi", "bpmn_dosyasi", "is_akisi_id");
         foreach (WorkflowIr document in inScope.OrderBy(document => document.Identity.Name, StringComparer.Ordinal))
         {

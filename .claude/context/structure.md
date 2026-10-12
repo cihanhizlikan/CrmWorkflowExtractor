@@ -18,8 +18,9 @@ Nothing in the tool reads the network: a run is made from an export file, or fro
 ```
 out/runs/<yyyyMMdd-HHmmss>/   manifest.json (written LAST — its presence seals the run)
   ham/  ara-model/  elle-inceleme/  raporlar/  gunlukler/
-  bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn
-  bpmn/asama-akislari/<talep konusu>.bpmn   one per active primary stage, workflows embedded
+  bpmn/is-akislari/<kategori>/<kayıt türü>/<iş akışı adı>.bpmn   one per workflow IN THE PLAN (delivered)
+  bpmn/talep-asamalari/<talep konusu>--<başlangıç aşaması>.bpmn   one per active primary stage, workflows embedded
+  kapsam-disi-bpmn/<kategori>/<kayıt türü>/<iş akışı adı>.bpmn   the workflows left out (internal)
   raporlar/  nasil-kullanilir.docx · rapor.md · hassas-degerler.md (kısıtlı) · tasima-plani.xlsx · kapsam-disi.xlsx · veri-analizi.xlsx · dis-sistemler.xlsx · calistirma-yetkisi.xlsx
 ```
 
@@ -75,18 +76,31 @@ recognises a compressed export by its first two bytes rather than its name, and 
 under `.json.gz`. Every stage of the write announces itself, because the failure that cost a run printed nothing.
 
 **What is delivered names only what is delivered.** The outsource partner gets `nasil-kullanilir.docx`, the three
-workbooks a migration needs (`tasima-plani`, `veri-analizi`, `dis-sistemler`) and `bpmn/`.
+workbooks a migration needs (`tasima-plani`, `veri-analizi`, `dis-sistemler`) and `bpmn/` — which holds the
+plan's workflows and the stage maps and nothing else (since 2026-10-12): a folder of every definition contradicted a
+plan that tells its reader they need not filter, so the left-out ones are drawn into `kapsam-disi-bpmn/` beside it.
 `calistirma-yetkisi.xlsx` is INTERNAL (maintainer, 2026-10-08): it names security roles and counts the people
 holding each, which is the estate's own business and not a migrator's.
 The evidence, `rapor.md`, the restricted findings, `kapsam-disi.xlsx` and `calistirma-yetkisi.xlsx` stay with
 Enterprise Architecture. A delivered file that names one of those sends a reader looking for
-what they do not have, so none does — `DeliveryTests` opens every delivered workbook, and `AnalystGuideTests`
-the guide, and both fail on any text that mentions something left behind.
+what they do not have, so none does — `DeliveryTests` opens every delivered workbook and every delivered diagram,
+and `AnalystGuideTests` the guide, and all fail on any text that mentions something left behind (a diagram told
+its reader to see `ayristirma-kapsami.md` on every unreadable step until 2026-10-12). `DeliveryTests` also holds
+the delivered workflow diagrams to exactly the plan's rows.
 
 **A column exists only if a line can be written in the workbook's guide saying what a reader does differently
-because of it**, and a page exists only if its rows are things to act on: the call pages carry only workflows that
-are part of a call, Sapma only the definitions whose running copy really differs. Each workflow diagram's header
-note carries what the rest of the run learned about it — role, usage, drift.
+because of it**, and a page exists only if its rows are things to act on. The plan workbook is `Nasıl okunur` →
+`Talep konuları` (one row per map) → `Talep aşamaları` → `İş akışları` → `İş akışı ağaçları` (2026-10-12): who
+calls whom and whether the running copy differs are columns of the workflow's own row now, where the "Çağrı ağacı"
+and "Sapma" sheets once repeated its name to carry one fact each, and what the parser could not read is a section of
+`rapor.md`, because only the tool's maintainer can act on it. Names say what a row is: "talep aşaması" for a stage,
+"iş akışı" for a workflow, "aşama haritası" for a stage-map diagram, "kayıt türü" for an entity; bare "akış" and
+"süreç" for a workflow are gone. Every path in a delivered cell is written from the package root (`bpmn/…`). Each
+workflow diagram's header note carries what the rest of the run learned about it — the stages that fire it and the
+map they are on, its callers, role, usage, drift — and a workflow's row carries the same in `calistiran_asamalar`:
+the stages pointed at the workflows, and nothing pointed back. A workflow a live stage fires is in the plan for that
+reason (unless it is a draft), because a map that embeds a workflow the plan left out sends the reader to a diagram
+they were told not to need; that is why `StageMapStage` READS the stages before any diagram is drawn.
 
 **A row has exactly one value per column** — `Sheet.Row` refuses anything else and stops the run. It used to take
 any number: on 2026-10-02 three columns left the plan's header and their three values stayed in the row, and from
@@ -106,7 +120,7 @@ consolidation were removed on 2026-10-09 (`aileler.xlsx`, `aileler/`, `birlesik/
 names were read off this organisation's metadata, never guessed: a console snippet found the entity by the
 signature of its fields (labelled "…Sonrası…"), because the system's own BPF stage entity may be called "Aşama" too.
 
-**One stage map per ACTIVE PRIMARY stage** (`StageMap`), and the plan opens with the **Aşamalar** sheet, one row per
+**One stage map per ACTIVE PRIMARY stage** (`StageMap`), and the plan opens with the **Talep aşamaları** sheet, one row per
 active stage in the order a case meets them. The stages are a GRAPH — "Evrak bekleniyor" sends a case back — so
 the map is laid out in layers by longest path over the forward flows, a loop's flow found by a depth-first walk.
 A flow BACK is not drawn back: it ends in a link event "… aşamasına dön", picked up by one "… aşamasına dönüş" beside
@@ -171,7 +185,7 @@ branches share the upright line out of their diamond, so captions measured along
 each other. Where the legs are short this is the same place it always was.
 
 **A slug is a FOLDER name as often as a file name.** A diagram's path is
-`bpmn/<kategori>/<birincil varlık>/<iş akışı adı>.bpmn`, so two of its three slugs are directories, and Windows
+`bpmn/is-akislari/<kategori>/<kayıt türü>/<iş akışı adı>.bpmn`, so two of its three slugs are directories, and Windows
 keeps about two dozen names for devices. Measured on this machine (Windows 11, 2026-10-08): `mkdir nul` throws,
 while `nul.bpmn` writes perfectly well as an ordinary file — so the FILE half of this is no longer a fault on
 Windows 11, though it was on every Windows before it, where that name opens the null device and the diagram is

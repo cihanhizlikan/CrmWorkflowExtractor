@@ -8,19 +8,24 @@ namespace Crm.Cli.Reports;
 /// </summary>
 public static class SheetNames
 {
-    public const string Stages = "Aşamalar";
+    /// <summary>One row per stage map: which request subjects there are, how big each process is, which map to open.</summary>
+    public const string Topics = "Talep konuları";
 
-    public const string Plan = "Taşıma planı";
+    /// <summary>
+    /// The stages of the requests. "Talep" in front, so they cannot be mistaken for a business process flow's stages
+    /// and so the sheet's name matches its folder, <c>bpmn/talep-asamalari/</c>.
+    /// </summary>
+    public const string Stages = "Talep aşamaları";
+
+    /// <summary>The workflows. It was "Taşıma planı", which said nothing of what a row is.</summary>
+    public const string Plan = "İş akışları";
     public const string Excluded = "Kapsam dışı";
-    public const string CallGraph = "Çağrı ağacı";
     public const string DataFootprint = "Veri ayak izi";
     public const string ExternalDependencies = "Dış bağımlılıklar";
     public const string Addresses = "Adresler";
     public const string Plugins = "Eklentiler";
     public const string Guide = "Nasıl okunur";
-    public const string Trees = "Süreç ağaçları";
-    public const string Unmapped = "Okunamayan yapılar";
-    public const string Drift = "Sapma";
+    public const string Trees = "İş akışı ağaçları";
     public const string Cascades = "Tetikleme zincirleri";
     public const string RunRoles = "Çalıştırma yetkisi";
     public const string RunAuthority = "Kim çalıştırabilir";

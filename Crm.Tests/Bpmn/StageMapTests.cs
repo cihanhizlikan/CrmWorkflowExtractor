@@ -65,7 +65,7 @@ public sealed class StageMapTests
         XDocument workflow = Diagram(SendWorkflow);
         return StageMap.Build(stages[Control], stages,
             id => id == SendWorkflow ? workflow : null,
-            new Dictionary<Guid, string> { [SendWorkflow] = "is-akisi/case/talebi-novaya-gonder" }, "test");
+            new Dictionary<Guid, string> { [SendWorkflow] = "bpmn/is-akislari/is-akisi/case/talebi-novaya-gonder" }, "test");
     }
 
     private static Guid Step(int number)
@@ -473,7 +473,7 @@ public sealed class StageMapTests
         Assert.All(sub.Descendants().Select(element => element.Attribute("id")?.Value).OfType<string>(),
             inner => Assert.StartsWith(id + "_", inner, StringComparison.Ordinal));
         string documentation = sub.Element(Model + "documentation")!.Value;
-        Assert.Contains("bpmn/is-akisi/case/talebi-novaya-gonder.bpmn", documentation, StringComparison.Ordinal);
+        Assert.Contains("bpmn/is-akislari/is-akisi/case/talebi-novaya-gonder.bpmn", documentation, StringComparison.Ordinal);
         Assert.Contains("Çalıştıran: CRM EVRAK KONTROL — olumlu", documentation, StringComparison.Ordinal);
 
         XElement shape = MainPlane(result.Xml).Elements(Di + "BPMNShape").Single(shape => shape.Attribute("bpmnElement")!.Value == id);

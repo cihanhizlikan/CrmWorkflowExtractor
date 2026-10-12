@@ -156,9 +156,9 @@ public static partial class UsageStage
         {
             return "";
         }
-        if (usage.Workflows.GetValueOrDefault(identity.WorkflowId) is { LastLoggedRun: DateTimeOffset last })
+        if (usage.Workflows.GetValueOrDefault(identity.WorkflowId) is { LastLoggedRun: not null })
         {
-            return "çalışıyor · " + Day(last);
+            return "çalışıyor";
         }
         if (identity.Category == ProcessLabels.CategoryBusinessRule)
         {

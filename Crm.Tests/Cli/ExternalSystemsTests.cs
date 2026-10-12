@@ -113,9 +113,9 @@ public sealed class ExternalSystemsTests
         // diagram carries the HOST, not the address — one assembly on the real estate holds nearly five hundred
         // addresses, and putting them all on a label made a file no modeller could open. The full list is the
         // sheet's job, which is what the rows above check.
-        string diagram = File.ReadAllText(Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories)[0]);
+        string diagram = File.ReadAllText(Directory.GetFiles(Path.Combine(runRoot, "bpmn", "is-akislari"), "*.bpmn", SearchOption.AllDirectories)[0]);
         Assert.Contains("→ nova.ornek.local", diagram, StringComparison.Ordinal);
-        Assert.Contains("Dış çağrı: NotifyPolicyService → nova.ornek.local", diagram, StringComparison.Ordinal);
+        Assert.Contains("Dış çağrı (kodda yazılı adres): NotifyPolicyService → nova.ornek.local", diagram, StringComparison.Ordinal);
         Assert.DoesNotContain(FakeOrganization.AssemblyAddress, diagram, StringComparison.Ordinal);
     }
 
@@ -134,7 +134,9 @@ public sealed class ExternalSystemsTests
         Assert.Equal(["etkinlik", "derlemedeki_adresler", "cagiran_is_akisi_sayisi", "parametreler", "cagiran_is_akislari", "derleme", "kayitli"],
             workbook.Headers("Dış bağımlılıklar"));
         Assert.Contains(workbook.Rows("Dış bağımlılıklar"), row => row.Contains("NotifyPolicyService"));
-        Assert.Equal(["sunucu", "adres", "is_akisi"], workbook.Headers("Adresler"));
+        // The diagram and the id beside the name: two workflows can share a name, and a name alone sent a reader to the wrong one.
+        Assert.Equal(["sunucu", "adres", "is_akisi", "bpmn_dosyasi", "is_akisi_id"], workbook.Headers("Adresler"));
+        Assert.All(workbook.Rows("Adresler").Skip(1), row => Assert.StartsWith("bpmn/is-akislari/", row[3], StringComparison.Ordinal));
         Assert.Contains(workbook.Rows("Adresler"), row => row.Count > 1 && row[1].StartsWith("https://", StringComparison.Ordinal));
         // The guide has to say what the page cannot see, or a reader takes an empty page for "calls nothing".
         Assert.Contains(workbook.Rows("Nasıl okunur"), row => row.Any(cell => cell.Contains("Görülemeyen", StringComparison.Ordinal)));

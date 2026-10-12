@@ -91,7 +91,7 @@ public sealed class CallGraph
     public Sheet BuildTrees()
     {
         // A tree of one node is not a tree: the plan already carries that workflow as a line of its own.
-        Sheet sheet = new(SheetNames.Trees, "kok_is_akisi", "derinlik", "is_akisi", "rol");
+        Sheet sheet = new(SheetNames.Trees, "kok_is_akisi", "derinlik", "is_akisi", "cagri_rolu");
         foreach (Guid root in Calls.Keys
             .Where(id => CalledBy.GetValueOrDefault(id, []).Count == 0 && Calls[id].Count > 0)
             .OrderBy(id => Names[id], StringComparer.Ordinal))
@@ -107,24 +107,5 @@ public sealed class CallGraph
             }
         }
         return sheet;
-    }
-
-    public Sheet Build()
-    {
-        // Only the workflows that are part of a call: for everything else the plan's own rol column already says
-        // "giriş noktası", and a row that repeats it is a row a reader has to skip.
-        Sheet csv = new(SheetNames.CallGraph, "is_akisi", "rol", "alt_akislar", "cagiranlar", "is_akisi_id");
-        foreach ((Guid id, IReadOnlyList<Guid> children) in Calls.OrderBy(entry => Names[entry.Key], StringComparer.Ordinal))
-        {
-            IReadOnlyList<Guid> parents = CalledBy.GetValueOrDefault(id, []);
-            if (children.Count == 0 && parents.Count == 0)
-            {
-                continue;
-            }
-            csv.Row(Names[id], RoleOf(id),
-                Sheet.List(children.Select(child => Names.GetValueOrDefault(child, "(envanterde bulunamadı)"))),
-                Sheet.List(parents.Select(parent => Names[parent])), id);
-        }
-        return csv;
     }
 }

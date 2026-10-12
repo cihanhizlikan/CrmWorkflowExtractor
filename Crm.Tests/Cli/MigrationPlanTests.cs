@@ -24,15 +24,19 @@ public sealed class MigrationPlanTests
         (ExitCode code, string runRoot, string console) = await RunHarness.ImportAsync(output, Fixture("mock-crm-export.json"));
 
         Assert.True(code == ExitCode.Success, console);
-        string bpmn = Path.Combine(runRoot, "bpmn");
+        string bpmn = Path.Combine(runRoot, "bpmn", "is-akislari");
         Assert.True(File.Exists(Path.Combine(bpmn, "is-akisi", "new-policy", "police-iptal-sureci-0.bpmn")));
-        Assert.True(File.Exists(Path.Combine(bpmn, "is-akisi", "new-claim", "hasar-onay-10.bpmn")));
+        // A draft is out of scope: its diagram is kept, but outside the delivered folder.
+        Assert.False(File.Exists(Path.Combine(bpmn, "is-akisi", "new-claim", "hasar-onay-10.bpmn")));
+        Assert.True(File.Exists(Path.Combine(runRoot, "kapsam-disi-bpmn", "is-akisi", "new-claim", "hasar-onay-10.bpmn")));
         Assert.Empty(Directory.GetFiles(bpmn, "*.bpmn", SearchOption.TopDirectoryOnly));
+        Assert.Empty(Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn", SearchOption.TopDirectoryOnly));
 
         // The plan carries the file beside the workflow, so no second index sheet has to be kept in step with it.
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        Assert.Contains(plan.Rows("Taşıma planı"), row => row.Count > 1 && row[0] == "Poliçe İptal Süreci 0"
-            && row.Contains("is-akisi/new-policy/police-iptal-sureci-0.bpmn"));
+        // Every path is written from the package root, so a reader opens it as it stands.
+        Assert.Contains(plan.Rows("İş akışları"), row => row.Count > 1 && row[0] == "Poliçe İptal Süreci 0"
+            && row.Contains("bpmn/is-akislari/is-akisi/new-policy/police-iptal-sureci-0.bpmn"));
         // Every written diagram says what calls it, which is only known after the whole run has been read.
         Assert.Contains("Rol: ", File.ReadAllText(Path.Combine(bpmn, "is-akisi", "new-policy", "police-iptal-sureci-0.bpmn")), StringComparison.Ordinal);
     }
@@ -47,20 +51,23 @@ public sealed class MigrationPlanTests
 
         Workbook workbook = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
         // The sheets are in the order the guide walks them.
-        Assert.Equal(["Nasıl okunur", "Taşıma planı", "Çağrı ağacı", "Süreç ağaçları", "Sapma", "Okunamayan yapılar"], workbook.Names);
+        Assert.Equal(["Nasıl okunur", "İş akışları", "İş akışı ağaçları"], workbook.Names);
         // The guide travels inside the workbook, so a reader who has the file has the column meanings too.
         Assert.Contains(workbook.Rows("Nasıl okunur"), row => row.Count > 1 && row[0] == "Bu kitap ne işe yarar");
-        IReadOnlyList<IReadOnlyList<string>> rows = workbook.Rows("Taşıma planı");
-        Assert.Equal(["is_akisi", "kategori", "birincil_varlik"], rows[0].Take(3));
+        IReadOnlyList<IReadOnlyList<string>> rows = workbook.Rows("İş akışları");
+        Assert.Equal(["is_akisi", "kategori", "kayit_turu"], rows[0].Take(3));
         // The plan is the work itself: nothing in it is a draft, and nobody has to filter it to find the real rows.
         Assert.DoesNotContain(rows.Skip(1), row => row.Contains("Taslak"));
         // Every column is one an analyst acts on: a count they can sort, a flag they can filter, a file they open.
         Assert.Contains("bekleme_var", rows[0]);
         Assert.DoesNotContain("durum", rows[0]);
-        Assert.True(workbook.IsNumeric("Taşıma planı", 1, rows[0].ToList().IndexOf("adim")));
-        Assert.True(workbook.HasFrozenHeaderAndFilter("Taşıma planı"));
-        Assert.Contains(rows, row => row.Contains("çalışıyor · 2026-09-20"));
-        Assert.Contains(rows, row => row.Any(cell => cell.Contains("is-akisi/new-policy/police-iptal-sureci-0.bpmn", StringComparison.Ordinal)));
+        Assert.True(workbook.IsNumeric("İş akışları", 1, rows[0].ToList().IndexOf("adim_sayisi")));
+        Assert.True(workbook.HasFrozenHeaderAndFilter("İş akışları"));
+        // The verdict is a word to filter on; the date has a column of its own.
+        IReadOnlyList<string> ran = Assert.Single(rows, row => row.Contains("2026-09-20"));
+        Assert.Equal("çalışıyor", ran[rows[0].ToList().IndexOf("kullanim")]);
+        Assert.Equal("2026-09-20", ran[rows[0].ToList().IndexOf("son_kayitli_calisma")]);
+        Assert.Contains(rows, row => row.Any(cell => cell.Contains("bpmn/is-akislari/is-akisi/new-policy/police-iptal-sureci-0.bpmn", StringComparison.Ordinal)));
         Assert.False(File.Exists(Path.Combine(runRoot, "raporlar", "tasima-plani.md")), "Kitaba taşınan sayfa ayrıca dosya olarak üretilmemeli.");
     }
 
@@ -75,13 +82,16 @@ public sealed class MigrationPlanTests
         (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
 
         Assert.True(code == ExitCode.Success, console);
-        // Only the workflows that are part of a call: a page whose every row says "calls nothing" is a page a
-        // reader has to scroll past, and the plan's own rol column already says it.
+        // Who calls whom is on the workflow's own row, under its own header: the sheet that repeated the name to carry
+        // it is gone.
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        IReadOnlyList<IReadOnlyList<string>> calls = plan.Rows("Çağrı ağacı");
-        Assert.All(calls.Skip(1), row => Assert.True(row.Count > 3 && (row[2].Length > 0 || row[3].Length > 0)));
-        // The fixture's child workflow is not in the inventory, and the page says so rather than printing an id.
-        Assert.Contains(calls, row => row.Contains("(envanterde bulunamadı)"));
+        Assert.DoesNotContain("Çağrı ağacı", plan.Names);
+        IReadOnlyList<IReadOnlyList<string>> rows = plan.Rows("İş akışları");
+        int children = rows[0].ToList().IndexOf("cagirdigi_is_akislari");
+        int role = rows[0].ToList().IndexOf("cagri_rolu");
+        // The fixture's child workflow is not in the inventory, and the cell says so rather than printing an id.
+        Assert.All(rows.Skip(1), row => Assert.Equal("(envanterde bulunamadı)", row[children]));
+        Assert.All(rows.Skip(1), row => Assert.Equal("giriş noktası", row[role]));
     }
 
     /// <summary>
@@ -101,12 +111,15 @@ public sealed class MigrationPlanTests
         // It leaves the plan for its counterpart book, with the reason beside it, and keeps its diagram: nothing
         // disappears silently, and nobody has to filter the plan to find the work that is actually theirs.
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        Assert.DoesNotContain(plan.Rows("Taşıma planı"), row => row.Contains("Poliçe İptal Süreci 6"));
+        Assert.DoesNotContain(plan.Rows("İş akışları"), row => row.Contains("Poliçe İptal Süreci 6"));
         Workbook excluded = Workbook.Open(Path.Combine(runRoot, "raporlar", "kapsam-disi.xlsx"));
         Assert.Equal(["Nasıl okunur", "Kapsam dışı"], excluded.Names);
         IReadOnlyList<string> row6 = Assert.Single(excluded.Rows("Kapsam dışı"), row => row.Contains("Poliçe İptal Süreci 6"));
         Assert.StartsWith("ürünle gelmiş", row6[0], StringComparison.Ordinal);
-        Assert.True(File.Exists(Path.Combine(runRoot, "bpmn", "is-akisi", "new-policy", "police-iptal-sureci-6.bpmn")));
+        // Its diagram is kept, outside the delivered bpmn/ folder, where the out-of-scope book points.
+        Assert.True(File.Exists(Path.Combine(runRoot, "kapsam-disi-bpmn", "is-akisi", "new-policy", "police-iptal-sureci-6.bpmn")));
+        Assert.False(File.Exists(Path.Combine(runRoot, "bpmn", "is-akislari", "is-akisi", "new-policy", "police-iptal-sureci-6.bpmn")));
+        Assert.Equal("kapsam-disi-bpmn/is-akisi/new-policy/police-iptal-sureci-6.bpmn", row6[excluded.Headers("Kapsam dışı").ToList().IndexOf("bpmn_dosyasi")]);
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
         Assert.All(manifest.RootElement.GetProperty("countChain").EnumerateArray(), link => Assert.EndsWith("— uygun", link.GetString(), StringComparison.Ordinal));
@@ -120,9 +133,8 @@ public sealed class MigrationPlanTests
         XElement note = Assert.Single(xml.Descendants(BpmnSerializer.Model + "textAnnotation"));
         string text = note.Element(BpmnSerializer.Model + "text")!.Value;
         Assert.Contains("Poliçe İptal", text, StringComparison.Ordinal);
-        Assert.Contains("İş Akışı · Arka plan · Etkin · varlık: new_policy", text, StringComparison.Ordinal);
+        Assert.Contains("İş Akışı · Arka plan · Etkin · kayıt türü: new_policy", text, StringComparison.Ordinal);
         Assert.Contains("Şununla başlar:", text, StringComparison.Ordinal);
-        Assert.Contains("Çalıştırılabilir değildir", text, StringComparison.Ordinal);
         Assert.Single(xml.Descendants(BpmnSerializer.Model + "association"));
 
         // The note is drawn above everything else, so no shape sits on it.

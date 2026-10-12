@@ -19,7 +19,7 @@ public static class CaseStageRules
 
     public static readonly IReadOnlyList<CaseStageRule> All =
     [
-        new("sms_gonderilsin", "SMS gönderilsin mi", "ps_sendsms"),
+        new("sms_gonderilsin", "SMS gönderilsin mi", "ps_sendsms", OwnColumn: false),
         new("kuyruk", "Kuyruk", "ps_queueid"),
         new("takim", "Takım", "ps_teamid"),
         new("sla_periyodu", "SLA periyodu", "ps_slaperiod"),
@@ -36,20 +36,23 @@ public static class CaseStageRules
         new("dokuman_yuklenebilir", "Doküman yüklenebilir mi", "ps_isdocumentuploadable"),
         new("dokuman_gelince_kapat", "Doküman geldiğinde kapatılacak mı", "ps_autocloseondocreceived"),
         new("dokuman_gelince_statu", "Doküman geldiğinde kapatılacak statü", "ps_autocloseondocreceivedstatus"),
-        new("otomatik_cozum_suresi", "Otomatik çözüm süresi aşaması", "ps_autoresolutiondurationstep"),
-        new("otomatik_cozum_statu", "Otomatik çözüm süresi statüsü", "ps_autoresolutiondurationstepstatus"),
-        new("geri_donus", "Geri dönüş mü", "ps_iscallback"),
-        new("ana_talep_yazilabilir", "Ana servis talebi yazılabilir", "ps_setparentcase"),
-        new("bu_asama_kapanis", "Bu aşama kapanışı", "ps_thisstepclose"),
-        new("atlanarak_gecilebilir", "Atlanarak geçilebilir mi", "ps_isrunskiptostep"),
-        new("servis_talebi_limiti", "Servis talebi limiti", "ps_caselimit"),
-        new("kampanya_grubu", "Kampanya grubu", "ps_campaigngroup"),
-        new("step_code", "Step code", "ps_stepcode"),
-        new("tanim", "Tanım", "ps_description"),
-        new("mobil_sube_aciklama", "Mobil şube açıklaması", "ps_mobilebranchdescription"),
-        new("mobil_sube_detay", "Mobil şube detaylı açıklaması", "ps_mobilebranchdetaildescription")
+        new("otomatik_cozum_suresi", "Otomatik çözüm süresi aşaması", "ps_autoresolutiondurationstep", OwnColumn: false),
+        new("otomatik_cozum_statu", "Otomatik çözüm süresi statüsü", "ps_autoresolutiondurationstepstatus", OwnColumn: false),
+        new("geri_donus", "Geri dönüş mü", "ps_iscallback", OwnColumn: false),
+        new("ana_talep_yazilabilir", "Ana servis talebi yazılabilir", "ps_setparentcase", OwnColumn: false),
+        new("bu_asama_kapanis", "Bu aşama kapanışı", "ps_thisstepclose", OwnColumn: false),
+        new("atlanarak_gecilebilir", "Atlanarak geçilebilir mi", "ps_isrunskiptostep", OwnColumn: false),
+        new("servis_talebi_limiti", "Servis talebi limiti", "ps_caselimit", OwnColumn: false),
+        new("kampanya_grubu", "Kampanya grubu", "ps_campaigngroup", OwnColumn: false),
+        new("step_code", "Step code", "ps_stepcode", OwnColumn: false),
+        new("tanim", "Tanım", "ps_description", OwnColumn: false),
+        new("mobil_sube_aciklama", "Mobil şube açıklaması", "ps_mobilebranchdescription", OwnColumn: false),
+        new("mobil_sube_detay", "Mobil şube detaylı açıklaması", "ps_mobilebranchdetaildescription", OwnColumn: false)
     ];
 }
 
-/// <summary>One rule: the sheet's column, the words a reader knows it by, and the field it is read from.</summary>
-public sealed record CaseStageRule(string Column, string Label, string Field);
+/// <summary>
+/// One rule: the sheet's column, the words a reader knows it by, and the field it is read from. A rule a reader acts
+/// on has a column of its own; the rest share one cell, so the outcome columns do not scroll off the screen.
+/// </summary>
+public sealed record CaseStageRule(string Column, string Label, string Field, bool OwnColumn = true);

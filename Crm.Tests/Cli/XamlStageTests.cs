@@ -51,10 +51,13 @@ public sealed class XamlStageTests
         Assert.Equal(3, counts["drift.pairsCompared"]);
         Assert.Equal(1, counts["drift.structureDiffers"]);
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        // Only the workflows whose running copy really differs, and only those the plan carries: every row is a
-        // thing to go and check in CRM.
-        IReadOnlyList<string> drifted = Assert.Single(plan.Rows("Sapma").Skip(1));
-        Assert.Equal(FakeOrganization.WorkflowId(2).ToString("D"), drifted[1]);
+        // The finding is on the workflow's own row: evet only where the running copy really differs.
+        IReadOnlyList<IReadOnlyList<string>> rows = plan.Rows("İş akışları");
+        int differs = rows[0].ToList().IndexOf("calisan_kopya_farkli");
+        int id = rows[0].ToList().IndexOf("is_akisi_id");
+        IReadOnlyList<string> drifted = Assert.Single(rows.Skip(1), row => row[differs] == "evet");
+        Assert.Equal(FakeOrganization.WorkflowId(2).ToString("D"), drifted[id]);
+        Assert.All(rows.Skip(1).Where(row => row != drifted), row => Assert.Equal("hayır", row[differs]));
     }
 
     [Fact]

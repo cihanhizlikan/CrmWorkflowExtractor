@@ -630,7 +630,7 @@ public static class StageMap
         public XElement Box(string id, string name, Guid workflow, string firedBy, out bool embedded)
         {
             Count++;
-            string file = workflowFiles.TryGetValue(workflow, out string? path) ? $" Kendi diyagramı: bpmn/{path}.bpmn." : "";
+            string file = workflowFiles.TryGetValue(workflow, out string? path) ? $" Kendi diyagramı: {path}.bpmn." : "";
             if (First.TryGetValue(workflow, out FirstBox? first))
             {
                 first.Count++;

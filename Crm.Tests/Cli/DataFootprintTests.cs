@@ -113,7 +113,7 @@ public sealed class DataFootprintTests
         Workbook data = Workbook.Open(Path.Combine(runRoot, "raporlar", "veri-analizi.xlsx"));
         Assert.Equal(["Nasıl okunur", "Veri ayak izi", "Tetikleme zincirleri"], data.Names);
         Workbook plan = Workbook.Open(Path.Combine(runRoot, "raporlar", "tasima-plani.xlsx"));
-        Assert.Contains("paylasilan_alan", plan.Headers("Taşıma planı"));
+        Assert.Contains("paylasilan_alan", plan.Headers("İş akışları"));
     }
 
     /// <summary>Two workflows close a case, one watches the field they write, one creates a task, one watches new tasks.</summary>

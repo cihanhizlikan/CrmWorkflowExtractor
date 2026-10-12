@@ -95,11 +95,15 @@ internal sealed class Workbook
             && sheet.Descendants(Main + "autoFilter").Any();
     }
 
-    /// <summary>True when the cell was written as a number, not as text — that is what makes Excel sort it as one.</summary>
+    /// <summary>
+    /// True when the cell was written as a number, not as text — that is what makes Excel sort it as one. Found by its
+    /// reference, as <see cref="Rows"/> places cells: counting found the wrong cell once a row had an empty one before it.
+    /// </summary>
     public bool IsNumeric(string sheetName, int row, int column)
     {
-        XElement cell = _sheets[sheetName].Descendants(Main + "row").ElementAt(row).Elements(Main + "c").ElementAt(column);
-        return cell.Attribute("t") is null && cell.Element(Main + "v") is not null;
+        XElement? cell = _sheets[sheetName].Descendants(Main + "row").ElementAt(row).Elements(Main + "c")
+            .FirstOrDefault(candidate => candidate.Attribute("r")?.Value is string reference && Column(reference) == column);
+        return cell is not null && cell.Attribute("t") is null && cell.Element(Main + "v") is not null;
     }
 
     private static XDocument Read(ZipArchive zip, string path)

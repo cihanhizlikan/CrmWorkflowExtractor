@@ -16,8 +16,17 @@ public static class RunPaths
     public const string Ir = "ara-model";
     public const string Bpmn = "bpmn";
 
-    /// <summary>One diagram per active primary stage: the process a case goes through, with its workflows inside.</summary>
-    public const string StageMaps = Bpmn + "/asama-akislari";
+    /// <summary>One diagram per workflow in the plan, by category and record type: the delivered workflow diagrams.</summary>
+    public const string WorkflowDiagrams = Bpmn + "/is-akislari";
+
+    /// <summary>One map per active starting stage: the process a request goes through, with its workflows inside.</summary>
+    public const string StageMaps = Bpmn + "/talep-asamalari";
+
+    /// <summary>
+    /// The diagrams of the workflows left out of the plan. Kept, because a reader who doubts an exclusion opens one,
+    /// but beside <c>bpmn/</c> rather than in it: <c>bpmn/</c> is delivered, and the plan says the reader need not filter.
+    /// </summary>
+    public const string OutOfScopeDiagrams = "kapsam-disi-bpmn";
     public const string ManualReview = "elle-inceleme";
     public const string Reports = "raporlar";
     public const string Logs = "gunlukler";

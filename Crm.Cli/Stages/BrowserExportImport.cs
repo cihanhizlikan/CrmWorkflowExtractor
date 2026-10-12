@@ -271,7 +271,7 @@ public static class BrowserExportImport
         state.Counts["caseStages"] = caseStages.Count;
         if (!root.TryGetProperty("caseStages", out _))
         {
-            state.Warnings.Add("Dışa aktarımda talep aşamaları (ps_step) yok: aşama akışları ve Aşamalar sayfası "
+            state.Warnings.Add("Dışa aktarımda talep aşamaları (ps_step) yok: aşama haritaları ile Talep konuları ve Talep aşamaları sayfaları "
                 + "üretilmeyecek. Dışa aktarımı güncel betikle yeniden alın.");
         }
     }

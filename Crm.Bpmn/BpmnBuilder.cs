@@ -14,7 +14,14 @@ namespace Crm.Bpmn;
 /// finished sentence for the header note; how to say it is the caller's business.
 /// </summary>
 public sealed record DiagramFacts(string? Role, string? Usage, bool RunningCopyDiffers,
-    IReadOnlyDictionary<string, string>? ActivityAddresses = null);
+    IReadOnlyDictionary<string, string>? ActivityAddresses = null)
+{
+    /// <summary>The case stages that fire this workflow, each with the map it is drawn on: where the workflow runs.</summary>
+    public IReadOnlyList<string> FiredBy { get; init; } = [];
+
+    /// <summary>The workflows that call this one as a child.</summary>
+    public IReadOnlyList<string> Callers { get; init; } = [];
+}
 
 /// <summary>A laid-out process ready to serialize.</summary>
 public sealed record BpmnProcess(string ProcessId, string Name, string Documentation, FlowGraph Graph, IReadOnlyList<StepSource> Sources)
@@ -329,7 +336,7 @@ public sealed partial class BpmnBuilder
         StringBuilder text = new();
         if (step.Kind == StepKind.Unmapped)
         {
-            text.Append("OKUNAMADI: '").Append(step.Construct).Append("' yapısını ayrıştırıcı anlamadı; bkz. ayristirma-kapsami.md. ");
+            text.Append("OKUNAMADI: '").Append(step.Construct).Append("' yapısını ayrıştırıcı anlamadı; bu adımı CRM'deki tanımla karşılaştırın. ");
         }
         text.Append(Kind(step.Kind)).Append(": ").Append(step.DisplayName.Length == 0 ? "(adsız)" : step.DisplayName).Append('.');
         if (step.Entity is not null)
@@ -564,13 +571,10 @@ public sealed partial class BpmnBuilder
     }
 
     /// <summary>
-    /// What a reader needs before reading the diagram: which CRM workflow this is, whether it can run at all, what
-    /// starts it, how big it is, and how much of it the parser could not read. Kept short enough to take in at once.
-    /// </summary>
-    /// <summary>
     /// What a reader has to know before they trust the picture, on the picture itself. Everything here answers a
-    /// question an analyst would otherwise have to leave the file to answer: is this one of many like it, does
-    /// anything else call it, is it alive, and is what runs in CRM actually what is drawn here.
+    /// question an analyst would otherwise have to leave the file to answer: what starts it, which stages fire it and
+    /// what calls it, is it alive, and is what runs in CRM actually what is drawn here. The workflow's id is in the
+    /// process documentation and the disclaimer in the guide, so neither costs the note a line on every diagram.
     /// </summary>
     private static string HeaderNote(WorkflowIr ir, string name, DiagramFacts? facts)
     {
@@ -580,10 +584,8 @@ public sealed partial class BpmnBuilder
         List<string> lines =
         [
             name,
-            $"{identity.Category} · {identity.Mode} · {identity.State} · varlık: {identity.PrimaryEntity ?? "yok"}",
-            "Şununla başlar: " + (ir.Trigger.OnCreate || ir.Trigger.OnDelete || ir.Trigger.OnUpdateFields.Count > 0
-                ? TriggerText(ir.Trigger)
-                : ir.Trigger.OnDemand ? "bir kullanıcı başlatır (istek üzerine)" : "başka bir iş akışı çağırır"),
+            $"{identity.Category} · {identity.Mode} · {identity.State} · kayıt türü: {identity.PrimaryEntity ?? "yok"}",
+            "Şununla başlar: " + Starts(ir.Trigger, facts?.FiredBy.Count > 0),
             $"{steps} adım" + (unmapped > 0 ? $"; {unmapped} tanesini ayrıştırıcı okuyamadı — aşağıda OKUNAMADI olarak işaretli" : "")
         ];
         if (ir.Parameters.Count > 0)
@@ -600,14 +602,21 @@ public sealed partial class BpmnBuilder
         {
             lines.Add("Rol: " + role);
         }
+        if (facts?.FiredBy is { Count: > 0 } stages)
+        {
+            lines.Add("Aşamalardan çalışır: " + string.Join(" · ", stages));
+        }
+        if (facts?.Callers is { Count: > 0 } callers)
+        {
+            lines.Add("Çağıran iş akışları: " + string.Join(" · ", callers));
+        }
         if (facts?.Usage is string usage)
         {
             lines.Add("Kullanım: " + usage);
         }
         if (facts?.ActivityAddresses is { Count: > 0 } addresses)
         {
-            lines.Add("Dış çağrı: " + string.Join(" · ", addresses.Select(entry => entry.Key[(entry.Key.LastIndexOf('.') + 1)..] + " → " + entry.Value))
-                + ". Bunlar, adımın çalıştırdığı kodun içinde yazılı adreslerdir; adımın oraya gittiğinin kanıtı değildir.");
+            lines.Add("Dış çağrı (kodda yazılı adres): " + string.Join(" · ", addresses.Select(entry => entry.Key[(entry.Key.LastIndexOf('.') + 1)..] + " → " + entry.Value)));
         }
         if (facts?.RunningCopyDiffers == true)
         {
@@ -617,13 +626,29 @@ public sealed partial class BpmnBuilder
         {
             lines.Add("Ürünle gelmiş (yönetilen çözüm): yeni üründe bunu sizin kurmanız gerekmez.");
         }
-        lines.Add($"CRM iş akışı {identity.WorkflowId:D}");
-        lines.Add("CRM XAML dosyasından üretilmiş açıklayıcı modeldir. Çalıştırılabilir değildir; güvenmeden önce CRM ile karşılaştırın.");
         if (identity.State == ProcessLabels.StateDraft)
         {
             lines.Insert(2, "CRM'de TASLAK: yeni çalıştırma başlatamaz.");
         }
         return string.Join("\n", lines);
+    }
+
+    /// <summary>
+    /// What starts it. A workflow with no record event that a case stage fires is started by that stage — saying
+    /// "another workflow calls it" there sent readers looking for a caller that does not exist.
+    /// </summary>
+    private static string Starts(WorkflowTrigger trigger, bool firedByStage)
+    {
+        bool onRecord = trigger.OnCreate || trigger.OnDelete || trigger.OnUpdateFields.Count > 0;
+        if (onRecord)
+        {
+            return TriggerText(trigger) + (firedByStage ? "; ayrıca bir talep aşaması çalıştırır" : "");
+        }
+        if (firedByStage)
+        {
+            return "bir talep aşaması çalıştırır" + (trigger.OnDemand ? " (ayrıca istek üzerine başlatılabilir)" : "");
+        }
+        return trigger.OnDemand ? "bir kullanıcı başlatır (istek üzerine)" : "başka bir iş akışı çağırır";
     }
 
     private static int CountSteps(IReadOnlyList<StepNode> steps)

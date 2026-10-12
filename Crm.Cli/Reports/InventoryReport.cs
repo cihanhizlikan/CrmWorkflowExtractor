@@ -48,7 +48,7 @@ public static class InventoryReport
         if (state.Counts.ContainsKey("bpmn.written"))
         {
             Line(text, "Çıktı", string.Create(CultureInfo.InvariantCulture,
-                $"{Get(state, "ir.documents")} ara model · {Get(state, "bpmn.written")} BPMN · {Get(state, "stageMaps.written")} aşama akışı · "
+                $"{Get(state, "ir.documents")} ara model · {Get(state, "bpmn.written")} BPMN · {Get(state, "stageMaps.written")} aşama haritası · "
                 + $"okunamayan yapı içeren {Get(state, "ir.workflowsWithUnmapped")}"));
             Line(text, "Önce oku", Path.Combine(state.RunRoot, Crm.Extract.Runs.RunPaths.Report.Replace('/', Path.DirectorySeparatorChar)));
         }

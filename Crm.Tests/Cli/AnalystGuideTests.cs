@@ -42,6 +42,12 @@ public sealed class AnalystGuideTests
         return string.Join(" ", document.Descendants(Main + "t").Select(text => text.Value));
     }
 
+    /// <summary>Every word of a written guide, for tests elsewhere that check what it says about their run.</summary>
+    internal static string Text(string file)
+    {
+        return Words(Xml(Parts(File.ReadAllBytes(file)), "word/document.xml"));
+    }
+
     [Fact]
     public async Task A_Run_Writes_The_Guide_As_A_Word_Document()
     {

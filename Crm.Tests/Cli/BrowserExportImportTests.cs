@@ -35,7 +35,9 @@ public sealed partial class BrowserExportImportTests
         Assert.Equal(51, root.GetProperty("counts").GetProperty("apiCount").GetInt32());
         Assert.Equal(1, root.GetProperty("stageCounts").GetProperty("xaml.failed").GetInt32());
         Assert.Equal("ANADOLUHAYAT\\KMM2456", root.GetProperty("authenticatedUser").GetProperty("domainName").GetString());
-        Assert.Equal(46, Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Length);
+        // Every definition is drawn: the plan's into the delivered bpmn/, the rest into the internal folder beside it.
+        Assert.Equal(46, Directory.GetFiles(Path.Combine(runRoot, "bpmn"), "*.bpmn", SearchOption.AllDirectories).Length
+            + (Directory.Exists(Path.Combine(runRoot, "kapsam-disi-bpmn")) ? Directory.GetFiles(Path.Combine(runRoot, "kapsam-disi-bpmn"), "*.bpmn", SearchOption.AllDirectories).Length : 0));
         Assert.True(File.Exists(Path.Combine(runRoot, BrowserExportEvidence())));
         Assert.Equal(File.ReadAllBytes(Fixture()), File.ReadAllBytes(Path.Combine(runRoot, BrowserExportEvidence())));
         Assert.Contains("'businessprocesstype' sütunu", console, StringComparison.Ordinal);

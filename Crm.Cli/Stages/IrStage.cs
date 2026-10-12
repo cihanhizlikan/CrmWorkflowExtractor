@@ -95,7 +95,7 @@ public static class IrStage
         public void Add(WorkflowIdentity identity, string sourceFile, ParseResult result)
         {
             _findings.AddRange(SensitiveLiteralScanner.Scan(identity.WorkflowId, identity.Name, sourceFile, result.Literals));
-            _addresses.AddRange(Reports.ExternalSystems.Find(identity.Name, result.Literals));
+            _addresses.AddRange(Reports.ExternalSystems.Find(identity.Name, result.Literals, identity.WorkflowId));
         }
 
         public async Task PublishAsync(RunFolder folder, RunState state, CancellationToken token)

@@ -1275,3 +1275,36 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   and neighbour swaps) each suffice alone on both fixtures; removing both fails three tests.
 - **Acceptance on the company network — Do:** reprocess the last run (no new export needed). **Pass:** the Reklam map
   opens; its note lists 5 workflows in 13 boxes; flows back end at "… aşamasına dön" events; no line runs under the map.
+
+### Names that say what a row is; the workflows point back at their stages (2026-10-12) — committed, awaiting merge
+- **The naming half of the same review.** Maintainer: the stages are named as stages but nothing says the plan's
+  rows are workflows, and the call trees exist only for workflows. Seven lenses converged on the names.
+- **Plan workbook:** `Nasıl okunur` → `Talep konuları` (new: one row per map, its size, the file) → `Talep aşamaları`
+  (was Aşamalar; `surec`→`talep_konusu`, `birincil`→`baslangic_asamasi`, `otomatik`→`otomatik_ilerler`,
+  `asama_akisi_bpmn`→`asama_haritasi`; thirteen rarely used rules folded into `diger_kurallar`) → `İş akışları` (was
+  Taşıma planı) → `İş akışı ağaçları` (was Süreç ağaçları). Removed from delivery: Çağrı ağacı and Sapma (now the
+  row's `cagiran_is_akislari`, `cagirdigi_is_akislari`, `calisan_kopya_farkli`) and Okunamayan yapılar (a `rapor.md`
+  section). Workflow columns renamed (`kayit_turu`, `adim_sayisi`, `cagri_rolu`, `okunamayan_adim_sayisi`,
+  `tetikledigi_is_akisi_sayisi`, `calisma_modu`) and added (`calistiran_asamalar`, `elle_baslatilabilir`,
+  `calisma_kimligi` — the two per-workflow facts of the internal run-authority book, which name no role). `kullanim`
+  is a word to filter on; its date is in `son_kayitli_calisma`.
+- **Folders:** `bpmn/is-akislari/` (plan only), `bpmn/talep-asamalari/<konu>--<başlangıç>.bpmn`, internal
+  `kapsam-disi-bpmn/`. Every delivered path written from the package root. Adresler gains `bpmn_dosyasi` and
+  `is_akisi_id` and lists only the plan's workflows.
+- **Diagrams:** the header note says which stages fire the workflow and on which map, which workflows call it, and
+  "bir talep aşaması çalıştırır" instead of "başka bir iş akışı çağırır" for a stage-fired workflow with no record
+  event. The id line and the disclaimer left the note (the id is in the documentation, the disclaimer in the guide).
+  The OKUNAMADI documentation no longer sends the reader to `ayristirma-kapsami.md`, a file nobody had.
+- **Scope changed:** a workflow a live stage fires is in the plan even if product-supplied or test-named; a draft
+  stays out. Left to judgement.
+- **Guide:** retitled "CRM Talep Aşamaları ve İş Akışları — Taşıma Kılavuzu"; explains stages first; new section 3
+  walks a real map of the run (the subject with most workflows); a BPMN notation table; a lookup table from what
+  the reader holds to the diagram; glossary for every new term.
+- **Guards, each falsified:** stage-fired scope, maps naming only delivered diagrams, the dangling reference (the
+  diagram scan now opens every delivered .bpmn, with a workflow that has an unreadable step), delivered diagrams =
+  plan rows, the rule fold, the firing line on the diagram, the drift column. The test workbook reader's `IsNumeric`
+  counted cells like the old `Rows` did and found the wrong cell once a row had an empty one before it; it now reads
+  references. 372 pass.
+- **Acceptance on the company network — Do:** reprocess the last run. **Pass:** `tasima-plani.xlsx` opens on
+  Talep konuları; `bpmn/` holds only `is-akislari/` and `talep-asamalari/`; a workflow fired by a stage names the
+  stage on its row and its diagram.
