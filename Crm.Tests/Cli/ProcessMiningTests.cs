@@ -33,8 +33,20 @@ public sealed class ProcessMiningTests
             ["events"] = 21,
             ["skipped"] = 1,
             ["stages"] = new JsonArray(
-                new JsonObject { ["stage"] = StageMapStageTests.Control, ["entries"] = 8, ["lastRecorded"] = 0 },
-                new JsonObject { ["stage"] = StageMapStageTests.Nova, ["entries"] = 6, ["lastRecorded"] = 1 },
+                new JsonObject
+                {
+                    ["stage"] = StageMapStageTests.Control,
+                    ["entries"] = 8,
+                    ["lastRecorded"] = 0,
+                    ["dwellCount"] = 8,
+                    ["meanMinutes"] = 3200,
+                    ["medianMinutes"] = 3075,
+                    ["p90Minutes"] = 5000,
+                    ["meanWorkMinutes"] = 1700,
+                    ["medianWorkMinutes"] = 1690,
+                    ["p90WorkMinutes"] = 2400
+                },
+                new JsonObject { ["stage"] = StageMapStageTests.Nova, ["entries"] = 6, ["lastRecorded"] = 1, ["dwellCount"] = 3 },
                 new JsonObject { ["stage"] = StageMapStageTests.Waiting, ["entries"] = 2, ["lastRecorded"] = 0 }),
             ["transitions"] = new JsonArray(
                 new JsonObject
@@ -87,6 +99,17 @@ public sealed class ProcessMiningTests
         // A step no outcome of the stage leads to happened anyway, and says so.
         Assert.Contains(steps, row => row[headers.IndexOf("kaynak_asama")] == "TALEBİ NOVAYA GÖNDER" && row[headers.IndexOf("sonuc")] == "tasarımda yok");
         Assert.Contains(book.Rows("Nasıl okunur"), row => row.Count > 1 && row[1].Contains("2025-01-02 – 2026-10-11", StringComparison.Ordinal));
+        // How long a case stays in a stage, to the minute, on the calendar and on working days; a stage visited fewer
+        // than the minimum has its count and no durations.
+        IReadOnlyList<IReadOnlyList<string>> stages = book.Rows("Aşama girişleri");
+        List<string> columns = [.. stages[0]];
+        IReadOnlyList<string> control = Assert.Single(stages, row => row[columns.IndexOf("asama")] == "CRM EVRAK KONTROL");
+        Assert.Equal("3075", control[columns.IndexOf("medyan_kalis_dk")]);
+        Assert.Equal("1690", control[columns.IndexOf("medyan_is_dk")]);
+        Assert.Equal("2 g 3 sa 15 dk", control[columns.IndexOf("medyan_kalis")]);
+        IReadOnlyList<string> nova = Assert.Single(stages, row => row[columns.IndexOf("asama")] == "TALEBİ NOVAYA GÖNDER");
+        Assert.Equal("3", nova[columns.IndexOf("olculen_kalis_sayisi")]);
+        Assert.Equal("", nova[columns.IndexOf("medyan_kalis_dk")]);
     }
 
     /// <summary>
@@ -104,7 +127,8 @@ public sealed class ProcessMiningTests
         const string Map = "dt-maas-degisikligi--crm-evrak-kontrol.bpmn";
         string internalMap = File.ReadAllText(Path.Combine(runRoot, "surec-madenciligi-bpmn", Map));
         Assert.Contains("olumlu · 6 kez · medyan 7 sa (0,29 iş günü)", internalMap, StringComparison.Ordinal);
-        Assert.Contains("CRM EVRAK KONTROL · 8 giriş", internalMap, StringComparison.Ordinal);
+        Assert.Contains("CRM EVRAK KONTROL · 8 giriş · medyan kalış 2 g 3 sa 15 dk (iş günlerinde 1 g 4 sa 10 dk)", internalMap, StringComparison.Ordinal);
+        Assert.Contains("TALEBİ NOVAYA GÖNDER · 6 giriş\"", internalMap, StringComparison.Ordinal);
 
         string delivered = File.ReadAllText(Path.Combine(runRoot, "bpmn", "talep-asamalari", Map));
         Assert.DoesNotContain(" kez", delivered, StringComparison.Ordinal);
@@ -191,6 +215,18 @@ public sealed class ProcessMiningTests
     public void A_File_That_Is_Not_A_Totals_File_Is_Refused()
     {
         Assert.Throws<InvalidDataException>(() => ProcessMiningStage.Parse("{\"format\":\"crm-usage-export/1\"}"));
+    }
+
+    [Theory]
+    [InlineData(0, "0 dk")]
+    [InlineData(45, "45 dk")]
+    [InlineData(185, "3 sa 5 dk")]
+    [InlineData(1440, "1 g")]
+    [InlineData(3075, "2 g 3 sa 15 dk")]
+    [InlineData(2895, "2 g 15 dk")]
+    public void A_Stay_Reads_To_The_Minute(double minutes, string expected)
+    {
+        Assert.Equal(expected, ProcessMiningStage.Minutes(minutes));
     }
 
     [Theory]

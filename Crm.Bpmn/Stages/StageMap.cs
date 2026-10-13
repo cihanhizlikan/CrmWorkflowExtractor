@@ -11,10 +11,11 @@ namespace Crm.Bpmn.Stages;
 public sealed record MapStage(Guid Id, string Label);
 
 /// <summary>
-/// What was measured on the process, to be written onto a copy of its map: how often each stage was entered, and per
-/// step from one stage to another the text that goes beside the outcome's caption. Internal copies only.
+/// What was measured on the process, to be written onto a copy of its map: per stage the text that follows its name
+/// (how often it was entered, how long a case stays), and per step from one stage to another the text that goes beside
+/// the outcome's caption. Internal copies only.
 /// </summary>
-public sealed record StageTraffic(IReadOnlyDictionary<Guid, int> Entries, IReadOnlyDictionary<(Guid From, Guid To), string> Steps);
+public sealed record StageTraffic(IReadOnlyDictionary<Guid, string> Stages, IReadOnlyDictionary<(Guid From, Guid To), string> Steps);
 
 /// <summary>What one stage map drew: its stages, its distinct workflows, the boxes they took and those missing.</summary>
 public sealed record StageMapResult(XDocument Xml, IReadOnlyList<MapStage> Stages, int Workflows, int Boxes, int MissingWorkflows);
@@ -1111,9 +1112,9 @@ public static class StageMap
             {
                 name += " (pasif)";
             }
-            if (_traffic is not null)
+            if (_traffic?.Stages.TryGetValue(stage.Id, out string? measured) == true)
             {
-                name += $" · {_traffic.Entries.GetValueOrDefault(stage.Id).ToString("N0", Turkish)} giriş";
+                name += " · " + measured;
             }
             Unit cell = Add(UnitKind.Cell, "asama_" + stage.Id.ToString("N"), name, stage);
             cells[stage.Id] = cell;

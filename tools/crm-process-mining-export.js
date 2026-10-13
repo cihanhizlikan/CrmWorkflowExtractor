@@ -10,6 +10,9 @@
  * last DAY the history covers. A step taken fewer than MINIMUM_GROUP times carries its count but no durations, so a
  * rare path cannot point back to one case. While it runs, only the case being read is held in memory.
  *
+ * TIME IN A STAGE: from a case entering a stage to the same case entering the next one, to the minute, calendar and
+ * working. The last stage a case reached has no next yet — it may still be open, or closed — and is not measured.
+ *
  * WORKING TIME: beside calendar time, every step is measured in WORKING DAYS — the time that falls on a working day,
  * divided by 24. Saturdays, Sundays and the organisation's holidays do not count; the hours of a working day all do,
  * because no record says when an office opens. The holidays are CRM's own business-closure calendar; where it cannot
@@ -237,6 +240,7 @@
   const entries = new Map();
   const lastRecorded = new Map();
   const steps = new Map();
+  const dwell = new Map();   // stage -> { minutes: [], workMinutes: [] }: time in that stage, per visit with a next stage
   let cases = 0;
   let events = 0;
   let skipped = 0;
@@ -277,6 +281,11 @@
             }
             steps.get(key).hours.push((at - current.at) / 3600000);
             steps.get(key).workDays.push(workBetween(current.at, at) / DAY);
+            if (!dwell.has(current.stage)) {
+              dwell.set(current.stage, { minutes: [], workMinutes: [] });
+            }
+            dwell.get(current.stage).minutes.push((at - current.at) / 60000);
+            dwell.get(current.stage).workMinutes.push(workBetween(current.at, at) / 60000);
           } else {
             close();
             cases++;
@@ -291,6 +300,7 @@
       entries.clear();
       lastRecorded.clear();
       steps.clear();
+      dwell.clear();
       cases = 0;
       events = 0;
       skipped = 0;
@@ -310,6 +320,30 @@
     return sorted[below] + (sorted[above] - sorted[below]) * (position - below);
   };
   const round2 = value => Math.round(value * 100) / 100;
+  // To the minute: the history's times are to the second, so a whole minute claims nothing they cannot support.
+  const minuteStats = values => {
+    const sorted = values.sort((one, other) => one - other);
+    return {
+      mean: Math.round(sorted.reduce((sum, value) => sum + value, 0) / sorted.length),
+      median: Math.round(at(sorted, 0.5)),
+      p90: Math.round(at(sorted, 0.9))
+    };
+  };
+  const stageDwell = stage => {
+    const measured = dwell.get(stage);
+    const result = { dwellCount: measured ? measured.minutes.length : 0 };
+    if (measured && measured.minutes.length >= MINIMUM_GROUP) {
+      const calendar = minuteStats(measured.minutes);
+      const working = minuteStats(measured.workMinutes);
+      result.meanMinutes = calendar.mean;
+      result.medianMinutes = calendar.median;
+      result.p90Minutes = calendar.p90;
+      result.meanWorkMinutes = working.mean;
+      result.medianWorkMinutes = working.median;
+      result.p90WorkMinutes = working.p90;
+    }
+    return result;
+  };
   const transitions = [...steps.entries()].map(([key, measured]) => {
     const [from, to] = key.split("|");
     const step = { from, to, count: measured.hours.length };
@@ -348,7 +382,7 @@
     cases,
     events,
     skipped,
-    stages: [...entries.entries()].map(([stage, count]) => ({ stage, entries: count, lastRecorded: lastRecorded.get(stage) ?? 0 })),
+    stages: [...entries.entries()].map(([stage, count]) => ({ stage, entries: count, lastRecorded: lastRecorded.get(stage) ?? 0, ...stageDwell(stage) })),
     transitions
   };
   const stamp = started.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);

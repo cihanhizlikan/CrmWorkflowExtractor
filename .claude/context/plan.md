@@ -1381,3 +1381,17 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   probed, ids blanked; the three earlier stubs give the same results. UNVERIFIED: that `$top` caused the 400s — the
   reason is now in the console and the file. If the history table is refused again, a role with read access to it
   has to run the export. 384 pass.
+
+### Time in a stage, to the minute (2026-10-13) — committed, awaiting merge
+- **Maintainer:** average time spent on an element, only for stage boxes, to the minute. Discussed and not built:
+  workflow run times (system jobs, purged routinely here; real-time workflows leave none) and per-step times inside a
+  workflow (`workflowlog`, by default kept only for failed jobs — a biased sample).
+- **Definition:** a stay is from a case entering a stage to the same case entering its next stage, in whole minutes,
+  on the calendar and on working days (the working-day rule of the steps). The last stage a case reached has no next
+  and is not measured — the case may still be there. Fewer than five measured stays: the count, no durations.
+- **Output:** `Aşama girişleri` gains `olculen_kalis_sayisi`, `ortalama/medyan/yuzde90_kalis_dk`, the same `_is_dk`, and
+  `medyan_kalis` as text ("2 g 3 sa 15 dk"); the internal maps' stage boxes read "· 8 giriş · medyan kalış 2 g 3 sa
+  15 dk (iş günlerinde 1 g 4 sa 10 dk)". Delivered maps untouched.
+- **Checked** on the stubbed CRM in Istanbul time: Friday 15:00 → Monday 10:00 is 4,020 minutes and 1,140 working
+  minutes; across a one-day holiday 2,880 and 1,440. Needs one new process-mining export to take effect. Each guard
+  falsified. 390 pass.

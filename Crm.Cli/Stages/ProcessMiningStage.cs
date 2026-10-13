@@ -8,8 +8,27 @@ using Microsoft.Extensions.Logging;
 
 namespace Crm.Cli.Stages;
 
-/// <summary>How often cases entered one stage, and how many cases' last recorded stage it is.</summary>
-public sealed record MinedStage(Guid Stage, int Entries, int LastRecorded);
+/// <summary>
+/// How often cases entered one stage, how many cases' last recorded stage it is, and how long a case stays in it — from
+/// entering it to entering the next stage, to the minute, on the calendar and on working days. A visit with no next
+/// stage is not measured; the durations are absent below the export's minimum group, and in a file made before them.
+/// </summary>
+public sealed record MinedStage(Guid Stage, int Entries, int LastRecorded)
+{
+    public int DwellCount { get; init; }
+
+    public double? MeanMinutes { get; init; }
+
+    public double? MedianMinutes { get; init; }
+
+    public double? P90Minutes { get; init; }
+
+    public double? MeanWorkMinutes { get; init; }
+
+    public double? MedianWorkMinutes { get; init; }
+
+    public double? P90WorkMinutes { get; init; }
+}
 
 /// <summary>
 /// One step from a stage to the next, how often cases took it, and how long it took — calendar hours from entering
@@ -121,7 +140,16 @@ public static class ProcessMiningStage
             window.ValueKind == JsonValueKind.Object ? Text(window, "toDate") : null,
             (int)(Number(root, "cases") ?? 0), (int)(Number(root, "events") ?? 0), (int)(Number(root, "skipped") ?? 0),
             [.. Rows(root, "stages").Select(stage => new MinedStage(Guid.Parse(Text(stage, "stage")!), (int)(Number(stage, "entries") ?? 0),
-                (int)(Number(stage, "lastRecorded") ?? 0)))],
+                (int)(Number(stage, "lastRecorded") ?? 0))
+            {
+                DwellCount = (int)(Number(stage, "dwellCount") ?? 0),
+                MeanMinutes = Number(stage, "meanMinutes"),
+                MedianMinutes = Number(stage, "medianMinutes"),
+                P90Minutes = Number(stage, "p90Minutes"),
+                MeanWorkMinutes = Number(stage, "meanWorkMinutes"),
+                MedianWorkMinutes = Number(stage, "medianWorkMinutes"),
+                P90WorkMinutes = Number(stage, "p90WorkMinutes")
+            })],
             [.. Rows(root, "transitions").Select(step => new MinedStep(Guid.Parse(Text(step, "from")!), Guid.Parse(Text(step, "to")!),
                 (int)(Number(step, "count") ?? 0), Number(step, "meanHours"), Number(step, "medianHours"), Number(step, "p90Hours"))
             {
@@ -150,7 +178,7 @@ public static class ProcessMiningStage
         state.Counts["processMining.steps"] = mining.Steps.Count;
         if (mining.Measured && state.CaseStages.Count > 0)
         {
-            StageTraffic traffic = new(mining.Stages.ToDictionary(stage => stage.Stage, stage => stage.Entries),
+            StageTraffic traffic = new(mining.Stages.ToDictionary(stage => stage.Stage, StageText),
                 mining.Steps.ToDictionary(step => (step.From, step.To), Caption));
             state.Counts["processMining.maps"] = await StageMapStage.DrawTrafficAsync(folder, state, documents, traffic, logger, token);
         }
@@ -168,6 +196,44 @@ public static class ProcessMiningStage
         }
         string caption = count + " · medyan " + Duration(median);
         return step.MedianWorkDays is double days ? caption + " (" + days.ToString("0.##", Turkish) + " iş günü)" : caption;
+    }
+
+    /// <summary>
+    /// What a stage's box says after its name on the internal map: how often it was entered and the median stay, on the
+    /// calendar and on working days — "8 giriş · medyan kalış 2 g 3 sa 15 dk (iş günlerinde 1 g 4 sa 10 dk)".
+    /// </summary>
+    public static string StageText(MinedStage stage)
+    {
+        string entries = stage.Entries.ToString("N0", Turkish) + " giriş";
+        if (stage.MedianMinutes is not double median)
+        {
+            return entries;
+        }
+        string text = entries + " · medyan kalış " + Minutes(median);
+        return stage.MedianWorkMinutes is double working ? text + " (iş günlerinde " + Minutes(working) + ")" : text;
+    }
+
+    /// <summary>A span to the minute, as a reader says it: "45 dk", "3 sa 5 dk", "2 g 3 sa 15 dk", "0 dk".</summary>
+    public static string Minutes(double minutes)
+    {
+        long total = (long)Math.Round(minutes);
+        long days = total / 1440;
+        long hours = total % 1440 / 60;
+        long rest = total % 60;
+        List<string> parts = [];
+        if (days > 0)
+        {
+            parts.Add(days.ToString(CultureInfo.InvariantCulture) + " g");
+        }
+        if (hours > 0)
+        {
+            parts.Add(hours.ToString(CultureInfo.InvariantCulture) + " sa");
+        }
+        if (rest > 0 || parts.Count == 0)
+        {
+            parts.Add(rest.ToString(CultureInfo.InvariantCulture) + " dk");
+        }
+        return string.Join(" ", parts);
     }
 
     /// <summary>Hours up to two days, days beyond: "7 sa", "3,5 gün".</summary>

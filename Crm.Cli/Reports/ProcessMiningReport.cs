@@ -16,12 +16,16 @@ public static class ProcessMiningReport
     public static Sheet Entries(ProcessMining mining, IReadOnlyList<CaseStage> stages)
     {
         Dictionary<Guid, CaseStage> byId = stages.ToDictionary(stage => stage.Id);
-        Sheet sheet = new(SheetNames.StageEntries, "talep_konusu", "asama", "giris_sayisi", "son_kaydi_bu_asamada_olan_talep", "asama_id");
+        Sheet sheet = new(SheetNames.StageEntries, "talep_konusu", "asama", "giris_sayisi", "son_kaydi_bu_asamada_olan_talep",
+            "olculen_kalis_sayisi", "ortalama_kalis_dk", "medyan_kalis_dk", "yuzde90_kalis_dk",
+            "ortalama_is_dk", "medyan_is_dk", "yuzde90_is_dk", "medyan_kalis", "asama_id");
         foreach (MinedStage stage in mining.Stages
             .OrderBy(stage => TurkishFold.Fold(Subject(byId, stage.Stage)), StringComparer.Ordinal)
             .ThenByDescending(stage => stage.Entries))
         {
-            sheet.Row(Subject(byId, stage.Stage), Name(byId, stage.Stage), stage.Entries, stage.LastRecorded, stage.Stage);
+            sheet.Row(Subject(byId, stage.Stage), Name(byId, stage.Stage), stage.Entries, stage.LastRecorded, stage.DwellCount,
+                stage.MeanMinutes, stage.MedianMinutes, stage.P90Minutes, stage.MeanWorkMinutes, stage.MedianWorkMinutes, stage.P90WorkMinutes,
+                stage.MedianMinutes is double median ? ProcessMiningStage.Minutes(median) : null, stage.Stage);
         }
         return sheet;
     }

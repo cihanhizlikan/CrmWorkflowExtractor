@@ -345,13 +345,20 @@ public static class Guides
         sheet.Row("Aşama girişleri sayfası", "giris_sayisi aynı talebin aynı aşamaya tekrar girişlerini de sayar: döngülerin yükü "
             + "buradadır. son_kaydi_bu_asamada_olan_talep, geçmişi bu aşamada biten taleplerdir; talep açık da olabilir, kapanmış "
             + "da — geçmiş bunu söylemez.");
+        sheet.Row("*_kalis_dk · *_is_dk · medyan_kalis",
+            "Bir talebin aşamada kaldığı süre, DAKİKA olarak: aşamaya girişinden bir sonraki aşamaya girişine kadar. *_kalis_dk "
+            + "takvim süresidir; *_is_dk aynı sürenin iş günlerine düşen kısmıdır (hafta sonu ve tatiller hariç, mesai saatleri "
+            + "dahil). medyan_kalis aynı medyanın okunur hali: \"2 g 3 sa 15 dk\". olculen_kalis_sayisi, sonrası olan ziyaret "
+            + "sayısıdır: talebin geçmişinin bittiği aşamadaki son ziyaret ölçülemez, çünkü talep hâlâ orada olabilir. "
+            + string.Create(CultureInfo.InvariantCulture, $"{mining.MinimumGroup} ziyaretten azsa süre verilmez."));
         sheet.Row("Geçişler sayfası", "sonuc, kaynak aşamanın kaydına göre o hedefe hangi sonuçla gidildiğidir. \""
             + ProcessMiningReport.NotInDesign + "\", aşama kaydının hiçbir sonucunun o hedefe gitmediği bir geçiştir: tasarım "
             + "değişmiş, aşama elle değiştirilmiş ya da kod başka bir yol izlemiş olabilir. Bunlar ilk bakılacak satırlardır.");
         sheet.Row("ortalama_saat · medyan_saat · yuzde90_saat", "Geçiş süresinin ortalaması, ortancası ve geçişlerin yüzde 90'ının "
             + "altında kaldığı süre, saat olarak. Ortalama birkaç çok uzun geçişle şişer; tipik süre için medyana bakın.");
         sheet.Row("Haritalar", "surec-madenciligi-bpmn/ altında her aşama haritasının bir kopyası vardır: aşama kutularında giriş "
-            + "sayısı, oklarda geçiş sayısı ve medyan süre. Teslim edilen haritalar değişmedi.");
+            + "sayısı ve medyan kalış süresi (takvim ve iş günlerinde, dakikasına kadar), oklarda geçiş sayısı ve medyan süre. "
+            + "Teslim edilen haritalar değişmedi.");
         return sheet;
     }
 
