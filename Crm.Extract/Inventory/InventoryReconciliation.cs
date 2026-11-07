@@ -25,7 +25,7 @@ public sealed record ReconciliationResult(InventoryCounts Counts, IReadOnlyList<
 /// <summary>
 /// §2.4 / §8 reconciliation over the inventory. A failure here fails the run loudly; a warning is printed
 /// prominently and recorded. Note what this can and cannot see: it catches paging and duplication faults, and
-/// the single-owner signature — insufficient read depth is <see cref="Preflight.PrivilegeCheck"/>'s job.
+/// the single-owner signature — insufficient read depth is <see cref="Access.PrivilegeCheck"/>'s job.
 /// </summary>
 public static class InventoryReconciliation
 {

@@ -1,9 +1,9 @@
-using Crm.Extract.Preflight;
+using Crm.Extract.Access;
 using Xunit;
 
 namespace Crm.Tests.Extract;
 
-public sealed class PreflightTests
+public sealed class AccessTests
 {
     private static readonly string PrivilegesBody = "{\"value\":["
         + string.Join(",", PrivilegeCheck.Required.Select((privilege, index) => $"{{\"privilegeid\":\"{Id(index):D}\",\"name\":\"{privilege.Name}\"}}"))

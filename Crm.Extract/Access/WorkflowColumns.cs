@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Crm.Extract.Preflight;
+namespace Crm.Extract.Access;
 
 /// <summary>
 /// The §3.1 column list, checked against the live entity metadata before it is used. A <c>$select</c> naming a

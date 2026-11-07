@@ -6,7 +6,7 @@ using Crm.Cli.Configuration;
 using Crm.Cli.Logging;
 using Crm.Cli.Reports;
 using Crm.Cli.Stages;
-using Crm.Extract.Preflight;
+using Crm.Extract.Access;
 using Crm.Extract.Runs;
 using Microsoft.Extensions.Logging;
 
@@ -35,7 +35,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, TimeProvider time,
                 await LoadSourceAsync(folder, state, logger, token);
                 if (state.Failures.Count == 0 && state.StagesRun.Contains(RunStages.Xaml))
                 {
-                    await OfflineStages.RunAsync(folder, state, settings, started, logger, token);
+                    await RunPipeline.RunAsync(folder, state, settings, started, logger, token);
                 }
             }
             catch (Exception error) when (error is InvalidDataException or InvalidOperationException

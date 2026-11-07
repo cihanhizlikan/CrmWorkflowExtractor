@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Crm.Extract.Preflight;
+namespace Crm.Extract.Access;
 
 public enum PrivilegeVerdict
 {

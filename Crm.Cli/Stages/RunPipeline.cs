@@ -10,7 +10,7 @@ namespace Crm.Cli.Stages;
 /// The stages after the source is loaded. They read the run folder's evidence and nothing else, so a failure in
 /// one is diagnosable from the files, and the chain can be re-run over an existing run's ham/ folder.
 /// </summary>
-public static class OfflineStages
+public static class RunPipeline
 {
     public static async Task RunAsync(RunFolder folder, RunState state, ExtractorSettings settings, DateTimeOffset extractedAt, ILogger logger, CancellationToken token)
     {
