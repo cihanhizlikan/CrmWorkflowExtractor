@@ -1452,3 +1452,17 @@ committed to build**, and carries a recommendation; none was acted on because ea
 - **Recommendation:** SHOW it — a `cagirdigi_eksik` note on the caller's `İş akışları` row, or a line in
   `rapor.md` if it is the tool maintainer's concern only. Deleting is the fallback.
 - **Falsify:** on the real export the count is zero — then delete it.
+
+### S6 — An exception outside ExtractionRun's list ends the run with no record in it (step 6, robustness)
+- **What:** `Program.Main` has no `AppDomain.CurrentDomain.UnhandledException` handler, and `ExtractionRun.RunAsync`
+  catches six listed types. Anything else (a `NullReferenceException` in a report writer, an `XmlException` outside
+  the parser's own guard) leaves `Main` as the runtime's crash: stack on stderr, no `manifest.json`, nothing in
+  `gunlukler/`, and an exit code that is not one of `ExitCode`'s.
+- **Where:** `Crm.Cli/Program.cs:31` (`Main`); `Crm.Cli/ExtractionRun.cs:41` (the filter).
+- **Why not obvious:** the per-workflow and per-map guards already isolate most failures, and a wider catch in
+  `RunAsync` would turn a defect into a quiet `RunFailed`. The log path exists only once the run folder does.
+- **Recommendation:** one last-resort `catch (Exception error) when (error is not OperationCanceledException)` in
+  `RunAsync` that records the type, message and stack in the run log and `state.Failures`, sets `RunFailed`, and
+  lets the manifest be written UNSEALED-as-failed — so the operator on the locked-down host sends back a folder that
+  says what happened. Suppress CA1031 at that one site with this reason.
+- **Falsify:** a test whose fake stage throws `NullReferenceException` gets exit code `RunFailed` and a run log naming it.

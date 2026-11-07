@@ -45,8 +45,6 @@ public static class DocumentText
             if (Keep(text, at, out int width))
             {
                 kept.Append(text, at, width);
-                at += width;
-                continue;
             }
             at += width;
         }
