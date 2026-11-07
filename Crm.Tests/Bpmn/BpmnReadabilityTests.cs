@@ -193,6 +193,8 @@ public sealed class BpmnReadabilityTests
         List<XElement> shapes = [.. xml.Descendants(BpmnSerializer.Di + "BPMNShape").Select(shape => shape.Element(BpmnSerializer.Dc + "Bounds")!)];
         List<XElement> labels = [.. xml.Descendants(BpmnSerializer.Di + "BPMNLabel").Select(label => label.Element(BpmnSerializer.Dc + "Bounds")!)];
 
+        Assert.NotEmpty(labels);
+        Assert.NotEmpty(shapes);
         foreach (XElement label in labels)
         {
             foreach (XElement shape in shapes)
@@ -225,6 +227,7 @@ public sealed class BpmnReadabilityTests
         XDocument xml = BpmnSerializer.ToXml(BpmnBuilder.Build(BpmnEmissionTests.IrFor(fixture)), "test");
         List<XElement> labels = [.. xml.Descendants(BpmnSerializer.Di + "BPMNLabel").Select(label => label.Element(BpmnSerializer.Dc + "Bounds")!)];
 
+        Assert.True(labels.Count > 1, "Nothing to compare: fewer than two captions were drawn.");
         for (int first = 0; first < labels.Count; first++)
         {
             for (int second = first + 1; second < labels.Count; second++)

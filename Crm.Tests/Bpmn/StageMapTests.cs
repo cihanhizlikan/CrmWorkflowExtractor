@@ -296,6 +296,7 @@ public sealed class StageMapTests
         XElement plane = MainPlane(xml);
         List<Box> shapes = Shapes(plane);
 
+        Assert.NotEmpty(plane.Elements(Di + "BPMNEdge"));
         foreach (XElement edge in plane.Elements(Di + "BPMNEdge"))
         {
             XElement flow = xml.Descendants().Single(node => node.Attribute("id")?.Value == edge.Attribute("bpmnElement")!.Value);
@@ -319,7 +320,9 @@ public sealed class StageMapTests
     [MemberData(nameof(Maps))]
     public void Every_Flow_Is_Drawn_In_Upright_And_Level_Runs(string map)
     {
-        foreach (Segment segment in Segments(MainPlane(Map(map).Xml)))
+        List<Segment> segments = Segments(MainPlane(Map(map).Xml));
+        Assert.NotEmpty(segments);
+        foreach (Segment segment in segments)
         {
             Assert.True(segment.From.X == segment.To.X || segment.From.Y == segment.To.Y, $"{segment.Of} has a slanted run.");
         }
@@ -333,6 +336,7 @@ public sealed class StageMapTests
         List<Box> shapes = Shapes(plane);
         List<Box> labels = Labels(plane);
 
+        Assert.True(labels.Count > 1, "Nothing to compare: fewer than two captions were drawn.");
         foreach (Box label in labels)
         {
             Assert.DoesNotContain(shapes, shape => label.Overlaps(shape));
@@ -355,6 +359,7 @@ public sealed class StageMapTests
     public void No_Two_Flows_Share_A_Line(string map)
     {
         List<Segment> segments = Segments(MainPlane(Map(map).Xml));
+        Assert.True(segments.Count > 1, "Nothing to compare: fewer than two runs were drawn.");
         for (int first = 0; first < segments.Count; first++)
         {
             for (int second = first + 1; second < segments.Count; second++)

@@ -147,6 +147,7 @@ public sealed class AnalystGuideTests
 
         XDocument styles = Xml(Parts(Sample()), "word/styles.xml");
 
+        Assert.NotEmpty(styles.Descendants(Main + "style"));
         foreach (XElement style in styles.Descendants(Main + "style"))
         {
             Assert.Equal(Ordered(style, Main + "pPr", paragraphOrder), Named(style, Main + "pPr"));

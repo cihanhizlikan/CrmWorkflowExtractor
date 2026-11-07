@@ -114,10 +114,13 @@ public sealed class StepBoxTests
     {
         BpmnProcess process = BpmnBuilder.Build(BpmnEmissionTests.IrFor(fixture));
 
-        foreach (FlowNode node in process.Graph.Nodes.Where(node => node.Name.Length > 0
+        List<FlowNode> boxes = [.. process.Graph.Nodes.Where(node => node.Name.Length > 0
             && node.Type is not (FlowNodeType.ExclusiveGateway or FlowNodeType.EventBasedGateway
                 or FlowNodeType.StartEvent or FlowNodeType.EndEvent or FlowNodeType.TerminateEndEvent
-                or FlowNodeType.ConditionalCatchEvent or FlowNodeType.TimerCatchEvent)))
+                or FlowNodeType.ConditionalCatchEvent or FlowNodeType.TimerCatchEvent))];
+
+        Assert.NotEmpty(boxes);
+        foreach (FlowNode node in boxes)
         {
             double perLine = Math.Floor((node.Width - 20) / 6.6);
             double needed = Math.Ceiling(node.Name.Length / perLine) * 15;
@@ -130,6 +133,6 @@ public sealed class StepBoxTests
     [Fact]
     public void A_Short_Step_Keeps_The_Ordinary_Box()
     {
-        Assert.Equal((130, 70), FlowNode.Size(FlowNodeType.ServiceTask, "Durum değiştir"));
+        Assert.Equal(FlowNode.Size(FlowNodeType.ServiceTask, ""), FlowNode.Size(FlowNodeType.ServiceTask, "Durum değiştir"));
     }
 }
