@@ -43,6 +43,14 @@ public sealed class ExtractionRun(ExtractorSettings settings, TimeProvider time,
             {
                 state.Fail(ExitCode.RunFailed, $"{error.GetType().Name}: {error.Message}");
             }
+            // The last resort. Whatever nobody listed above is a defect, not bad input — so its stack goes to the run
+            // log — but it must still end in a sealed folder that says what happened: the operator on the locked-down
+            // host sends back a folder, not a console. A cancellation is the operator's and travels.
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                logger.LogError(error, "Unexpected {Type} — this is a defect in the tool", error.GetType().Name);
+                state.Fail(ExitCode.RunFailed, $"Beklenmeyen hata — {error.GetType().Name}: {error.Message} (ayrıntı: {RunPaths.RunLog})");
+            }
 
             state.CountChain = CountChain.Evaluate(state);
             foreach (CountLink gap in state.CountChain.Where(link => !link.Holds))

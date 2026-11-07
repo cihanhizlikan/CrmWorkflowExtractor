@@ -26,7 +26,7 @@ maintainer: "merge & delete as you go").
 
 | # | Package | From | State |
 |---|---|---|---|
-| P1 | **A run that fails anywhere leaves a record of why.** A last-resort, filtered catch in `ExtractionRun.RunAsync`: type, message and stack into the run log and `state.Failures`, exit `RunFailed`, the manifest written as failed. | sweep S6 | to build |
+| P1 | **A run that fails anywhere leaves a record of why.** A last-resort, filtered catch in `ExtractionRun.RunAsync`: type, message and stack into the run log and `state.Failures`, exit `RunFailed`, the manifest written as failed. | sweep S6 | **done** 2026-11-07 |
 | P2 | **A call to a child workflow the run does not have is shown**, on the caller's row in `İş akışları`, instead of being computed and dropped (`CallGraph.MissingTargets`). | sweep S4 | to build |
 | P3 | **Names without the network**: `OfflineStages` → `RunPipeline`; `Crm.Extract.Preflight` → `Crm.Extract.Access`. | sweep S1 | to build |
 | P4 | **The empty-name slug in Turkish**: `BpmnFileNames.Slug`'s fallback `workflow` becomes `is-akisi`. | section 4 item 4 | to build |

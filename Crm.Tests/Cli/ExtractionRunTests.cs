@@ -129,4 +129,28 @@ public sealed class ExtractionRunTests
         Assert.Equal("20260914-101500", first.RunId);
         Assert.Equal("20260914-101500-2", second.RunId);
     }
+
+    /// <summary>
+    /// An exception nobody listed — here a usage file keyed by something that is not an id — used to leave Main as
+    /// the runtime's crash: no manifest, nothing in the run log, an exit code that is not one of ours. The operator on
+    /// the locked-down host sends back a folder, so the folder has to say what happened.
+    /// </summary>
+    [Fact]
+    public async Task An_Unexpected_Exception_Fails_The_Run_And_Leaves_A_Sealed_Folder_That_Names_It()
+    {
+        FakeOrganization organization = new() { WorkflowCount = 3 };
+        using TemporaryOutput output = new();
+        Directory.CreateDirectory(output.Root);
+        string usageFile = Path.Combine(output.Root, "usage.json");
+        File.WriteAllText(usageFile, """{"format":"crm-usage-export/1","usage":{"not-an-id":{"jobs":[],"sessions":[]}}}""");
+
+        (ExitCode code, string runRoot, _) = await RunHarness.RunAsync(organization, output, usageFile: usageFile);
+
+        Assert.Equal(ExitCode.RunFailed, code);
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(runRoot, "manifest.json")));
+        Assert.Equal("failed", manifest.RootElement.GetProperty("status").GetString());
+        string log = File.ReadAllText(Path.Combine(runRoot, RunPaths.RunLog));
+        Assert.Contains(nameof(FormatException), log, StringComparison.Ordinal);
+        Assert.Contains(" at ", log, StringComparison.Ordinal);
+    }
 }
