@@ -28,7 +28,7 @@ that every path below still resolves.
 
 | Key | Value |
 |---|---|
-| `one_type_per_file` | **not enforced** — several files hold a record beside the type that uses it (`ProcessMiningStage.cs`, `StageMap.cs`), so enumerate types by parsing declarations |
+| `one_type_per_file` | **not enforced** — several files hold a record beside the type that uses it (`Crm.Cli/Stages/ProcessMiningStage.cs`, `Crm.Bpmn/Stages/StageMap.cs`), so enumerate types by parsing declarations |
 | `namespace_matches_folder` | not enforced by a test; true by convention (folder, project and root namespace are one name) |
 | `line_endings` | **crlf** for source (`.editorconfig` `end_of_line = crlf`), not enforced by a test. **LF and byte-exact**: `Crm.Tests/Fixtures/**` and the six `tools/` files `.gitattributes` marks `-text` — the export pages embed their script's SHA-256. After any `sed -i` under MSYS on a CRLF file: `sed -i 's/\r*$/\r/' <file>`, then check lines == CRs |
 | `enforced_guards` | reach bans (`BannedSymbols.txt` — every way to open a client, socket or request; RS0030 at **error**, never suppressed); `Program` shape and no trailing blank line (`RepositoryConventionTests`); the browser export never building one giant string (same class); the committed settings name files and no connection (`ConfigurationTests`); nothing internal named in a delivered file (`DeliveryTests`, `AnalystGuideTests`); each export page byte-matches the script it embeds (`BrowserExportImportTests`) |

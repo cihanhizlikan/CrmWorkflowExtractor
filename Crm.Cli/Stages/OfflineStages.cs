@@ -7,8 +7,8 @@ using Microsoft.Extensions.Logging;
 namespace Crm.Cli.Stages;
 
 /// <summary>
-/// The stages after retrieval. They read the run folder's evidence and nothing else — no network — so a failure
-/// in one is diagnosable from the files, and the chain can be re-run over an existing run's raw/ folder.
+/// The stages after the source is loaded. They read the run folder's evidence and nothing else, so a failure in
+/// one is diagnosable from the files, and the chain can be re-run over an existing run's ham/ folder.
 /// </summary>
 public static class OfflineStages
 {
@@ -45,7 +45,7 @@ public static class OfflineStages
 
     /// <summary>
     /// Last, because it gathers what every stage before it learned. One workbook per question the reader has: what
-    /// the work is, which of these are the same, what touches what, and what reaches outside CRM.
+    /// the work is, what is not, what touches what, what reaches outside CRM, and who may start one by hand.
     /// </summary>
     private static async Task WriteAnalysisAsync(RunFolder folder, RunState state, IReadOnlyList<WorkflowIr> documents,
         UsageEvidence? usage, string logoFile, CancellationToken token)
