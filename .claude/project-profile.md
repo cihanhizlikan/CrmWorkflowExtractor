@@ -41,7 +41,7 @@ that every path below still resolves.
 | `structure_doc` | `.claude/context/structure.md` — the project table (what each owns, and that only `tools/` reads the network) |
 | `naming_rule` | `.claude/rules/coding-style.md` rule 12; and the Turkish naming of every output (`RunPaths`, `RunStages`, `ProcessLabels`, `ConditionWords`) described in `structure_doc` |
 | `reviewer_carried_rules` | `.claude/rules/coding-style.md` — the **Enforcement** paragraph |
-| `settled_decisions` | `.claude/context/plan.md`, *Decisions taken* and *3. Left to judgement* |
+| `settled_decisions` | `.claude/context/plan.md` — every entry marked **DECIDED**, in the head or the History |
 | `config_behaviours` | none — the settings name files only; a missing or wrong file stops the run with exit 2 (`Main_With_The_Committed_Settings_Exits_As_Configuration_Invalid`) |
 | `config_coverage_test` | `ConfigurationTests` |
 | `effective_config` | `Crm.Cli/appsettings.json` IS the effective configuration — there is nothing to substitute and no secrets (no network path since 2026-10-09). A gitignored `appsettings.Development.json` may override a file name locally |
