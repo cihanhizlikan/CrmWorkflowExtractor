@@ -89,18 +89,18 @@ public static class Guides
             $"Bu iş akışını çalıştıran talep aşamaları ve sonuçları ({firedByStage} iş akışında dolu). ")
             + "Doluysa iş akışı bir aşamanın sonucunda çalışır: önce o aşamanın haritasını açın ve onu o haritanın bir adımı olarak tasarlayın.");
         sheet.Row("adim_sayisi", "İş akışının büyüklüğü. Tahmin için; sayı büyüdükçe kalem büyür.");
-        sheet.Row("bekleme_var", "evet ise iş akışı bir zamanlayıcı ya da bir koşul bekliyor: süreç saatlerce, günlerce açık kalır. "
-            + "Zamana yayılan bir süreç, baştan sona koşan bir süreçle aynı şey değildir; tasarımı buna göre kurun.");
+        sheet.Row("bekleme_var", "evet ise iş akışı bir zamanlayıcı ya da bir koşul bekliyor: iş akışı saatlerce, günlerce açık kalır. "
+            + "Zamana yayılan bir iş akışı, baştan sona koşan bir iş akışıyla aynı şey değildir; tasarımı buna göre kurun.");
         sheet.Row("cagri_rolu", "\"aşama adımı\" bir talep aşamasının sonucunda çalışır; aşama haritasıyla birlikte tasarlanır. "
-            + "\"yapı taşı\" başka iş akışlarınca çağrılır: tek başına taşımayın, bir kez taşıyın. \"giriş noktası\" tek "
-            + "başına bir süreçtir.");
+            + "\"yapı taşı\" başka iş akışlarınca çağrılır: tek başına taşımayın, bir kez taşıyın. \"giriş noktası\" kendi "
+            + "başına başlayan bir iş akışıdır.");
         sheet.Row("cagiran_is_akislari · cagirdigi_is_akislari", "Bu iş akışını çağıranlar ve onun çağırdığı alt iş akışları. "
             + "Birlikte tek bir taşıma kalemidir; İş akışı ağaçları sayfası kalemin tamamını gösterir.");
         sheet.Row("kullanim · son_kayitli_calisma",
             "Canlı mı: \"çalışıyor\", \"kayıtlı çalışma yok\" ya da \"bilinemez\"; son kayıtlı çalışmanın tarihi yanındaki sütundadır. "
             + "Hücrede \"<tarih> sonrası çalışma yok\" yazıyorsa kanıt yalnızca o tarihten bugüne tarandı; o iş akışı daha önce "
             + "çalışmış olabilir. DİKKAT: kaydın bulunmaması kullanılmadığını KANITLAMAZ — CRM sistem işlerini düzenli olarak "
-            + "siler, iş kuralları hiç iz bırakmaz, gerçek zamanlı akışlar yalnızca hatayı kaydeder. \"kayıtlı çalışma yok\" bir "
+            + "siler, iş kuralları hiç iz bırakmaz, gerçek zamanlı iş akışları yalnızca hatayı kaydeder. \"kayıtlı çalışma yok\" bir "
             + "silme gerekçesi değildir.");
         sheet.Row("okunamayan_adim_sayisi", "Sıfırsa çizim tamdır. Sıfırdan büyükse diyagramda o adımlar OKUNAMADI olarak işaretlidir; "
             + "o iş akışını bitirmeden CRM'de karşılıklarına bakın.");
@@ -141,11 +141,11 @@ public static class Guides
         sheet.Row("Bu kitap ne işe yarar",
             "Taşıma planından (tasima-plani.xlsx) ÇIKARILAN iş akışlarıdır. Buradaki hiçbir satır için iş planlamayın; kitap yalnızca "
             + "bir çıkarma kararını sorgulamak istediğinizde açılır.");
-        sheet.Row("neden", "Çıkarma gerekçesi. Yalnızca üç kesin gerekçe kullanılır; şüphe varsa akış planda bırakılmıştır.");
-        sheet.Row("ürünle gelmiş", "CRM bu akışı yönetilen bir çözümün parçası olarak bildiriyor: ürünle birlikte gelmiş, kurum yazmamış.");
+        sheet.Row("neden", "Çıkarma gerekçesi. Yalnızca üç kesin gerekçe kullanılır; şüphe varsa iş akışı planda bırakılmıştır.");
+        sheet.Row("ürünle gelmiş", "CRM bu iş akışını yönetilen bir çözümün parçası olarak bildiriyor: ürünle birlikte gelmiş, kurum yazmamış.");
         sheet.Row("taslak", "Tanım taslak durumda; CRM taslak bir tanımla yeni çalıştırma başlatmaz.");
         sheet.Row("adı deneme gibi", "Adı DRAFT/TEST/kopya gibi okunuyor VE kanıt dosyasında hiç kayıtlı çalışması yok. "
-            + "Yalnızca ad yeterli değildir: adı deneme gibi görünen ve üretimde çalışan akışlar planda kaldı.");
+            + "Yalnızca ad yeterli değildir: adı deneme gibi görünen ve üretimde çalışan iş akışları planda kaldı.");
         sheet.Row("Diyagramı yine de var mı", "Evet. Her iş akışının BPMN dosyası kapsam-disi-bpmn/ altında üretildi; bpmn_dosyasi sütunundadır.");
         sheet.Row("Bu çalıştırma", string.Create(CultureInfo.InvariantCulture,
             $"{all} iş akışının {excluded} tanesi kapsam dışı · {drafts} taslak · {supplied} ürünle gelen"));
@@ -155,23 +155,23 @@ public static class Guides
     public static Sheet Data(int fields, int sharedFields, int cascades, int pairs)
     {
         Sheet sheet = Empty();
-        sheet.Row("Bu kitap ne işe yarar", "Bir akışı tek başına tasarlayamayacağınız yerleri gösterir: aynı veriye dokunan başka akışlar "
+        sheet.Row("Bu kitap ne işe yarar", "Bir iş akışını tek başına tasarlayamayacağınız yerleri gösterir: aynı veriye dokunan başka iş akışları "
             + "ve birbirini kendiliğinden tetikleyen zincirler.");
-        sheet.Row("Sayfa sırası", "Veri ayak izi (alan alan: kim yazıyor, kim okuyor) → Tetikleme zincirleri (bir yazmanın başlattığı akışlar)");
-        sheet.Row("varlik · alan", "Hangi kaydın hangi alanı. Tasarladığınız akışın yazdığı alanları burada aratın.");
-        sheet.Row("yazan", "Bu alana yazan akış sayısı. 1'den büyükse bu alanın sırası CRM'de hiçbir zaman garanti edilmedi: "
-            + "yeni üründe bir sıra kararlaştırın ya da yazan akışları birleştirin. Sayfayı bu sütuna göre sıralayarak başlayın.");
-        sheet.Row("bu_alanin_baslattigi", "Bu alana yazmak kaç akışı başlatıyor. Sıfırdan büyükse alana dokunmak zincir tetikler.");
-        sheet.Row("okuyan", "Alanı okuyan akış sayısı. Alanın anlamını değiştirecekseniz kimin etkileneceğini söyler.");
+        sheet.Row("Sayfa sırası", "Veri ayak izi (alan alan: kim yazıyor, kim okuyor) → Tetikleme zincirleri (bir yazmanın başlattığı iş akışları)");
+        sheet.Row("varlik · alan", "Hangi kaydın hangi alanı. Tasarladığınız iş akışının yazdığı alanları burada aratın.");
+        sheet.Row("yazan", "Bu alana yazan iş akışı sayısı. 1'den büyükse bu alanın sırası CRM'de hiçbir zaman garanti edilmedi: "
+            + "yeni üründe bir sıra kararlaştırın ya da yazan iş akışlarını birleştirin. Sayfayı bu sütuna göre sıralayarak başlayın.");
+        sheet.Row("bu_alanin_baslattigi", "Bu alana yazmak kaç iş akışını başlatıyor. Sıfırdan büyükse alana dokunmak zincir tetikler.");
+        sheet.Row("okuyan", "Alanı okuyan iş akışı sayısı. Alanın anlamını değiştirecekseniz kimin etkileneceğini söyler.");
         sheet.Row("yazanlar · baslattiklari · okuyanlar", "Aynı sayıların adları: kiminle konuşacağınızı burada bulursunuz.");
         sheet.Row("Tetikleme zinciri nedir",
-            "İlk akış, ikincinin izlediği bir alana yazdığı ya da bir kayıt oluşturduğu için CRM ikinciyi başlatır. "
+            "İlk iş akışı, ikincinin izlediği bir alana yazdığı ya da bir kayıt oluşturduğu için CRM ikinciyi başlatır. "
             + "Aralarında açık bir çağrı yoktur; bu bağ diyagramlarda GÖRÜNMEZ, yalnızca bu sayfadadır.");
-        sheet.Row("kendini_baslatiyor", "evet ise akış kendi yazmasıyla yeniden tetikleniyor: yeni üründe bu döngü elle kırılmalıdır.");
+        sheet.Row("kendini_baslatiyor", "evet ise iş akışı kendi yazmasıyla yeniden tetikleniyor: yeni üründe bu döngü elle kırılmalıdır.");
         sheet.Row("baslatan_modu · baslayan_modu", "Zincirin gerçek zamanlı mı arka planda mı koştuğu. Gerçek zamanlı bir başlatıcı, "
             + "zinciri kullanıcının kaydetme anının içine sokar.");
         sheet.Row("Bu çalıştırma", string.Create(CultureInfo.InvariantCulture,
-            $"{fields} alan · birden fazla akışın yazdığı {sharedFields} alan · {pairs} çift arasında {cascades} tetikleme zinciri"));
+            $"{fields} alan · birden fazla iş akışının yazdığı {sharedFields} alan · {pairs} çift arasında {cascades} tetikleme zinciri"));
         return sheet;
     }
 
@@ -186,7 +186,7 @@ public static class Guides
             + "Dışarıya uzanan her çağrı bu yüzden bir satır olarak görünür.");
         sheet.Row("etkinlik · derleme", "Çağrılan kodun adı ve içinde bulunduğu derleme. Yeni üründe her birinin karşılığını kurmanız gerekir; "
             + "ne yaptığını yalnızca derlemenin sahibi söyleyebilir.");
-        sheet.Row("cagiran_is_akisi_sayisi · cagiran_is_akislari", "Kaç akışı etkiliyor. Üstteki satırlar en çok akışı etkileyenlerdir: oradan başlayın.");
+        sheet.Row("cagiran_is_akisi_sayisi · cagiran_is_akislari", "Kaç iş akışını etkiliyor. Üstteki satırlar en çok iş akışını etkileyenlerdir: oradan başlayın.");
         sheet.Row("derlemedeki_adresler",
             "Etkinliğin geldiği DERLEMENİN İÇİNDE yazılı adresler. Aradığınız servis adresi neredeyse her zaman buradadır, "
             + "çünkü iş akışı onu geçirmez, kod kendi içinde tutar. Okuma şekli: \"bu adımın çalıştırdığı kodun içinde şu "
