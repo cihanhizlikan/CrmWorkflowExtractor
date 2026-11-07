@@ -76,13 +76,19 @@ Report the count that survives triage, never the raw count.
 
 ```bash
 dotnet test --no-build > "$S/test.txt" 2>&1; echo "exit=$?"
-grep -cE '\[FAIL\]' "$S/test.txt"
-grep -E '\[FAIL\]' "$S/test.txt"
-tail -5 "$S/test.txt"
+grep -cE '^(başarısız|failed) ' "$S/test.txt"     # 0, or read the names below
+grep -E '^(başarısız|failed) ' "$S/test.txt"
+tail -6 "$S/test.txt"
 ```
 
-**Capture to a file and grep `[FAIL]`; never pipe the run straight to `tail`** — the summary says how many failed,
-never which. If `[FAIL]` appears, record the name BEFORE re-running anything. **Baseline skips: zero.**
+**Capture to a file and grep the failure lines; never pipe the run straight to `tail`** — the summary says how many
+failed, never which. If one appears, record the name BEFORE re-running anything. **Baseline skips: zero** — except
+on a machine with no `node`, where the three `Crm.Tests.Tools` tests skip and say why.
+
+**The runner is Microsoft Testing Platform (xunit 4, 2026-11-07), and its output is not VSTest's.** A failure prints
+at column 0 as `başarısız <Test.Name>`, localized, where VSTest printed `[FAIL]` — so a `[FAIL]` grep reads red as
+green. The `^` keeps the indented summary `başarısız oldu: N` out. One class: `dotnet test --no-build --filter-class
+<Namespace.Class>`; VSTest's `--filter "FullyQualifiedName~…"` is gone.
 
 ## 8. A failed build means the rest never compiled
 
