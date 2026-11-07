@@ -1410,3 +1410,35 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Not adopted:** Yalbuz's CA2000 decline, Konrul scoping, the UI register — nothing here they apply to. The plan
   stays in the tree, so the profile says how a sweep writes rows to it.
 - **Evidence:** each rule proven to fire by a probe file, then 0 sites; no vulnerable package.
+
+---
+
+## Sweep 2026-11-07 — handed over
+
+Rows raised by the first `/sweep` (whole tree: no earlier marker). Each is **Origin: finding, Status: not yet
+committed to build**, and carries a recommendation; none was acted on because each needs a choice.
+
+### S1 — Two names still contrast with a network path that no longer exists (step 1, naming)
+- **What:** `OfflineStages` and the `Crm.Extract.Preflight` namespace name the run by what it was NOT (the
+  network) and by a phase that was removed on 2026-10-09.
+- **Where:** `Crm.Cli/Stages/OfflineStages.cs:13` (its summary says "after retrieval … no network" and "raw/");
+  `Crm.Extract/Preflight/` (`CrmIdentity`, `PrivilegeCheck`, `WorkflowColumns`), 11 files import it.
+- **Why not obvious:** a rename is a choice of word, and the namespace moves three files and eleven `using`s.
+- **Recommendation:** `OfflineStages` → `RunPipeline` (it IS the run's stage sequence); `Preflight/` →
+  `Access/` (identity, privileges, the columns the reader could see). Purely mechanical once named.
+- **Falsify:** a reader who knows the tool's history does not need the contrast — but the guide's readers do not.
+
+### S3 — The test packages are a major version behind (step 3, dependencies)
+- **What:** `Microsoft.NET.Test.Sdk` 17.14.1 → 18.11.0, `xunit.v3` 3.2.2 → 4.0.2, `xunit.runner.visualstudio`
+  3.1.5 → 4.0.1 (`dotnet list package --outdated`, 2026-11-07). Nothing else is outdated, vulnerable or deprecated.
+- **Where:** `Directory.Packages.props`, the *Tests* group.
+- **Why not obvious:** majors; xunit 4 changes the runner and Yalbuz left it on purpose. Test-only — nothing ships.
+- **Recommendation:** move all three together in one package, after Yalbuz does, reading xunit 4's migration notes.
+- **Falsify:** the suite on 4.x reports a different count than 390 — a discovery change, not a pass.
+
+### Detector BLOCKED — CA2000 does not fire here
+- **What:** enabling `dotnet_diagnostic.CA2000.severity = warning` (main `[*.cs]` section, and again in a trailing
+  section) and building a probe holding an undisposed `FileStream` produced NO CA2000 — the build was clean.
+  Yalbuz measures 413 sites with the same line. Until it fires, a disposal audit cannot read it.
+- **Command:** add the line beside `CA1001` in `.editorconfig`, add a method `FileStream s = new("x", FileMode.Open);
+  return s.Length;` to any production project, `dotnet build --no-incremental`, grep `warning CA2000`.
