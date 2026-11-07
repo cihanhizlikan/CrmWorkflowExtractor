@@ -1,0 +1,37 @@
+<Project>
+  <!-- Central package management, adopted from Yalbuz (2026-11-07). EVERY package version in the solution is stated
+       here and nowhere else; a csproj names a package and never a version, and a Version on a PackageReference is
+       NU1008, an error. With one test project and one executable there is no skew today; this makes it unwritable.
+
+       THE RULE FOR A BUMP: the Microsoft.Extensions 10.0.x packages move TOGETHER, to the patch the installed .NET
+       runtime carries. Everything else takes its newest patch/minor freely; a MAJOR is a decision, not a bump.
+       global.json pins the SDK beside this, because AnalysisLevel fixes the rule SET but not the analyzers'
+       implementation, so a warning count is only comparable on one SDK. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- The Microsoft 10.0 servicing line: one patch, the installed runtime's. -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.14" />
+  </ItemGroup>
+
+  <!-- Analyzers: build-time only, PrivateAssets in Directory.Build.props. -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.12.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="5.0.1" />
+  </ItemGroup>
+
+  <!-- Tests. xunit.v3 stays on 3.x: a major is a decision. -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+</Project>

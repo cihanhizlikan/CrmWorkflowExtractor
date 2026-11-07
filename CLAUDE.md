@@ -37,3 +37,7 @@ in @.claude/context/plan.md. Section numbers like "§2.4" in code comments refer
 
 ## Where things are
 @.claude/context/structure.md
+
+[project-profile.md](.claude/project-profile.md) — every value the four workflow skills (`/sweep`, `/wp-start`,
+`/wp-verify`, `/wp-finish`) need that is true of THIS repository. `/sweep` is Yalbuz's, copied unchanged; the profile
+is not copied, it is filled in from this tree. A sweep is started by the maintainer, never by a session.

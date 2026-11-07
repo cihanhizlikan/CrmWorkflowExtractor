@@ -57,16 +57,38 @@ dotnet_diagnostic.CA2100.severity = warning
 dotnet_diagnostic.CA3003.severity = warning
 dotnet_diagnostic.CA1001.severity = warning
 
+# --- Robustness rules switched on at ZERO, so the next site is new (adopted from Yalbuz 2026-11-07). Each was off
+# at SDK defaults, so a sweep reading it measured nothing: a rule that is off reads exactly like a rule at zero.
+# Each was proven to FIRE by a probe file before being trusted, and none has a site in this tree today.
+# CA1031 a broad `catch (Exception)` with no filter: all five in the tree carry one (the per-workflow and per-map
+# guards, IrStage, ExtractionRun), so the next unfiltered one is new. CA2016 a CancellationToken a method has but does not pass on; CA2201 throwing
+# Exception and the other reserved types; CA2008 a task started without a TaskScheduler; CA1065 an exception
+# thrown where none is expected (a getter, Equals, GetHashCode, Dispose); CA2219 an exception thrown from finally.
+# The SECURITY category is on whole rather than rule by rule (CA2100 and CA3003 above are in it), so a rule a
+# future SDK adds arrives on rather than silently off.
+dotnet_diagnostic.CA1031.severity = warning
+dotnet_diagnostic.CA2016.severity = warning
+dotnet_diagnostic.CA2201.severity = warning
+dotnet_diagnostic.CA2008.severity = warning
+dotnet_diagnostic.CA1065.severity = warning
+dotnet_diagnostic.CA2219.severity = warning
+dotnet_analyzer_diagnostic.category-Security.severity = warning
+
 # --- The culture-sensitive string family. This tool folds Turkish text for comparison keys (handout §5.2), where
 # the dotted/dotless I makes a culture comparison and an ordinal one disagree on real data.
 dotnet_diagnostic.CA1305.severity = warning
 dotnet_diagnostic.CA1307.severity = warning
 dotnet_diagnostic.CA1310.severity = warning
 
-# --- Roslynator, one rule only: RCS1211 is rule 13 (no else after a branch that exits).
+# --- Roslynator, three rules only: RCS1211 is rule 13 (no else after a branch that exits).
 roslynator_analyzers.enabled_by_default = false
 dotnet_analyzer_diagnostic.category-roslynator.severity = none
 dotnet_diagnostic.RCS1211.severity = warning
+# RCS1236 is rule 9 — an exception FILTER rather than catch-and-retest. It implements HALF of it: it fires on the
+# negated retest `if (!(e is X)) throw;` and NOT on the inverted `if (e is X) return; throw;` (both probed in
+# Yalbuz). RCS1075 is an empty `catch (Exception)`: CA1031 catches the breadth, this the silence.
+dotnet_diagnostic.RCS1236.severity = warning
+dotnet_diagnostic.RCS1075.severity = warning
 
 dotnet_style_object_initializer = true:suggestion
 dotnet_style_collection_initializer = true:suggestion

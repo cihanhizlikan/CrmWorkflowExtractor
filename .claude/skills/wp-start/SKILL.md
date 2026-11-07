@@ -27,6 +27,9 @@ pushes. Naming `main` makes the base local by construction. `EnterWorktree` also
 
 ## What bites once you are in there
 
+This repository's `profile:secrets_file` and `profile:run_command` are both `none` (`.claude/project-profile.md`):
+there is nothing to copy in and nothing to run from a worktree.
+
 - **The gitignored `Crm.Cli/appsettings.Development.json` does not exist in a fresh worktree**, and no test needs it.
   It may name a real export file; do not copy it in.
 - **Never point a worktree run at a real export.** Production XAML may hold credentials, and a worktree is the wrong

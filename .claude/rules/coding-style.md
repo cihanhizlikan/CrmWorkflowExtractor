@@ -20,7 +20,10 @@ history behind each rule; this file carries the rules and the traps that apply t
    `IReadOnlyDictionary<,>` cannot be built from one, so a dictionary stays a `new`.
 8. **Range and index operators** where they read better: `text[..200]`, `url[(at + 1)..]`.
 9. **Exception filters over catch-and-retest.** `catch (Exception error) when (error is IOException or
-   HttpRequestException)`. A filter that does not match never unwinds the stack.
+   HttpRequestException)`. A filter that does not match never unwinds the stack. **Half build-enforced, and the half
+   is exact:** Roslynator `RCS1236` fires on the NEGATED retest (`if (!(error is IOException)) { throw; }` as the
+   catch body) and is silent on the inverted `if (error is IOException) { return; } throw;` — the same defect
+   written the other way round. The analyzer catches one spelling; a reviewer owns the other.
 10. **File-scoped namespaces** and **block-bodied members** — `get { return _x; }`, not `=> _x`. Test projects are
     scoped off for methods only.
 11. **Primary constructors wherever one is possible.** A captured parameter is **not `readonly`**: where immutability
@@ -34,9 +37,10 @@ history behind each rule; this file carries the rules and the traps that apply t
 
 Interactions: rule 6 replaces a cast, not an `is`-pattern. Rule 7 overrides rule 1 for collections only.
 
-**Enforcement.** Rules 1–2, 5, 7, 8, 10, 11 via `.editorconfig`; rule 13 via Roslynator `RCS1211`; rule 3 via
-`RepositoryConventionTests.No_Source_File_Ends_With_A_Blank_Line`; rule 4 via that test's `Program`-shape check.
-**Reviewer-carried: 6, 9 and 12.**
+**Enforcement.** Rules 1–2, 5, 7, 8, 10, 11 via `.editorconfig`; rule 13 via Roslynator `RCS1211`; half of rule 9
+via `RCS1236` (2026-11-07); rule 3 via `RepositoryConventionTests.No_Source_File_Ends_With_A_Blank_Line`; rule 4 via
+that test's `Program`-shape check. **Reviewer-carried: 6 and 12, and the inverted half of 9.** This list is
+RE-DERIVED when an analyzer is adopted, never decremented — that is the only way the sentence stays true.
 
 **String handling in this repository specifically:** comparison keys over CRM text go through `TurkishFold`, never
 `ToLowerInvariant()` alone, and every string comparison names its `StringComparison` (CA1307/CA1310 are on).

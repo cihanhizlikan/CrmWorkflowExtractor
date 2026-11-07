@@ -56,11 +56,13 @@ read the file; a missing final newline on a new file is caught by the exit code 
 
 ## 6. Style conformance — the reviewer-carried rules
 
-The analyzers cannot see rules 6, 9 and 12 of `coding-style.md`. On the package's diff:
+The analyzers cannot see rules 6 and 12 of `coding-style.md`, nor the half of rule 9 `RCS1236` misses — the
+inverted retest `if (error is X) { return; } throw;`. On the package's diff:
 
 ```bash
 git diff main --unified=0 -- '*.cs' | grep -nE '^\+.*\((int|long|string|[A-Z][A-Za-z]+)\)[a-zA-Z_(]'   # rule 6 cast candidates
 git diff main --unified=0 -- '*.cs' | grep -nE '^\+.*catch \([A-Za-z]+ [a-z]+\)$'                        # rule 9: catch without a filter
+git diff main --unified=0 -- '*.cs' | grep -nE '^\+\s*throw;$'                                          # rule 9: a bare rethrow — read the lines above it
 git diff main --unified=0 -- '*.cs' | grep -nE '^\+\s*(public|internal|private).*\b(Helper|Manager|Util|Data|Info)\b' # rule 12 vague names
 ```
 
@@ -68,6 +70,9 @@ Each hit is READ and marked take-or-decline with a reason — numeric value-type
 Report the count that survives triage, never the raw count.
 
 ## 7. The suite
+
+`profile:secrets_file` is `none` here, so there is nothing to copy in first, and `profile:baseline_skips` is zero
+(`.claude/project-profile.md`).
 
 ```bash
 dotnet test --no-build > "$S/test.txt" 2>&1; echo "exit=$?"

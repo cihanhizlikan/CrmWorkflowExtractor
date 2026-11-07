@@ -139,6 +139,9 @@ mapped: no credible XAML sample exists to write them against; they surface as un
    lives only in `tools/crm-browser-export.js` and has no committed test. The C# copy that was tested ran only on the
    network path and went with it (2026-10-09). A node-run test of the script would close it; there is no JS test
    harness in the repository yet.
+6. Context drift a first `/sweep` will meet (step 8): *Acceptance on the company network* below still describes the
+   network path removed on 2026-10-09 (`Crm:WebApiBaseUrl`, exit code 3, `clusters/`, `consolidated/`), and
+   `.gitignore` still says `appsettings.json` keeps `__CRM_PASSWORD__`, which it has not since then.
 
 ---
 
@@ -1395,3 +1398,15 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 - **Checked** on the stubbed CRM in Istanbul time: Friday 15:00 → Monday 10:00 is 4,020 minutes and 1,140 working
   minutes; across a one-day holiday 2,880 and 1,440. Needs one new process-mining export to take effect. Each guard
   falsified. 390 pass.
+
+### Yalbuz's workflow changes, adopted (2026-11-07) — committed, awaiting merge
+- **Maintainer:** adopt what changed in Yalbuz's workflow since 2026-09-14, the style rules and the sweep above all.
+- **Adopted:** `/sweep`, copied UNCHANGED — it is written to travel, and reads every repository fact from the new
+  `.claude/project-profile.md`, where an absent key is UNAVAILABLE, never clean. Nine robustness rules on at zero
+  (CA1031, CA2016, CA2201, CA2008, CA1065, CA2219, the Security category, RCS1236, RCS1075); rule 9 half
+  build-enforced; `global.json` pins SDK 10.0.403; `Directory.Packages.props` holds every version (Extensions
+  10.0.5 → 10.0.14, the installed runtime's; analyzers and Test.Sdk to Yalbuz's). Skills read the profile;
+  wp-finish no longer writes a model name.
+- **Not adopted:** Yalbuz's CA2000 decline, Konrul scoping, the UI register — nothing here they apply to. The plan
+  stays in the tree, so the profile says how a sweep writes rows to it.
+- **Evidence:** each rule proven to fire by a probe file, then 0 sites; no vulnerable package.

@@ -33,7 +33,9 @@ git commit -F "$S/msg.txt"
 git show --stat --format="" HEAD
 ```
 
-End the message with `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
+End the message with the attribution line the session's system prompt specifies, verbatim. **Never a model name
+written here**: this skill said `Claude Opus 5` while sessions ran a later model, so every commit that copied it
+attributed the wrong one.
 
 ## 4. Confirm the tree is clean
 
@@ -46,5 +48,9 @@ git status --porcelain    # empty
 - The package's row in `plan.md` says *committed, awaiting merge* — in the same commit, not a separate `docs:` one.
 - Report in the **four sections of handout §9**, then the branch name and commit. Then **stop**.
 - **Merging is the maintainer's**, only when they name the branch. **A session NEVER pushes.**
-- Verification that needs the CRM server goes into `plan.md` under *Acceptance on the company network*, with a
-  **Do**, a **Pass** and a **Capture** (what to send back).
+- Verification that needs the CRM server goes into `profile:offsite_register` (`plan.md`, *Acceptance on the
+  company network*), with a **Do**, a **Pass** and a **Capture** (what to send back).
+- **Under `/sweep`**, "stop" does not apply: a sweep step uses this skill for the commit body and the size cap, then
+  merges and keeps going (see that skill's *Merge, delete and continue*).
+
+**Values marked `profile:<key>` are this repository's**, read from `.claude/project-profile.md`.
