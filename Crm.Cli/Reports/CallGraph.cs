@@ -14,12 +14,11 @@ public sealed class CallGraph
     public const string Both = "giriş noktası + yapı taşı";
 
     private CallGraph(IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> calls, IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> calledBy,
-        IReadOnlyDictionary<Guid, string> names, IReadOnlyList<Guid> missing)
+        IReadOnlyDictionary<Guid, string> names)
     {
         Calls = calls;
         CalledBy = calledBy;
         Names = names;
-        MissingTargets = missing;
     }
 
     public IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> Calls { get; }
@@ -28,24 +27,21 @@ public sealed class CallGraph
 
     public IReadOnlyDictionary<Guid, string> Names { get; }
 
-    /// <summary>Child workflows called but not among the parsed definitions: deleted, or a kind this run did not parse.</summary>
-    public IReadOnlyList<Guid> MissingTargets { get; }
-
     public static CallGraph Build(IReadOnlyList<WorkflowIr> documents)
     {
         Dictionary<Guid, string> names = documents.ToDictionary(document => document.Identity.WorkflowId, document => document.Identity.Name);
         Dictionary<Guid, IReadOnlyList<Guid>> calls = [];
         Dictionary<Guid, List<Guid>> calledBy = [];
-        SortedSet<Guid> missing = [];
         foreach (WorkflowIr document in documents)
         {
             List<Guid> children = [.. document.Dependencies.ChildWorkflowCalls.Distinct().Order()];
             calls[document.Identity.WorkflowId] = children;
             foreach (Guid child in children)
             {
+                // A child the run does not have (deleted, or a kind it did not parse) stays in Calls, where the
+                // caller's row names it as not found; it has no row of its own to point back from.
                 if (!names.ContainsKey(child))
                 {
-                    missing.Add(child);
                     continue;
                 }
                 if (!calledBy.TryGetValue(child, out List<Guid>? parents))
@@ -56,7 +52,7 @@ public sealed class CallGraph
                 parents.Add(document.Identity.WorkflowId);
             }
         }
-        return new CallGraph(calls, calledBy.ToDictionary(entry => entry.Key, entry => (IReadOnlyList<Guid>)entry.Value), names, [.. missing]);
+        return new CallGraph(calls, calledBy.ToDictionary(entry => entry.Key, entry => (IReadOnlyList<Guid>)entry.Value), names);
     }
 
     public string RoleOf(Guid workflowId)
