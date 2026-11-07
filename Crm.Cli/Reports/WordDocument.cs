@@ -124,10 +124,9 @@ public static class WordDocument
         {
             paragraph.Append("<w:keepNext/>");
         }
-        if (look.Before is int before || look.After is int)
+        if (look.Before is not null || look.After is not null)
         {
-            before = look.Before ?? 0;
-            paragraph.Append(Invariant($"""<w:spacing w:before="{before}" w:after="{look.After ?? 120}"/>"""));
+            paragraph.Append(Invariant($"""<w:spacing w:before="{look.Before ?? 0}" w:after="{look.After ?? 120}"/>"""));
         }
         if (look.Indent is int indent)
         {

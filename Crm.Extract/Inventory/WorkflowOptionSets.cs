@@ -68,7 +68,6 @@ public static class WorkflowOptionSets
             }
         };
 
-    public const int CategoryWorkflow = 0;
     public const int TypeDefinition = 1;
     public const int TypeActivation = 2;
     public const int TypeTemplate = 3;

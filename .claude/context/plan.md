@@ -1442,3 +1442,13 @@ committed to build**, and carries a recommendation; none was acted on because ea
   Yalbuz measures 413 sites with the same line. Until it fires, a disposal audit cannot read it.
 - **Command:** add the line beside `CA1001` in `.editorconfig`, add a method `FileStream s = new("x", FileMode.Open);
   return s.Length;` to any production project, `dotnet build --no-incremental`, grep `warning CA2000`.
+
+### S4 — A computed fact nobody reads: children a workflow calls that are not in the export (step 4, dead code)
+- **What:** `CallGraph.MissingTargets` is built on every run and read by nothing, production or test, since the
+  "Çağrı ağacı" sheet that showed it was folded into the plan's columns (2026-10-12).
+- **Where:** `Crm.Cli/Reports/CallGraph.cs:32` (property), `:39–48` (computed).
+- **Why not obvious:** deleting it is safe, but it is the one place the run notices a workflow calling a child
+  that is deleted or of a kind it did not parse — a migrator would want that on the caller's row.
+- **Recommendation:** SHOW it — a `cagirdigi_eksik` note on the caller's `İş akışları` row, or a line in
+  `rapor.md` if it is the tool maintainer's concern only. Deleting is the fallback.
+- **Falsify:** on the real export the count is zero — then delete it.

@@ -6,7 +6,6 @@ using Crm.Cli.Configuration;
 using Crm.Cli.Logging;
 using Crm.Cli.Reports;
 using Crm.Cli.Stages;
-using Crm.Extract.Inventory;
 using Crm.Extract.Preflight;
 using Crm.Extract.Runs;
 using Microsoft.Extensions.Logging;
@@ -25,7 +24,6 @@ public sealed class ExtractionRun(ExtractorSettings settings, TimeProvider time,
         DateTimeOffset started = time.GetUtcNow();
         RunFolder folder = RunFolder.Create(settings.Output.Value.ResolvedRoot(), started);
         RunState state = new(folder.RunId, folder.Root, ToolVersion());
-        IReadOnlyList<WorkflowInventoryRecord> records = [];
 
         RunLogProvider logProvider = new(folder.PathOf(RunPaths.RunLog), folder.PathOf(RunPaths.WarningLog));
         using (ILoggerFactory loggers = LoggerFactory.Create(builder => builder.SetMinimumLevel(LogLevel.Debug).AddProvider(logProvider)))
@@ -34,7 +32,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, TimeProvider time,
             logger.LogInformation("Run {RunId} started by tool {Version}", state.RunId, state.ToolVersion);
             try
             {
-                records = await LoadSourceAsync(folder, state, logger, token);
+                await LoadSourceAsync(folder, state, logger, token);
                 if (state.Failures.Count == 0 && state.StagesRun.Contains(RunStages.Xaml))
                 {
                     await OfflineStages.RunAsync(folder, state, settings, started, logger, token);
@@ -73,19 +71,20 @@ public sealed class ExtractionRun(ExtractorSettings settings, TimeProvider time,
     }
 
     /// <summary>Where the evidence comes from: an earlier run (reprocess) or a browser export (import).</summary>
-    private async Task<IReadOnlyList<WorkflowInventoryRecord>> LoadSourceAsync(RunFolder folder, RunState state, ILogger logger, CancellationToken token)
+    private async Task LoadSourceAsync(RunFolder folder, RunState state, ILogger logger, CancellationToken token)
     {
         string reprocess = settings.Run.Value.ReprocessRunId.Trim();
         if (reprocess.Length > 0)
         {
-            return await Reprocessing.LoadAsync(folder, state, settings.Output.Value.ResolvedRoot(), reprocess, logger, token);
+            await Reprocessing.LoadAsync(folder, state, settings.Output.Value.ResolvedRoot(), reprocess, logger, token);
+            return;
         }
         string import = settings.Run.Value.ImportFile.Trim();
         if (import.Length == 0)
         {
             throw new InvalidOperationException("Okunacak bir şey yok: Run:ImportFile ya da Run:ReprocessRunId verilmeli.");
         }
-        return await BrowserExportImport.LoadAsync(folder, state, settings.Run.Value.RequireOrganizationReadPrivileges, import, logger, token);
+        await BrowserExportImport.LoadAsync(folder, state, settings.Run.Value.RequireOrganizationReadPrivileges, import, logger, token);
     }
 
     internal static void ApplyPrivilegeVerdicts(RunState state, bool requireOrganizationRead)

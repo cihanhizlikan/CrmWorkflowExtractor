@@ -28,7 +28,7 @@ public static class AnalystGuide
     {
         List<DocumentPart> parts = [];
         PngImage? logo = Logo(state, logoFile);
-        byte[]? image = LogoBytes(state, logoFile);
+        byte[]? image = LogoBytes(logoFile);
         int inScope = MigrationPlan.InScope(state, documents, usage).Count();
 
         Cover(parts, state, documents, inScope, logo);
@@ -425,7 +425,7 @@ public static class AnalystGuide
     /// file that cannot be read is said out loud and the guide goes out without a logo — it is a mark on a cover,
     /// not a reason to fail a run.
     /// </summary>
-    private static byte[]? LogoBytes(RunState state, string logoFile)
+    private static byte[]? LogoBytes(string logoFile)
     {
         if (logoFile.Length == 0)
         {
@@ -444,7 +444,7 @@ public static class AnalystGuide
 
     private static PngImage? Logo(RunState state, string logoFile)
     {
-        byte[]? bytes = LogoBytes(state, logoFile);
+        byte[]? bytes = LogoBytes(logoFile);
         PngImage? picture = bytes is null ? null : PngImage.TryRead(bytes);
         if (picture is null && logoFile.Length > 0)
         {

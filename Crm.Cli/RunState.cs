@@ -27,12 +27,6 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
 
     public IReadOnlyList<WorkflowInventoryRecord> Records { get; set; } = [];
 
-    /// <summary>Definitions routed to manual-review/ instead of the parser.</summary>
-    public IReadOnlyList<Guid> ManualReview { get; set; } = [];
-
-    /// <summary>IR documents produced by the offline stages.</summary>
-    public IReadOnlyList<Crm.Ir.Model.WorkflowIr> Documents { get; set; } = [];
-
     /// <summary>The code registered in CRM, and the addresses found inside the assemblies. Empty when not retrieved.</summary>
     public Crm.Extract.Metadata.PluginRegistry Plugins { get; set; } = Crm.Extract.Metadata.PluginRegistry.Empty;
 

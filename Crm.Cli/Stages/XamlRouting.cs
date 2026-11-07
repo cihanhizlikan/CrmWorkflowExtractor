@@ -47,6 +47,5 @@ public static class XamlRouting
         }
         await folder.WriteTextAsync(ManualReviewIndex, index.ToString(), token);
         state.Counts["manualReview"] = manual.Count;
-        state.ManualReview = [.. manual.Select(record => record.WorkflowId)];
     }
 }
