@@ -1466,3 +1466,15 @@ committed to build**, and carries a recommendation; none was acted on because ea
   lets the manifest be written UNSEALED-as-failed — so the operator on the locked-down host sends back a folder that
   says what happened. Suppress CA1031 at that one site with this reason.
 - **Falsify:** a test whose fake stage throws `NullReferenceException` gets exit code `RunFailed` and a run log naming it.
+
+### The sweep becomes this repository's own (2026-11-07) — committed, awaiting merge
+- **Maintainer:** optimise the sweep for this project, removing steps with nothing to work on here (UI drift etc.).
+- **Removed:** step 10 (UI drift) and everything serving it — the register, render harnesses, the browser-denied
+  fallback, "publish as you go"; markup and DI traps; the plan-mode round trip and the search for a plan outside the
+  tree; the cross-culture comparison; WPF/ASP.NET handler rules. Ten steps become nine.
+- **Written in from the first run:** the known detector states (jb inspectcode LIVE, CA2000 BLOCKED, coverage and
+  Stryker absent); JSON-serialized records are not dead; the pairwise-loop guard; nullable-tuple
+  `PatternAlwaysMatches` is a false positive; the path-check triage that turned 120 misses into none; the wording
+  search with what to keep; the browser scripts as robustness subjects; and three traps that cost time — a
+  backslash through a heredoc, `git checkout --` dropping a step's edit, a worktree held by the shell inside it.
+- **Profile:** the eight keys only the dropped steps read are gone; `plan_rule` lets a lone row ride the next branch.
