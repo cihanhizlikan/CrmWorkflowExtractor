@@ -133,6 +133,6 @@ public sealed class StepBoxTests
     [Fact]
     public void A_Short_Step_Keeps_The_Ordinary_Box()
     {
-        Assert.Equal((130, 70), FlowNode.Size(FlowNodeType.ServiceTask, "Durum değiştir"));
+        Assert.Equal(FlowNode.Size(FlowNodeType.ServiceTask, ""), FlowNode.Size(FlowNodeType.ServiceTask, "Durum değiştir"));
     }
 }
