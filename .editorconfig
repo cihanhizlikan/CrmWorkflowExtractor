@@ -56,12 +56,17 @@ dotnet_diagnostic.CA1506.severity = warning
 dotnet_diagnostic.CA2100.severity = warning
 dotnet_diagnostic.CA3003.severity = warning
 dotnet_diagnostic.CA1001.severity = warning
+# CA2000 an IDisposable that leaves scope undisposed. On at zero since 2026-11-07: it was recorded as never firing,
+# but the probe was the wrong shape (`FileStream s = new(path, FileMode.Open); return s.Length;` is a case the
+# rule does not flag); a StreamReader, an HttpClient or any IDisposable left undisposed does. Every FileStream in
+# the tree is under `using`, which the rule cannot vouch for and a reader has to.
+dotnet_diagnostic.CA2000.severity = warning
 
 # --- Robustness rules switched on at ZERO, so the next site is new (adopted from Yalbuz 2026-11-07). Each was off
 # at SDK defaults, so a sweep reading it measured nothing: a rule that is off reads exactly like a rule at zero.
 # Each was proven to FIRE by a probe file before being trusted, and none has a site in this tree today.
-# CA1031 a broad `catch (Exception)` with no filter: all five in the tree carry one (the per-workflow and per-map
-# guards, IrStage, ExtractionRun), so the next unfiltered one is new. CA2016 a CancellationToken a method has but does not pass on; CA2201 throwing
+# CA1031 a broad `catch (Exception)` with no filter: all six in the tree carry one (the per-workflow and per-map
+# guards, IrStage, ExtractionRun's listed and last-resort catches), so the next unfiltered one is new. CA2016 a CancellationToken a method has but does not pass on; CA2201 throwing
 # Exception and the other reserved types; CA2008 a task started without a TaskScheduler; CA1065 an exception
 # thrown where none is expected (a getter, Equals, GetHashCode, Dispose); CA2219 an exception thrown from finally.
 # The SECURITY category is on whole rather than rule by rule (CA2100 and CA3003 above are in it), so a rule a

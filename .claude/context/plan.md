@@ -16,7 +16,7 @@ Decisions in force are the entries marked **DECIDED**, wherever they stand.
 - **Verified on production data:** the export and usage files (runs from 2026-09-22 on, 1,437 workflows in the
   plan's estate). **Not yet:** the process-mining export — its first attempt was refused (403) and now saves the
   refusal instead of dying; it waits for a re-run (*Acceptance → B*).
-- **Health:** Release build with zero warnings (warnings are errors there); 390 tests; nine robustness rules on at
+- **Health:** Release build with zero warnings (warnings are errors there); 392 tests; ten robustness rules on at
   zero; the first `/sweep` ran 2026-11-07 and its findings are the packages below.
 
 ## Outstanding work — in order
@@ -30,7 +30,7 @@ maintainer: "merge & delete as you go").
 | P2 | **A call to a child workflow the run does not have is shown**, on the caller's row in `İş akışları`, instead of being computed and dropped (`CallGraph.MissingTargets`). | sweep S4 | **done** 2026-11-07 — it already was: `cagirdigi_is_akislari` names such a child "(envanterde bulunamadı)" (asserted by `The_Call_Graph_Separates_Entry_Points_From_Building_Blocks`), so the duplicate was deleted. The sweep's premise was wrong |
 | P3 | **Names without the network**: `OfflineStages` → `RunPipeline`; `Crm.Extract.Preflight` → `Crm.Extract.Access`. | sweep S1 | **done** 2026-11-07 |
 | P4 | **The empty-name slug in Turkish**: `BpmnFileNames.Slug`'s fallback `workflow` becomes `is-akisi`. | section 4 item 4 | **done** 2026-11-07, with the `no-entity/` folder beside it, now `kayit-turu-yok/` |
-| P5 | **Why CA2000 does not fire here** — find what silences it (Yalbuz measures 413 sites with the same line), then measure and decide. | sweep, blocked detector | to investigate |
+| P5 | **Why CA2000 does not fire here** — find what silences it (Yalbuz measures 413 sites with the same line), then measure and decide. | sweep, blocked detector | **done** 2026-11-07: nothing silenced it — the probe was a shape it does not flag. It fires on a StreamReader in all three projects, the tree has no site, and it is on at warning. |
 | P6 | **A test for the run-authority reduction** in `tools/crm-browser-export.js` ("a role that can only READ processes is never listed as able to RUN them"). Needs the JS test harness decided below. | section 4 item 5 | waits on a decision |
 | P7 | **Test packages to their next major** (xunit.v3 4, xunit.runner.visualstudio 4, Microsoft.NET.Test.Sdk 18), all three together. | sweep S3 | waits for Yalbuz to move first |
 
