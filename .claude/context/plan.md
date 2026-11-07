@@ -140,8 +140,8 @@ mapped: no credible XAML sample exists to write them against; they surface as un
    network path and went with it (2026-10-09). A node-run test of the script would close it; there is no JS test
    harness in the repository yet.
 6. Context drift a first `/sweep` will meet (step 8): *Acceptance on the company network* below still describes the
-   network path removed on 2026-10-09 (`Crm:WebApiBaseUrl`, exit code 3, `clusters/`, `consolidated/`), and
-   `.gitignore` still says `appsettings.json` keeps `__CRM_PASSWORD__`, which it has not since then.
+   network path removed on 2026-10-09 (`Crm:WebApiBaseUrl`, exit code 3, `clusters/`, `consolidated/`). Rewriting
+   it is the maintainer's: it is the acceptance checklist. (The `.gitignore` half was corrected by sweep step 8.)
 
 ---
 

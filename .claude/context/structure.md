@@ -9,7 +9,7 @@ Nothing in the tool reads the network: a run is made from an export file, or fro
 | `Crm.Extract` | readers of what the export kept (inventory records, privileges, columns, option sets, plug-in registry, run authority, stage rows), reconciliation, drift, run folder + manifest | no |
 | `Crm.Ir` | XAML parsing, IR types, metadata resolution, `TurkishFold`, `HtmlEntities`, `DocumentText`, coverage, sensitive-literal scan, case stages (`CaseStageReader`, `CaseStageRules`) | no |
 | `Crm.Bpmn` | IR → BPMN 2.0, DI layout, embedded OMG XSD validation, stage maps (`StageMap`) | no |
-| `Crm.Cli` | `Program.Main`, configuration binding, stage orchestration, reports, exit codes | via `Crm.Extract` |
+| `Crm.Cli` | `Program.Main`, configuration binding, stage orchestration, reports, exit codes | no |
 | `Crm.Tests` | xUnit v3 over recorded fixtures (`Crm.Tests/Fixtures/`) — never a live server | no |
 | `tools/` | `crm-browser-export.js`, `crm-usage-export.js` and `crm-process-mining-export.js` (run on a CRM page in the user's browser, GET only — the ONLY things that read CRM) and the bookmarklet pages generated from them | the user's browser |
 

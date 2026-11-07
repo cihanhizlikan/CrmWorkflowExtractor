@@ -5,7 +5,8 @@ obj/
 *.user
 TestResults/
 
-# Local-only secrets. The committed appsettings.json keeps __CRM_PASSWORD__ for pipeline substitution.
+# Local-only overrides. No credentials exist since the network path went (2026-10-09), but a local file may name a
+# production export, and certificates or .env files are kept out on sight.
 appsettings.Development.json
 **/appsettings.Development.json
 *.pfx
