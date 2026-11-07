@@ -121,14 +121,14 @@ public static class AnalystGuide
             ("İş Akışı", "arka planda ya da kayıt kaydedilirken çalışan asıl otomasyon. İşin büyük kısmı budur."),
             ("Diyalog", "kullanıcıya soru soran, adım adım ilerleyen ekran akışı."),
             ("İş Kuralı", "form üzerinde çalışan kural (alanı gizle, zorunlu yap). Tarayıcıda çalışır, iz bırakmaz."),
-            ("Eylem", "başka akışların çağırdığı, girdi ve çıktısı olan yeniden kullanılabilir parça."),
+            ("Eylem", "başka iş akışlarının çağırdığı, girdi ve çıktısı olan yeniden kullanılabilir parça."),
             ("İş Süreci Akışı", "formun üstündeki CRM'in kendi aşama çubuğu. Talep aşamalarıyla karıştırmayın; bu pakette çizilmez.")
         })
         {
             parts.Add(new Paragraph("NormalBullet", what, kind + ": "));
         }
-        parts.Add(new Paragraph("Normal", "İki ayrım her yerde karşınıza çıkar. Mod: \"arka plan\" akış kullanıcı "
-            + "beklemeden sonra çalışır, \"gerçek zamanlı\" akış kayıt kaydedilirken çalışır ve kullanıcıyı "
+        parts.Add(new Paragraph("Normal", "İki ayrım her yerde karşınıza çıkar. Mod: \"arka plan\" iş akışı kullanıcı "
+            + "beklemeden sonra çalışır, \"gerçek zamanlı\" iş akışı kayıt kaydedilirken çalışır ve kullanıcıyı "
             + "bekletir. Durum: \"taslak\" bir tanım yeni çalıştırma başlatamaz, \"etkin\" olan başlatır."));
         parts.Add(new Paragraph("Normal", "Araç CRM'e yalnızca okuma amacıyla bağlandı; hiçbir şeyi değiştirmedi. "
             + "Her tanımın kendi XAML metnini aldı, adımlarını çözümledi ve her biri için bir BPMN diyagramı "
@@ -148,13 +148,13 @@ public static class AnalystGuide
             new DocumentRow(["tasima-plani.xlsx", "Taşınacak işin listesi: talep konuları, talep aşamaları, iş akışları. Buradan başlarsınız."]),
             new DocumentRow(["bpmn/talep-asamalari/", "Her talep konusunun aşama haritası: aşamalar, sonuçlar ve yolda çalışan iş akışları, iç içe."]),
             new DocumentRow(["bpmn/is-akislari/", "Plandaki her iş akışının kendi diyagramı, kategori ve kayıt türü klasörlerine ayrılmış."]),
-            new DocumentRow(["veri-analizi.xlsx", "Hangi akış hangi veriye dokunuyor, hangisi hangisini tetikliyor."]),
+            new DocumentRow(["veri-analizi.xlsx", "Hangi iş akışı hangi veriye dokunuyor, hangisi hangisini tetikliyor."]),
             new DocumentRow(["dis-sistemler.xlsx", "CRM dışına uzanan çağrılar: entegrasyon yükü."])
         ], [2800, 6800]));
 
         parts.Add(new Paragraph("Heading2", "2.1  tasima-plani.xlsx — sizin iş listeniz"));
         parts.Add(new Paragraph("Normal", "İşin kendisi. Süzmeniz gerekmez: kurumun kurmadığı, taslak olan ve hiç "
-            + "çalışmamış deneme akışları bu dosyada zaten yoktur."));
+            + "çalışmamış deneme iş akışları bu dosyada zaten yoktur."));
         parts.Add(new Paragraph("NormalBullet", "her aşama haritası için bir satır: konunun adı, başladığı aşama, kaç aşama "
             + "ve kaç iş akışı taşıdığı, açılacak dosya. Hangi süreçten başlayacağınızı buradan seçin.", SheetNames.Topics + " — "));
         parts.Add(new Paragraph("NormalBullet", "her etkin talep aşaması için bir satır: her sonuçta talebin geçtiği aşama, "
@@ -191,17 +191,17 @@ public static class AnalystGuide
             new DocumentRow(["Kalın daire (bitiş olayı)", "Haritada yol biter: \"Sonraki aşama yok\" talebin kapandığını söylemez, aşama kaydı devamını göstermez."])
         ], [3600, 6000]));
 
-        parts.Add(new Paragraph("Heading2", "2.3  veri-analizi.xlsx — bir akışı tek başına tasarlayamayacağınız yerler"));
-        parts.Add(new Paragraph("NormalBullet", "alan alan: kaç akış yazıyor, kaç akış okuyor. yazan > 1 olan alanlarda "
+        parts.Add(new Paragraph("Heading2", "2.3  veri-analizi.xlsx — bir iş akışını tek başına tasarlayamayacağınız yerler"));
+        parts.Add(new Paragraph("NormalBullet", "alan alan: kaç iş akışı yazıyor, kaç iş akışı okuyor. yazan > 1 olan alanlarda "
             + "sıra CRM'de hiçbir zaman garanti edilmedi; yeni üründe bir sıra kararlaştırın.", "Veri ayak izi — "));
-        parts.Add(new Paragraph("NormalBullet", "bir akışın yazmasıyla kendiliğinden başlayan başka akışlar. Bu bağ "
+        parts.Add(new Paragraph("NormalBullet", "bir iş akışının yazmasıyla kendiliğinden başlayan başka iş akışları. Bu bağ "
             + "diyagramlarda görünmez; yalnızca burada vardır.", "Tetikleme zincirleri — "));
 
         parts.Add(new Paragraph("Heading2", "2.4  dis-sistemler.xlsx — entegrasyon yükü"));
         parts.Add(new Paragraph("Normal", "CRM dışına uzanan çağrılar. Buradaki her etkinlik, yeni üründe ayrı bir "
             + "iş kalemidir."));
-        parts.Add(new Paragraph("NormalBullet", "çağrılan kod, onu çağıran akışlar, çağrının parametre adları ve "
-            + "derlemedeki_adresler: kodun içinde yazılı adresler. kayitli sütunu hayır ise akış artık var olmayan "
+        parts.Add(new Paragraph("NormalBullet", "çağrılan kod, onu çağıran iş akışları, çağrının parametre adları ve "
+            + "derlemedeki_adresler: kodun içinde yazılı adresler. kayitli sütunu hayır ise iş akışı artık var olmayan "
             + "bir koda gidiyor demektir.", "Dış bağımlılıklar — "));
         parts.Add(new Paragraph("NormalBullet", "tanımın metnine yazılmış adresler, sunucusuyla birlikte. Boş olması "
             + "\"hiçbir yere bağlanmıyor\" demek değildir.", "Adresler — "));
@@ -283,7 +283,7 @@ public static class AnalystGuide
         {
             WorkflowIdentity identity = sample.Identity;
             parts.Add(new Paragraph("Normal", "Aşağıdaki sıra, planın ilk satırlarından biri üzerinde anlatılıyor. "
-                + "Bu akış bu çalıştırmada gerçekten var; dosyayı açıp birlikte ilerleyebilirsiniz."));
+                + "Bu iş akışı bu çalıştırmada gerçekten var; dosyayı açıp birlikte ilerleyebilirsiniz."));
             List<DocumentRow> rows =
             [
                 new DocumentRow(["Örnek iş akışı", identity.Name], Header: false),
@@ -300,14 +300,14 @@ public static class AnalystGuide
         (string, string)[] steps =
         [
             ("Planda satırı okuyun", "tasima-plani.xlsx → " + SheetNames.Plan + ". kategori, kayit_turu, tetikleyici ve adim_sayisi "
-                + "sütunları iş akışının ne olduğunu söyler; bekleme_var evet ise süreç zamana yayılıyor demektir ve tasarımı "
+                + "sütunları iş akışının ne olduğunu söyler; bekleme_var evet ise iş akışı zamana yayılıyor demektir ve tasarımı "
                 + "baştan farklıdır. kullanim sütununa bakın ama tek başına karar vermeyin."),
             ("Tek başına mı, parça mı", "Aynı satırda cagri_rolu: \"aşama adımı\" ise bir talep aşaması çalıştırır, haritasıyla "
                 + "birlikte tasarlayın (calistiran_asamalar). \"yapı taşı\" ise başka iş akışları bunu çağırıyor, tek başına "
                 + "taşınmaz (cagiran_is_akislari; " + SheetNames.Trees + " sayfası)."),
             ("Diyagramı açın", "bpmn_dosyasi sütunundaki dosyayı açın, üstteki not kutusunu okuyun, sonra akışı soldan "
                 + "sağa izleyin."),
-            ("Tetikleyiciyi karara bağlayın", "Akışı ne başlatıyor ve yeni üründe aynı olayın karşılığı var mı? "
+            ("Tetikleyiciyi karara bağlayın", "İş akışını ne başlatıyor ve yeni üründe aynı olayın karşılığı var mı? "
                 + "tetikleyici, calistiran_asamalar ve calisma_modu sütunları ile diyagramın başlangıç olayı bunu söyler. "
                 + "Bu tasarımın ilk kararıdır; cevabını yazmadan devam etmeyin."),
             ("Beklemeleri işaretleyin", "Diyagramdaki bekleme adımları süreci açık tutar. Her biri için \"ne kadar\" ve "
@@ -334,13 +334,13 @@ public static class AnalystGuide
         foreach (string trap in new[]
         {
             "Planın kullanim sütunundaki \"kayıtlı çalışma yok\", kullanılmadığını KANITLAMAZ. CRM sistem işlerini "
-                + "düzenli olarak siler, iş kuralları tarayıcıda çalışıp hiç iz bırakmaz, gerçek zamanlı akışlar "
+                + "düzenli olarak siler, iş kuralları tarayıcıda çalışıp hiç iz bırakmaz, gerçek zamanlı iş akışları "
                 + "yalnızca hatayı kaydeder. Bu sütun bir silme gerekçesi değildir.",
-            "Ada bakarak temizlik yapmayın. Adında DRAFT, TEST ya da ESKİ geçen ve üretimde her gün çalışan akışlar "
+            "Ada bakarak temizlik yapmayın. Adında DRAFT, TEST ya da ESKİ geçen ve üretimde her gün çalışan iş akışları "
                 + "bulundu; bu yüzden ad tek başına kapsam dışı bırakma gerekçesi sayılmadı.",
             "İş kuralları tarayıcıda çalışır ve hiçbir kayıt bırakmaz: kullanımları hakkında hiçbir kanıt yoktur.",
-            "Gerçek zamanlı akışlar kullanıcıyı bekletir. Yeni üründe aynı işi arka plana almak davranışı değiştirir.",
-            "Tetikleme zincirleri diyagramda görünmez. Bir akış, başka bir akışın izlediği alana yazdığı için onu "
+            "Gerçek zamanlı iş akışları kullanıcıyı bekletir. Yeni üründe aynı işi arka plana almak davranışı değiştirir.",
+            "Tetikleme zincirleri diyagramda görünmez. Bir iş akışı, başka bir iş akışının izlediği alana yazdığı için onu "
                 + "başlatıyor olabilir; bu bağ yalnızca veri-analizi.xlsx'tedir.",
             "Diyagramdaki \"→ adres\", o adımın çalıştırdığı KODUN İÇİNDE yazılı bir adrestir; adımın oraya gittiğinin "
                 + "kanıtı değildir. Kod adresi parçalardan birleştiriyorsa hiçbir yerde görünmez.",
@@ -397,7 +397,7 @@ public static class AnalystGuide
             new DocumentRow(["Tetikleyici", "İş akışını başlatan kayıt olayı: kayıt oluşturma, alan güncelleme, silme ya da kullanıcının isteği."]),
             new DocumentRow(["Aşama adımı", "Bir talep aşamasının sonucunda çalışan iş akışı. Aşama haritasıyla birlikte tasarlanır."]),
             new DocumentRow(["Alt iş akışı", "Başka bir iş akışının çağırdığı iş akışı. Tek başına değil, çağıranıyla birlikte taşınır."]),
-            new DocumentRow(["Giriş noktası · yapı taşı", "Giriş noktası tek başına bir süreçtir; yapı taşı başka iş akışlarınca çağrılır ve bir kez taşınır."]),
+            new DocumentRow(["Giriş noktası · yapı taşı", "Giriş noktası kendi başına başlayan bir iş akışıdır; yapı taşı başka iş akışlarınca çağrılır ve bir kez taşınır."]),
             new DocumentRow(["Çalışma modu", "Arka plan: kullanıcı beklemez. Gerçek zamanlı: kayıt kaydedilirken çalışır, kullanıcıyı bekletir."]),
             new DocumentRow(["Okunamayan adım", "Ayrıştırıcının anlamadığı adım; diyagramda OKUNAMADI olarak işaretlidir."]),
             new DocumentRow(["Özel etkinlik", "CRM'e kaydedilmiş, iş akışının çağırdığı derlenmiş kod. Dışarıya açılan tek kapı budur."]),
