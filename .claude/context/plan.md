@@ -1,9 +1,106 @@
-# Plan — CRM Workflow Extractor & BPMN Transformer
+# Plan — CRM Workflow Extractor
 
-Written 2026-09-14, revised 2026-09-15. Organized in the four sections of handout §9. Decisions the maintainer has
-taken are marked **DECIDED** with their date.
+**How this file is read.** The head — down to the line *History* — is the plan as it stands: what the tool is, the
+work still to do in the order it will be done, the decisions only the maintainer can take, and what only a run on
+the company network can settle. It is REWRITTEN as work lands. Everything under *History* is the dated record — the
+prototype plan of 2026-09-14/15 and one entry per package since — and is never rewritten to match today.
+Decisions in force are the entries marked **DECIDED**, wherever they stand.
 
-## Status
+## Where the tool stands (2026-11-07)
+
+- **What it does.** Reads a Dynamics CRM 8.2 estate from files saved by three browser scripts (`tools/`: the
+  export, usage, and process mining — GET only, in the user's own session; the tool itself has no network code),
+  parses every workflow's XAML, and writes one BPMN diagram per workflow in the plan, one stage map per active
+  primary case stage with its workflows embedded, five workbooks and the analyst's guide (`nasil-kullanilir.docx`)
+  for the outsource partner, and an internal process-mining book and maps for Enterprise Architecture.
+- **Verified on production data:** the export and usage files (runs from 2026-09-22 on, 1,437 workflows in the
+  plan's estate). **Not yet:** the process-mining export — its first attempt was refused (403) and now saves the
+  refusal instead of dying; it waits for a re-run (*Acceptance → B*).
+- **Health:** Release build with zero warnings (warnings are errors there); 390 tests; nine robustness rules on at
+  zero; the first `/sweep` ran 2026-11-07 and its findings are the packages below.
+
+## Outstanding work — in order
+
+Each runs `/wp-start` → `/wp-verify` → `/wp-finish` and is merged and deleted as it lands (**DECIDED 2026-11-07**,
+maintainer: "merge & delete as you go").
+
+| # | Package | From | State |
+|---|---|---|---|
+| P1 | **A run that fails anywhere leaves a record of why.** A last-resort, filtered catch in `ExtractionRun.RunAsync`: type, message and stack into the run log and `state.Failures`, exit `RunFailed`, the manifest written as failed. | sweep S6 | to build |
+| P2 | **A call to a child workflow the run does not have is shown**, on the caller's row in `İş akışları`, instead of being computed and dropped (`CallGraph.MissingTargets`). | sweep S4 | to build |
+| P3 | **Names without the network**: `OfflineStages` → `RunPipeline`; `Crm.Extract.Preflight` → `Crm.Extract.Access`. | sweep S1 | to build |
+| P4 | **The empty-name slug in Turkish**: `BpmnFileNames.Slug`'s fallback `workflow` becomes `is-akisi`. | section 4 item 4 | to build |
+| P5 | **Why CA2000 does not fire here** — find what silences it (Yalbuz measures 413 sites with the same line), then measure and decide. | sweep, blocked detector | to investigate |
+| P6 | **A test for the run-authority reduction** in `tools/crm-browser-export.js` ("a role that can only READ processes is never listed as able to RUN them"). Needs the JS test harness decided below. | section 4 item 5 | waits on a decision |
+| P7 | **Test packages to their next major** (xunit.v3 4, xunit.runner.visualstudio 4, Microsoft.NET.Test.Sdk 18), all three together. | sweep S3 | waits for Yalbuz to move first |
+
+**Deferred, DECIDED 2026-09-15 and unchanged:** flag-field plug-in inference (§4.3), the `uidata` spike (§4.5),
+resuming an unsealed run. BPF stages as `subProcess` and Dialog pages as `userTask` stay unmapped until a real
+sample exists to write them against.
+
+## Decisions open for the maintainer
+
+1. **A JavaScript test harness for `tools/`** (unblocks P6). Recommendation: run `node` from an xUnit test against
+   the script's pure functions, exported only when the script is loaded outside a browser — no npm, no package.
+2. **The target runtime on the run host** — .NET 10 installed, or a self-contained single-file `win-x64` publish.
+   Never recorded since 2026-09-14.
+3. **Where `out/` lives and who may read it** — it holds the production XAML the sensitive scan redacts. The
+   security team's call (2026-09-14, still open).
+
+Closed since the prototype plan: live access (the browser export, 2026-09-22), Excel format (`.xlsx`, 2026-09-23),
+the drift report (a column of the workflow's row, 2026-10-12), and every similarity and consolidation question
+(removed 2026-10-09).
+
+## 4. Out-of-scope findings — recorded, not acted on
+
+1. Yalbuz `ScreenConceptBuilder` fold misses `â`/`î`/`û` and decomposed `İ` — Yalbuz's to fix.
+2. CRM 8.2 is out of extended support and runs partner code that may hold credentials — an EA and security risk,
+   not this tool's.
+
+(Items 4 and 5 of the earlier list are P4 and P6 above; item 2, the handout's stale style rules, and item 6, the
+stale acceptance checklist, are closed — the checklist below was rewritten on 2026-11-07.)
+
+## Acceptance on the company network
+
+Only a run against production can settle these. Each has a **Do**, a **Pass** and a **Capture** — and a capture is
+counts and console lines, never `ham/`, `ara-model/`, `bpmn/` or the restricted findings.
+
+### A — the delivery run
+- **Do:** on a signed-in CRM page, run `tools/crm-export.html` and `tools/crm-usage.html`; put the saved files'
+  paths in `appsettings.json` (`Run:ImportFile`, `Run:UsageFile`) next to the exe; start it with no arguments.
+- **Pass:** exit code 0; every count-chain line ends `— ok`; `bpmn/` holds exactly the plan's workflows and the
+  stage maps; the five workbooks and `nasil-kullanilir.docx` open without Excel or Word offering a repair.
+- **Capture:** the console output, and the counts in `raporlar/rapor.md` — never the files themselves.
+
+### B — process mining (open since 2026-10-12)
+- **Do:** run `tools/crm-process-mining.html` as a user whose role can read the stage-history entity; set
+  `Run:ProcessMiningFile`; run again (or reprocess).
+- **Pass:** the file holds stage entries and steps — or, if refused again, it is SAVED and names the table and the
+  reason. The holiday calendar answered, or the book says weekends only. The stage boxes on the internal maps carry
+  a median stay.
+- **Capture:** the script's console lines, and the *Nasıl okunur* counts of `surec-madenciligi.xlsx`.
+- **Settles:** whether the history entity exists and is readable; whether `$top` caused the 400s; whether
+  `businessclosurecalendar` answers.
+
+### C — limits only production shows
+- Whether the usage aggregate stays under CRM's 50 000-record aggregate limit; how fast the `asyncoperations` /
+  `processsessions` filters and `_workflowactivationid_value eq <id>` answer. **Capture:** the times the scripts print.
+
+### D — what a person has to look at
+- **Do:** open three workflow diagrams and one stage map in bpmn.io or Camunda Modeler.
+- **Pass:** they read left to right without crossings worth naming; the embedded workflows open from the map.
+- **Capture:** what looked wrong, with the file names.
+
+---
+
+# History
+
+## The prototype plan (2026-09-14/15) — superseded, kept as written
+
+Its section 4 now lives in the head above; everything else here describes the prototype — a network client,
+similarity and consolidation — that the work since replaced.
+
+### Status
 
 | Package | State |
 |---|---|
@@ -26,7 +123,7 @@ package verified, merged and its branch deleted as it lands.
 `cluster-lineage.csv`, resuming an unsealed run. BPF stages as `subProcess` and Dialog pages as `userTask` are NOT
 mapped: no credible XAML sample exists to write them against; they surface as unmapped in `parse-coverage.md`.
 
-## Handout disagreements found while building
+### Handout disagreements found while building
 
 | Handout | Finding | Source | Status |
 |---|---|---|---|
@@ -34,7 +131,7 @@ mapped: no credible XAML sample exists to write them against; they surface as un
 | §2.4 "reconcile `$count` against records" catches the privilege trap | It cannot: both pass through the same security filter. Primary check is `RetrieveUserPrivileges` depth | Reasoning; confirm on live server | Applied |
 | §1 non-goal "no automatic consolidation" | Overridden by the maintainer | Maintainer, 2026-09-14 | Built (M5b) |
 
-## Pre-flight facts (development machine, 2026-09-14)
+### Pre-flight facts (development machine, 2026-09-14)
 
 | Check | Result |
 |---|---|
@@ -43,7 +140,7 @@ mapped: no credible XAML sample exists to write them against; they surface as un
 | CRM host / org | Unknown; the development machine cannot reach CRM. **No live verification from here.** |
 | Yalbuz fold | 12-entry table + `char.ToLowerInvariant`; misses `â`/`î`/`û` and decomposed `I`+U+0307. |
 
-## Decisions taken
+### Decisions taken
 
 - **DECIDED 2026-09-14:** adopt Yalbuz's workflow; all 13 style rules; repository at `repos\CrmWorkflowExtractor`.
 - **DECIDED 2026-09-14:** the tool combines each similarity family into one workflow, like a set union; the
@@ -52,7 +149,7 @@ mapped: no credible XAML sample exists to write them against; they surface as un
 - **DECIDED 2026-09-15:** low-cohesion families are NOT combined; they are listed as "split first".
 - **DECIDED 2026-09-15:** merge and delete each package branch as it lands.
 
-## Consolidation — as built
+### Consolidation — as built
 
 - A cohesive family (≥2 members, not low-cohesion, one primary entity, one category) is combined as a **prefix union**
   over literal-stripped step sequences. Shared steps become one step keeping every member's values (each with the
@@ -65,7 +162,7 @@ mapped: no credible XAML sample exists to write them against; they surface as un
 
 ---
 
-## 1. Confident improvements within scope
+### 1. Confident improvements within scope
 
 1. **Real privilege check** (`RetrieveUserPrivileges` depth), plus the count reconciliation and single-owner warning.
 2. **`$count` 5000 cap guard.**
@@ -83,7 +180,7 @@ mapped: no credible XAML sample exists to write them against; they surface as un
 12. **Offline reprocessing** (`Run:ReprocessRunId`): rebuild every offline output from an earlier run's `raw/`
     with no network. This is the loop for fixing the parser against real XAML away from the company network.
 
-## 2. Wanted but uncertain — need the maintainer's decision
+### 2. Wanted but uncertain — need the maintainer's decision
 
 1. **Live CRM access.** Who runs it on the corporate network, host + org, and can `raw/` be sent back? `raw/` is
    what makes offline parser fixing possible, and it holds production XAML (see 2.5).
@@ -101,7 +198,7 @@ mapped: no credible XAML sample exists to write them against; they surface as un
    copies score 1. This under-clusters near-copies by design of §7.1; the architects may want `PathWeight` lower
    after the first output. Tunable in `appsettings.json`, no rebuild.
 
-## 3. Left to judgement — cheap to overrule
+### 3. Left to judgement — cheap to overrule
 
 1. **No resume of an unsealed run** in the prototype; unchanged XAML is reused from the newest sealed run by
    `(workflowid, versionnumber)` with the hash re-verified.
@@ -128,28 +225,11 @@ mapped: no credible XAML sample exists to write them against; they surface as un
 17. **A pair with structural ≥ 0.95 and lexical < 0.5 is flagged `rebuilt_under_other_name`** in `pairs.csv`.
 18. **Console summary shows at most 25 warnings**; all are in `logs/warnings.txt` and `report.md` (first 50).
 
-## 4. Out-of-scope findings — recorded, not acted on
-
-1. Yalbuz `ScreenConceptBuilder` fold misses `â`/`î`/`û` and decomposed `İ`.
-2. The handout's 4 style rules are a stale subset of Yalbuz's 13.
-3. CRM 8.2 out of extended support, running partner code that may hold credentials — EA/security risk.
-4. `BpmnFileNames.Slug`'s empty-name fallback is the English word `workflow`, in a tool whose output is Turkish
-   down to the folder names. Reached only by a workflow whose name folds to nothing at all.
-5. The run-authority reduction — above all "a role that can only READ processes is never listed as able to RUN them" —
-   lives only in `tools/crm-browser-export.js` and has no committed test. The C# copy that was tested ran only on the
-   network path and went with it (2026-10-09). A node-run test of the script would close it; there is no JS test
-   harness in the repository yet.
-6. Context drift a first `/sweep` will meet (step 8): *Acceptance on the company network* below still describes the
-   network path removed on 2026-10-09 (`Crm:WebApiBaseUrl`, exit code 3, `clusters/`, `consolidated/`). Rewriting
-   it is the maintainer's: it is the acceptance checklist. (The `.gitignore` half was corrected by sweep step 8.)
-
----
-
-## Acceptance on the company network
+### Acceptance on the company network
 
 Items only a run on the corporate network can close. Each has a **Do**, a **Pass** and a **Capture**.
 
-### A — the run itself
+#### A — the run itself
 - **Do:** as the service account, set `Crm:WebApiBaseUrl` in `appsettings.json` next to the exe
   (`https://<host>/<org>/api/data/v8.2/`) and start `CrmWorkflowExtractor.exe` with no arguments.
 - **Pass:** exit code 0; all six privileges `Global`; every count-chain line ends `— ok`; distinct owners > 1; an
@@ -157,7 +237,7 @@ Items only a run on the corporate network can close. Each has a **Do**, a **Pass
 - **Capture:** the console output, the administrator's count, and from the run folder: `manifest.json`,
   `reports/report.md`, `reports/parse-coverage.md`, `logs/warnings.txt`.
 
-### B — assumptions only the live server can settle
+#### B — assumptions only the live server can settle
 - **Pass / record here either way:**
   - `workflows/$count` answered a number on 8.2 (if not, the request is named in the failure).
   - No "Column … does not exist" warnings, or the list of columns missing on 8.2.
@@ -166,13 +246,13 @@ Items only a run on the corporate network can close. Each has a **Do**, a **Pass
   - Whether roles granted through **teams** appear in `RetrieveUserPrivileges`.
   - Exit code 3 means the deployment is IFD: stop, per §2.2.
 
-### C — the parser against real XAML (expected to need work)
+#### C — the parser against real XAML (expected to need work)
 - **Pass:** `parse-coverage.md` shows the unmapped constructs, top of the list first. The prototype is *plausible*
   when most designer workflows have zero unmapped constructs; it is *not* expected to be there on the first run.
 - **Capture:** `parse-coverage.md`, and — if security agrees — a handful of anonymized `raw/xaml/` files for the
   top unmapped constructs, or the whole run folder for `Run:ReprocessRunId` offline.
 
-### D — outputs a human must look at
+#### D — outputs a human must look at
 - **Pass:** three `bpmn/*.bpmn` files open in a BPMN viewer (e.g. Camunda Modeler or bpmn.io) and read sensibly;
   `clusters/clusters.csv` opens in Excel with columns split; one `consolidated/*.bpmn` compared against its
   members' files in `bpmn/` using `reports/consolidation.md`.
@@ -1414,6 +1494,8 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
 ---
 
 ## Sweep 2026-11-07 — handed over
+
+**Each row below is now a package in the head:** S1 → P3, S3 → P7, S4 → P2, S6 → P1, the blocked CA2000 → P5.
 
 Rows raised by the first `/sweep` (whole tree: no earlier marker). Each is **Origin: finding, Status: not yet
 committed to build**, and carries a recommendation; none was acted on because each needs a choice.
