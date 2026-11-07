@@ -32,7 +32,7 @@ maintainer: "merge & delete as you go").
 | P4 | **The empty-name slug in Turkish**: `BpmnFileNames.Slug`'s fallback `workflow` becomes `is-akisi`. | section 4 item 4 | **done** 2026-11-07, with the `no-entity/` folder beside it, now `kayit-turu-yok/` |
 | P5 | **Why CA2000 does not fire here** — find what silences it (Yalbuz measures 413 sites with the same line), then measure and decide. | sweep, blocked detector | **done** 2026-11-07: nothing silenced it — the probe was a shape it does not flag. It fires on a StreamReader in all three projects, the tree has no site, and it is on at warning. |
 | P6 | **A test for the run-authority reduction** in `tools/crm-browser-export.js` ("a role that can only READ processes is never listed as able to RUN them"). Needs the JS test harness decided below. | section 4 item 5 | **done** 2026-11-07: the script runs unchanged under `node` against a fake CRM (`Crm.Tests/Tools/`); three tests, each seen red against its own defect |
-| P7 | **Test packages to their next major** (xunit.v3 4, xunit.runner.visualstudio 4, Microsoft.NET.Test.Sdk 18), all three together. | sweep S3 | waits for Yalbuz to move first |
+| P7 | **Test packages to their next major** (xunit.v3 4, xunit.runner.visualstudio 4, Microsoft.NET.Test.Sdk 18), all three together. | sweep S3 | **done** 2026-11-07, after Yalbuz (WP-MAJORS): on Microsoft Testing Platform via `global.json`; a failure prints `başarısız <Test>`, not `[FAIL]` — the old grep scored 0 on a real failure, the new one 2 |
 
 **Deferred, DECIDED 2026-09-15 and unchanged:** flag-field plug-in inference (§4.3), the `uidata` spike (§4.5),
 resuming an unsealed run. BPF stages as `subProcess` and Dialog pages as `userTask` stay unmapped until a real

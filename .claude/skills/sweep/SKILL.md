@@ -220,7 +220,8 @@ re-detect that.
 
 - **Check the INSTRUMENT before believing it.** A confident negative is the shape to distrust first; read WHAT a
   search matched before concluding from HOW MANY. The build output is Turkish (`hata`/`uyarı`, `Başarılı`,
-  `Başarısız`): grep `: error ` and `[FAIL]`, never a bare word.
+  `Başarısız`): grep `: error ` and `^(başarısız|failed) ` (xunit 4 on Microsoft Testing Platform; VSTest's
+  `[FAIL]` matches nothing now), never a bare word.
 - **Never re-raise a settled decision** (`profile:settled_decisions`); a ruling reopens on a new fact only.
 - **Bytes that must not move**: `Crm.Tests/Fixtures/**` (evidence, LF) and the six `tools/` files (`-text`,
   SHA-checked). Never edited to make a finding go away.

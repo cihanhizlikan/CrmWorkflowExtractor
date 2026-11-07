@@ -28,10 +28,11 @@
     <PackageVersion Include="Roslynator.Analyzers" Version="5.0.1" />
   </ItemGroup>
 
-  <!-- Tests. xunit.v3 stays on 3.x: a major is a decision. -->
+  <!-- Tests. xunit 4 since 2026-11-07, after Yalbuz: it runs on Microsoft Testing Platform, which global.json's
+       test.runner selects (the .NET 10 SDK refuses xunit 4 through VSTest). The three move together. -->
   <ItemGroup>
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageVersion Include="xunit.v3" Version="3.2.2" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
   </ItemGroup>
 </Project>
