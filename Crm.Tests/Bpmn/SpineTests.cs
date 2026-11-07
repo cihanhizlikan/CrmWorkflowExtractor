@@ -103,6 +103,7 @@ public sealed class SpineTests
     {
         XDocument xml = Xml(tests);
 
+        Assert.NotEmpty(xml.Descendants(BpmnSerializer.Di + "BPMNEdge"));
         foreach (XElement edge in xml.Descendants(BpmnSerializer.Di + "BPMNEdge"))
         {
             XElement flow = xml.Descendants().Single(node => node.Attribute("id")?.Value == edge.Attribute("bpmnElement")!.Value);
@@ -136,8 +137,11 @@ public sealed class SpineTests
     {
         XDocument xml = Xml(tests);
         List<Box> shapes = Shapes(xml);
+        List<Box> labels = Labels(xml);
 
-        foreach (Box label in Labels(xml))
+        Assert.NotEmpty(labels);
+        Assert.NotEmpty(shapes);
+        foreach (Box label in labels)
         {
             foreach (Box shape in shapes)
             {
@@ -159,6 +163,7 @@ public sealed class SpineTests
     {
         List<Box> labels = Labels(Xml(tests));
 
+        Assert.True(labels.Count > 1, "Nothing to compare: fewer than two captions were drawn.");
         for (int first = 0; first < labels.Count; first++)
         {
             for (int second = first + 1; second < labels.Count; second++)

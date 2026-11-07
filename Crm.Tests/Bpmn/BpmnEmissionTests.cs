@@ -191,6 +191,7 @@ public sealed class BpmnEmissionTests
              double.Parse(bounds.Attribute("width")!.Value, System.Globalization.CultureInfo.InvariantCulture),
              double.Parse(bounds.Attribute("height")!.Value, System.Globalization.CultureInfo.InvariantCulture)))];
 
+        Assert.True(boxes.Count > 1, "Nothing to compare: fewer than two shapes were drawn.");
         for (int i = 0; i < boxes.Count; i++)
         {
             for (int j = i + 1; j < boxes.Count; j++)
