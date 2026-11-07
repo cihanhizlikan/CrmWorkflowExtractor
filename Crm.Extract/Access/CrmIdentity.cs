@@ -1,4 +1,4 @@
-namespace Crm.Extract.Preflight;
+namespace Crm.Extract.Access;
 
 /// <summary>
 /// Who read the data, recorded in the manifest (§2.3): the account signed in to the browser the export ran in, as
