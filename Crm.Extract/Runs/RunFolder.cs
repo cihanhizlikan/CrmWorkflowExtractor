@@ -141,12 +141,6 @@ public sealed class RunFolder
         return new RunArtifact(relative, stream.Length, Convert.ToHexStringLower(hash));
     }
 
-    public static string Sha256Of(string absolutePath)
-    {
-        using FileStream stream = File.OpenRead(absolutePath);
-        return Convert.ToHexStringLower(SHA256.HashData(stream));
-    }
-
     private string WritablePath(string relative)
     {
         if (IsSealed)

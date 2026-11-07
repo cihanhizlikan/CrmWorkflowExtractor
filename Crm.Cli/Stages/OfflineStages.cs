@@ -18,7 +18,6 @@ public static class OfflineStages
         state.Plugins = PluginStage.Load(folder, state);
         state.RunAuthority = RoleStage.Load(folder, state);
         IReadOnlyList<WorkflowIr> documents = await IrStage.RunAsync(folder, state, extractedAt, logger, token);
-        state.Documents = documents;
         UsageStage.Summarize(state, documents, usage);
         // Before any diagram: a workflow a stage fires is in scope for that reason, and says so.
         await StageMapStage.ReadAsync(folder, state, token);

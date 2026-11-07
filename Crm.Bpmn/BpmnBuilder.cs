@@ -683,10 +683,6 @@ public sealed partial class BpmnBuilder
     [GeneratedRegex(@"^[A-Za-z]+Step\d+$")]
     private static partial Regex InternalStepId();
 
-    /// <summary>The designer's own generated condition variable, e.g. <c>ConditionBranchStep12_1</c>: a name that names nothing.</summary>
-    [GeneratedRegex(@"^[A-Za-z]+Step\d+_[A-Za-z0-9_]+$")]
-    private static partial Regex DesignerVariable();
-
     /// <summary>
     /// A guard, not a style rule. One label once reached thirty thousand characters — an assembly's whole address
     /// list, poured into it — and no modeller would open the file. Everything that fed that is bounded at its

@@ -81,7 +81,6 @@ public static class StageMap
 
     private static readonly string[] Referring = ["id", "sourceRef", "targetRef", "default", "bpmnElement", "attachedToRef"];
     private static readonly string[] Outcomes = [StageOutcome.Success, StageOutcome.Failure, StageOutcome.Cancel];
-    private static readonly CultureInfo Turkish = new("tr-TR");
 
     public static StageMapResult Build(CaseStage primary, IReadOnlyDictionary<Guid, CaseStage> stages,
         Func<Guid, XDocument?> workflowDiagram, IReadOnlyDictionary<Guid, string> workflowFiles, string toolVersion, StageTraffic? traffic = null)
@@ -650,7 +649,7 @@ public static class StageMap
                     new XElement(Model + "documentation",
                         $"İş akışı: {name} ({workflow:D}). Çalıştıran: {firedBy}. Aynı iş akışı bu haritada daha önce de geçiyor; {where}.{file}"));
             }
-            First[workflow] = new FirstBox(name, firedBy, First.Count);
+            First[workflow] = new FirstBox(firedBy);
             XElement subProcess = new(Model + "subProcess", new XAttribute("id", id), new XAttribute("name", name));
             if (!Drawable(workflowDiagram(workflow), out XElement? source, out XElement? drawing))
             {
@@ -693,13 +692,9 @@ public static class StageMap
     }
 
     /// <summary>A workflow's first box on a map: where it is, and how many boxes it took in all.</summary>
-    private sealed class FirstBox(string name, string firedBy, int order)
+    private sealed class FirstBox(string firedBy)
     {
-        public string Name { get; } = name;
-
         public string FiredBy { get; } = firedBy;
-
-        public int Order { get; } = order;
 
         public int Count { get; set; } = 1;
 
