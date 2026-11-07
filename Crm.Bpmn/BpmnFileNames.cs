@@ -90,7 +90,7 @@ public static class BpmnFileNames
         }
         if (slug.Length == 0)
         {
-            return "workflow";
+            return "is-akisi";
         }
         // Only an EXACT match is a device. "console" and "com10" are ordinary names and are left alone.
         return ReservedNames.Contains(slug) ? slug + "-ayrilmis" : slug;
