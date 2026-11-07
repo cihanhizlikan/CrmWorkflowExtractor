@@ -220,7 +220,10 @@ inside a guard: a cancellation is the operator's and travels, everything else be
 failure is recorded against its NAME, the run's exit code becomes a failure, and the rest are still drawn. The
 workflow is dropped from `state.BpmnFiles`, so the plan's `bpmn_dosyasi` cell stays empty and the guide walks the
 reader through a different one rather than naming a file nobody has. `bpmn.written` counts what was written, so
-the count chain shows a loss as a drop instead of hiding it behind a number that still says 1437.
+the count chain shows a loss as a drop instead of hiding it behind a number that still says 1437. **Above all
+of these sits one last-resort catch** in `ExtractionRun.RunAsync` (2026-11-07): an exception nobody listed is a
+defect, so its stack goes to the run log, and the run still ends in a sealed folder marked failed — the operator on
+the locked-down host sends back a folder, and before this a usage file with one bad key left no manifest at all.
 
 **XML has no escape for a control character.** There is no spelling of U+0001 that a document may hold, so a
 writer handed one does not produce a bad file — it THROWS. CRM's own records are XML and cannot carry one, but the
