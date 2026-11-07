@@ -16,7 +16,8 @@ public sealed class BpmnReadabilityTests
     [InlineData("DRAFT_OPEN_PHONECALL", "draft-open-phonecall")]
     [InlineData("*draft*case*step", "draft-case-step")]
     [InlineData("İKNA ARAMALARI - EMEKLİLİK", "ikna-aramalari-emeklilik")]
-    [InlineData("   ", "workflow")]
+    [InlineData("   ", "is-akisi")]
+    [InlineData("kayıt türü yok", "kayit-turu-yok")]
     public void A_File_Name_Is_The_Workflow_Name_Folded_To_Ascii(string name, string expected)
     {
         Assert.Equal(expected, BpmnFileNames.Slug(name));

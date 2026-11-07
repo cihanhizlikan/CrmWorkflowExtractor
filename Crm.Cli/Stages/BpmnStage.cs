@@ -34,7 +34,7 @@ public static class BpmnStage
         Dictionary<Guid, string> fileNames = documents.ToDictionary(
             document => document.Identity.WorkflowId,
             document => $"{(MigrationPlan.Reason(state, document.Identity, usage) is null ? RunPaths.WorkflowDiagrams : RunPaths.OutOfScopeDiagrams)}/"
-                + $"{BpmnFileNames.Slug(document.Identity.Category)}/{BpmnFileNames.Slug(document.Identity.PrimaryEntity ?? "no entity")}/{stems[document.Identity.WorkflowId]}");
+                + $"{BpmnFileNames.Slug(document.Identity.Category)}/{BpmnFileNames.Slug(document.Identity.PrimaryEntity ?? "kayıt türü yok")}/{stems[document.Identity.WorkflowId]}");
         Facts facts = new(documents, usage, state);
         foreach (WorkflowIr document in documents)
         {
