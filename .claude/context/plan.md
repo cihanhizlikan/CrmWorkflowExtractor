@@ -31,7 +31,7 @@ maintainer: "merge & delete as you go").
 | P3 | **Names without the network**: `OfflineStages` → `RunPipeline`; `Crm.Extract.Preflight` → `Crm.Extract.Access`. | sweep S1 | **done** 2026-11-07 |
 | P4 | **The empty-name slug in Turkish**: `BpmnFileNames.Slug`'s fallback `workflow` becomes `is-akisi`. | section 4 item 4 | **done** 2026-11-07, with the `no-entity/` folder beside it, now `kayit-turu-yok/` |
 | P5 | **Why CA2000 does not fire here** — find what silences it (Yalbuz measures 413 sites with the same line), then measure and decide. | sweep, blocked detector | **done** 2026-11-07: nothing silenced it — the probe was a shape it does not flag. It fires on a StreamReader in all three projects, the tree has no site, and it is on at warning. |
-| P6 | **A test for the run-authority reduction** in `tools/crm-browser-export.js` ("a role that can only READ processes is never listed as able to RUN them"). Needs the JS test harness decided below. | section 4 item 5 | waits on a decision |
+| P6 | **A test for the run-authority reduction** in `tools/crm-browser-export.js` ("a role that can only READ processes is never listed as able to RUN them"). Needs the JS test harness decided below. | section 4 item 5 | **done** 2026-11-07: the script runs unchanged under `node` against a fake CRM (`Crm.Tests/Tools/`); three tests, each seen red against its own defect |
 | P7 | **Test packages to their next major** (xunit.v3 4, xunit.runner.visualstudio 4, Microsoft.NET.Test.Sdk 18), all three together. | sweep S3 | waits for Yalbuz to move first |
 
 **Deferred, DECIDED 2026-09-15 and unchanged:** flag-field plug-in inference (§4.3), the `uidata` spike (§4.5),
@@ -40,8 +40,10 @@ sample exists to write them against.
 
 ## Decisions open for the maintainer
 
-1. **A JavaScript test harness for `tools/`** (unblocks P6). Recommendation: run `node` from an xUnit test against
-   the script's pure functions, exported only when the script is loaded outside a browser — no npm, no package.
+1. ~~A JavaScript test harness for `tools/`~~ — **DECIDED 2026-11-07** (maintainer: "start implementing work
+   packages one after the other"): `node` run from xUnit, no npm. Built differently from the recommendation: the
+   script is not split into exported functions but run WHOLE against a fake CRM, so the file a user pastes is the
+   file tested, and every request it makes is checked to be a GET.
 2. **The target runtime on the run host** — .NET 10 installed, or a self-contained single-file `win-x64` publish.
    Never recorded since 2026-09-14.
 3. **Where `out/` lives and who may read it** — it holds the production XAML the sensitive scan redacts. The

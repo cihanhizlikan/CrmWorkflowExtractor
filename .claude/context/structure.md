@@ -10,7 +10,7 @@ Nothing in the tool reads the network: a run is made from an export file, or fro
 | `Crm.Ir` | XAML parsing, IR types, metadata resolution, `TurkishFold`, `HtmlEntities`, `DocumentText`, coverage, sensitive-literal scan, case stages (`CaseStageReader`, `CaseStageRules`) | no |
 | `Crm.Bpmn` | IR → BPMN 2.0, DI layout, embedded OMG XSD validation, stage maps (`StageMap`) | no |
 | `Crm.Cli` | `Program.Main`, configuration binding, stage orchestration, reports, exit codes | no |
-| `Crm.Tests` | xUnit v3 over recorded fixtures (`Crm.Tests/Fixtures/`) — never a live server | no |
+| `Crm.Tests` | xUnit v3 over recorded fixtures (`Crm.Tests/Fixtures/`) — never a live server. `Tools/export-harness.mjs` runs a browser script UNCHANGED under `node` against a fake CRM that answers GET only (since 2026-11-07); a machine without `node` skips those tests | no |
 | `tools/` | `crm-browser-export.js`, `crm-usage-export.js` and `crm-process-mining-export.js` (run on a CRM page in the user's browser, GET only — the ONLY things that read CRM) and the bookmarklet pages generated from them | the user's browser |
 
 ## Run output (`out/`, gitignored)
