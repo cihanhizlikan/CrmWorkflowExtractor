@@ -73,13 +73,13 @@ path check, and any step whose detector became LIVE since the baseline.
    reads, its severity in `profile:analyzer_config`; a rule not at `warning` is UNAVAILABLE until a probe in a
    THROWAWAY worktree makes it fire. A rule at `warning` with zero sites was proven to fire on 2026-11-07; re-probe
    only if the SDK pin (`global.json`) or an analyzer version (`Directory.Packages.props`) moved since. Known states:
-   - **LIVE**: CA1031, CA2016, CA2201, CA2008, CA1065, CA2219, the Security category, RCS1236, RCS1075, RCS1211,
+   - **LIVE**: CA1031, CA2000, CA2016, CA2201, CA2008, CA1065, CA2219, the Security category, RCS1236, RCS1075, RCS1211,
      CA1502/CA1505/CA1506, VSTHRD*; the NuGet audit (`dotnet list package --vulnerable --include-transitive`,
      `--deprecated`, `--outdated` — from a worktree, it restores); **`jb inspectcode`** (ReSharper global tool,
      installed): `jb inspectcode CrmWorkflowExtractor.slnx --output=<scratch>/inspect.sarif --format=Sarif
      --severity=SUGGESTION --no-build` — a few minutes, so start it in the background at preflight.
-   - **BLOCKED**: CA2000 — does not fire even on a probe (plan row, 2026-11-07). Re-try once per run; still silent
-     → the row stands, no new one.
+   - **Probe CA2000 with a StreamReader or a plain IDisposable**, never `FileStream s = new(path, FileMode.Open);
+     return s.Length;` — a shape it does not flag, which had it recorded as BLOCKED until P5 (2026-11-07).
    - **UNAVAILABLE** unless installed since: a coverage collector (none referenced), Stryker. Never installed by an
      unattended run.
 
