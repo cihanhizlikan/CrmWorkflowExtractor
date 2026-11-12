@@ -6,7 +6,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>latest</LangVersion>
+    <!-- C# 14, the language of .NET 10, not "latest": an SDK 11 compiler offers C# 15 (`[with(comparer)]`), and code
+         written in it no longer builds on a machine with only the .NET 10 SDK. -->
+    <LangVersion>14.0</LangVersion>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <!-- Pinned so a warning count means the same thing on a different SDK. -->
     <AnalysisLevel>10.0</AnalysisLevel>
