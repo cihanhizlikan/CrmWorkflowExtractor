@@ -39,7 +39,11 @@ headings in its navy, a cover carrying the document’s particulars, a revision 
 ORDER of the children of `w:pPr` and `w:rPr` is fixed by the schema and is written in one place for that reason:
 a file with them out of order is one Word calls unreadable and "repairs". It was a PDF until 2026-10-02; Word
 paginates, which is the whole reason for the change, and the hand-written PDF writer and its font embedding went
-with it. `PngImage` now reads only the logo’s size, because a .docx carries the file itself.
+with it. **The guide has its own version** (`AnalystGuide.Edition`, "v1.1" since 2026-11-12), not the tool's build
+stamp: a change to what the guide SAYS adds a row to its revision table, a re-run does not. **It says it may hold
+errors and is for reference only** (`AnalystGuide.Disclaimer`, maintainer: "very important") on the cover, where its
+purpose is stated, and in the footer of every page beside the version, so a page that travels alone carries it. Its
+Turkish is formal and polite, and plain rather than bureaucratic: "açın", not "açınız". `PngImage` now reads only the logo’s size, because a .docx carries the file itself.
 
 Only two Markdown pages remain: `rapor.md` (the entry point) and `hassas-degerler.md` (restricted, kept separate so
 it is easy to leave out of a delivery). `ExcelWorkbook` writes .xlsx by hand — a zip of XML, so no dependency.

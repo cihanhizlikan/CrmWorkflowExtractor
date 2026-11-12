@@ -25,18 +25,29 @@ public static class WordDocument
     /// <summary>The heading navy of the department's standard: <c>#333399</c>.</summary>
     public const string HeadingColour = "333399";
 
+    /// <summary>The colour of a warning the reader must not miss: a dark red that still prints legibly in grey.</summary>
+    public const string WarningColour = "C00000";
+
     private static readonly Encoding Utf8 = new UTF8Encoding(false);
 
-    public static byte[] Build(IReadOnlyList<DocumentPart> parts, byte[]? logo)
+    /// <summary>
+    /// Writes the document. A <paramref name="footer"/> is printed at the foot of EVERY page, followed by the page
+    /// number: what must travel with any single page that is printed, photographed or forwarded on its own.
+    /// </summary>
+    public static byte[] Build(IReadOnlyList<DocumentPart> parts, byte[]? logo, string? footer = null)
     {
         using MemoryStream file = new();
         using (ZipArchive zip = new(file, ZipArchiveMode.Create, leaveOpen: true))
         {
-            Write(zip, "[Content_Types].xml", ContentTypes(logo is not null));
+            Write(zip, "[Content_Types].xml", ContentTypes(logo is not null, footer is not null));
             Write(zip, "_rels/.rels", Relationships());
-            Write(zip, "word/_rels/document.xml.rels", DocumentRelationships(logo is not null));
+            Write(zip, "word/_rels/document.xml.rels", DocumentRelationships(logo is not null, footer is not null));
             Write(zip, "word/styles.xml", Styles());
-            Write(zip, "word/document.xml", Document(parts, logo));
+            Write(zip, "word/document.xml", Document(parts, logo, footer is not null));
+            if (footer is string text)
+            {
+                Write(zip, "word/footer1.xml", Footer(text));
+            }
             if (logo is byte[] image)
             {
                 ZipArchiveEntry entry = zip.CreateEntry("word/media/logo.png", CompressionLevel.NoCompression);
@@ -54,7 +65,7 @@ public static class WordDocument
         stream.Write(Utf8.GetBytes(xml));
     }
 
-    private static string ContentTypes(bool logo)
+    private static string ContentTypes(bool logo, bool footer)
     {
         return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">"""
             + """<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>"""
@@ -62,6 +73,7 @@ public static class WordDocument
             + (logo ? """<Default Extension="png" ContentType="image/png"/>""" : "")
             + """<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>"""
             + """<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>"""
+            + (footer ? """<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>""" : "")
             + "</Types>";
     }
 
@@ -72,12 +84,20 @@ public static class WordDocument
             + "</Relationships>";
     }
 
-    private static string DocumentRelationships(bool logo)
+    private static string DocumentRelationships(bool logo, bool footer)
     {
         return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">"""
             + """<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>"""
             + (logo ? """<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/logo.png"/>""" : "")
+            + (footer ? """<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>""" : "")
             + "</Relationships>";
+    }
+
+    private static string Footer(string text)
+    {
+        return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">"""
+            + """<w:p><w:pPr><w:pStyle w:val="Footer"/></w:pPr><w:r><w:t xml:space="preserve">""" + Text(text) + " · Sayfa </w:t></w:r>"
+            + """<w:fldSimple w:instr="PAGE"><w:r><w:t>1</w:t></w:r></w:fldSimple></w:p></w:ftr>""";
     }
 
     /// <summary>
@@ -99,6 +119,9 @@ public static class WordDocument
         styles.Append(Style("DocTableHeader", "DocTableHeader", new Look(After: 0, Justify: "center", Bold: true, Size: 20)));
         styles.Append(Style("DocTableText", "DocTableText", new Look(After: 0, Colour: "000000", Size: 20)));
         styles.Append(Style("NormalBullet", "NormalBullet", new Look(After: 60, Indent: 454, Justify: "both", Size: 22)));
+        // A warning the reader must not miss: bold, centred and in dark red, on the cover and at the foot of each page.
+        styles.Append(Style("Disclaimer", "Disclaimer", new Look(Before: 120, After: 240, Justify: "center", Bold: true, Colour: WarningColour, Size: 24)));
+        styles.Append(Style("Footer", "footer", new Look(After: 0, Justify: "center", Bold: true, Colour: WarningColour, Size: 16)));
         styles.Append("</w:styles>");
         return styles.ToString();
     }
@@ -161,7 +184,7 @@ public static class WordDocument
         return $"""<w:style w:type="paragraph" w:styleId="{id}"><w:name w:val="{name}"/><w:qFormat/><w:pPr>{paragraph}</w:pPr><w:rPr>{run}</w:rPr></w:style>""";
     }
 
-    private static string Document(IReadOnlyList<DocumentPart> parts, byte[]? logo)
+    private static string Document(IReadOnlyList<DocumentPart> parts, byte[]? logo, bool footer)
     {
         StringBuilder body = new();
         body.Append("""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" """);
@@ -174,7 +197,13 @@ public static class WordDocument
             body.Append(part.ToXml(logo));
         }
         // A4 with the department's own margins, so a page of this sits in the same binder as one of theirs.
-        body.Append("""<w:sectPr><w:pgSz w:w="11907" w:h="16840" w:code="9"/>""");
+        body.Append("<w:sectPr>");
+        if (footer)
+        {
+            // A footer reference comes FIRST in w:sectPr: the schema fixes that order as it does w:pPr's.
+            body.Append("""<w:footerReference w:type="default" r:id="rId3"/>""");
+        }
+        body.Append("""<w:pgSz w:w="11907" w:h="16840" w:code="9"/>""");
         body.Append("""<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>""");
         body.Append("</w:body></w:document>");
         return body.ToString();

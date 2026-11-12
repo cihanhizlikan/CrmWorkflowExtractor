@@ -24,6 +24,29 @@ public static class AnalystGuide
 {
     private const string Title = "CRM Talep Aşamaları ve İş Akışları — Taşıma Kılavuzu";
 
+    /// <summary>
+    /// What the guide says of itself before anything else: the reader is an outsource team acting on a document
+    /// a tool wrote from production data, and nothing in it has been checked by hand row by row.
+    /// </summary>
+    public const string Disclaimer = "Bu çalışma hata içerebilir ve yalnızca referans amaçlıdır.";
+
+    /// <summary>
+    /// The guide's own revisions, newest last. The partner refers to the document by its number ("v1.1"), so a
+    /// change to what the guide SAYS adds a row here; a re-run over new data does not, because the run and its
+    /// date are on the cover already. The build stamp stays in the internal report, where it is read.
+    /// </summary>
+    private static readonly Revision[] Revisions =
+    [
+        new("v1.0", "2 Ekim 2026", "İlk yayın, kurumun standart Word düzeninde."),
+        new("v1.1", "12 Kasım 2026", "Sürüm numarası ve sorumluluk reddi eklendi."),
+    ];
+
+    /// <summary>The guide's current version, as the cover and the revision table show it.</summary>
+    public static string Edition
+    {
+        get { return Revisions[^1].Number; }
+    }
+
     public static byte[] Build(RunState state, IReadOnlyList<WorkflowIr> documents, UsageEvidence? usage, string logoFile)
     {
         List<DocumentPart> parts = [];
@@ -40,7 +63,7 @@ public static class AnalystGuide
         Traps(parts);
         Checklist(parts);
         Glossary(parts);
-        return WordDocument.Build(parts, image);
+        return WordDocument.Build(parts, image, Disclaimer + " · " + Title + " · " + Edition);
     }
 
     private static void Cover(List<DocumentPart> parts, RunState state, IReadOnlyList<WorkflowIr> documents, int inScope, PngImage? logo)
@@ -54,22 +77,23 @@ public static class AnalystGuide
         parts.Add(new Paragraph("CoverDocInfo", "Kurumsal Mimari", "Hazırlayan: "));
         parts.Add(new Paragraph("CoverDocInfo", Title, "Doküman Adı: "));
         parts.Add(new Paragraph("CoverDocInfo", Stamp(state.RunId), "Yayın Tarihi: "));
-        parts.Add(new Paragraph("CoverDocInfo", state.ToolVersion, "Üretim Sürümü: "));
+        parts.Add(new Paragraph("CoverDocInfo", Edition, "Sürüm: "));
         parts.Add(new Paragraph("CoverDocInfo", state.RunId, "Çalıştırma: "));
         parts.Add(new Paragraph("Normal", ""));
+        parts.Add(new Paragraph("Disclaimer", "Uyarı: " + Disclaimer));
         parts.Add(new Paragraph("Normal", "Bu belge, kurumun CRM sisteminde çalışan " + Number(documents.Count)
             + " süreç tanımının okunmuş ve çizilmiş halini anlatır. Bunların " + Number(inScope)
             + " tanesi yeni üründe yeniden kurulacak iştir; taleplerin geçtiği aşamalar " + Number(state.StageMapPaths.Count)
-            + " aşama haritasında çizilmiştir. CRM'i hiç görmemiş ama BPMN okuyan bir sistem analisti bu belgeyi baştan "
-            + "sona okuyup ilk süreci aynı gün çözümleyebilir."));
+            + " aşama haritasında çizilmiştir. CRM'i daha önce görmemiş, ancak BPMN okuyabilen bir sistem analisti bu belgeyi "
+            + "baştan sona okuduktan sonra ilk süreci aynı gün çözümleyebilir."));
         parts.Add(new Table(
         [
             new DocumentRow(["Revizyon Tarihi", "Yazan", "Revizyon No", "Revizyon Açıklaması"], Header: true),
-            new DocumentRow([Stamp(state.RunId), "Kurumsal Mimari", state.ToolVersion, "Çalıştırma " + state.RunId + " için üretildi."])
+            .. Revisions.Select(revision => new DocumentRow([revision.Date, "Kurumsal Mimari", revision.Number, revision.Change]))
         ], [2200, 2200, 1800, 3400]));
-        parts.Add(new Paragraph("Normal", "Bu paketteki her şey üretim verisinden üretildi ve kurum dışına "
-            + "çıkarılmamalıdır. Diyagramlar açıklayıcıdır: anlamak ve yeniden tasarlamak içindir, "
-            + "çalıştırılamazlar ve CRM'e geri yüklenemezler."));
+        parts.Add(new Paragraph("Normal", "Paketteki tüm içerik üretim verisinden hazırlanmıştır; bu nedenle kurum dışına "
+            + "çıkarılmamasını rica ederiz. Diyagramlar süreçleri anlamak ve yeniden tasarlamak için hazırlanmıştır; "
+            + "çalıştırılamaz ve CRM'e geri yüklenemezler."));
         parts.Add(new PageBreak());
     }
 
@@ -82,11 +106,11 @@ public static class AnalystGuide
         parts.Add(new Paragraph("Heading1", "İçindekiler"));
         foreach (string line in new[]
         {
-            "1  Giriş", "    1.1  Amaç ve kapsam", "    1.2  Beş dakikada arka plan",
+            "1  Giriş", "    1.1  Amaç ve kapsam", "    1.2  Kısa arka plan",
             "2  Dosyalar ve açılış sırası", "    2.1  tasima-plani.xlsx", "    2.2  bpmn/ — diyagramlar ve gösterim",
             "    2.3  veri-analizi.xlsx", "    2.4  dis-sistemler.xlsx", "    2.5  Elinizdekinden diyagrama",
             "3  Bir talep konusunu adım adım çözümleme", "4  Bir iş akışını adım adım çözümleme",
-            "5  Nelere dikkat edeceksiniz", "6  Bitirmeden önce kontrol listesi", "7  Sözlük"
+            "5  Dikkat edilmesi gereken noktalar", "6  Tamamlamadan önce kontrol listesi", "7  Sözlük"
         })
         {
             parts.Add(new Paragraph("Normal", line));
@@ -98,65 +122,68 @@ public static class AnalystGuide
     {
         parts.Add(new Paragraph("Heading1", "1  Giriş"));
         parts.Add(new Paragraph("Heading2", "1.1  Amaç ve kapsam"));
-        parts.Add(new Paragraph("Normal", "Bu paket, CRM'deki süreçlerin yeni bir ürüne taşınabilmesi için "
-            + "hazırlandı. İçinde taşınacak işin listesi, her sürecin çizilmiş hali ve bu süreçlerin veriye ve "
-            + "dış sistemlere nasıl dokunduğu vardır. Amaç, bir sistem analistinin CRM ekranlarını açmadan "
-            + "sürecin ne yaptığını anlaması ve yeni tasarımı buradan çıkarabilmesidir."));
+        parts.Add(new Paragraph("Normal", "Bu paket, CRM'deki süreçlerin yeni bir ürüne taşınması için hazırlanmıştır. "
+            + "İçinde taşınacak işin listesini, her sürecin çizilmiş halini ve süreçlerin veriye ve dış sistemlere nasıl "
+            + "dokunduğunu bulacaksınız. Amacımız, CRM ekranlarını açmanıza gerek kalmadan bir sürecin ne yaptığını "
+            + "anlayabilmeniz ve yeni tasarımı bu belgelerden çıkarabilmenizdir."));
+        parts.Add(new Paragraph("Normal", Disclaimer + " Paketteki listeler ve diyagramlar CRM'deki tanımlardan bir araçla "
+            + "üretilmiştir; bir satır ya da kutu ile CRM'in kendisi çeliştiğinde CRM'deki tanım esas alınmalıdır.", "Uyarı: "));
+        parts.Add(new Paragraph("Normal", "Sorularınızı ve fark ettiğiniz hataları Kurumsal Mimari ekibine iletebilirsiniz; "
+            + "bildirdiğiniz düzeltmeler kılavuzun bir sonraki sürümüne yansıtılacaktır."));
         parts.Add(new Paragraph("Normal", "Kapsam, kurumun kendi kurduğu " + Number(inScope) + " süreçtir. "
-            + "Okunan toplam " + Number(total) + " tanımın geri kalanı taslaktır, ürünle gelmiştir ya da adı "
-            + "deneme olup hiç çalışmamıştır; bunlar pakette yoktur, dolayısıyla listeyi süzmeniz gerekmez."));
-        parts.Add(new Paragraph("Heading2", "1.2  Beş dakikada arka plan"));
-        parts.Add(new Paragraph("Normal", "Bu CRM'de bir müşteri isteği bir TALEP olarak açılır. Talebin konusu (talep "
-            + "konusu) hangi süreçten geçeceğini belirler: talep, o konunun başlangıç aşamasında başlar. Her TALEP AŞAMASI "
-            + "olumlu, olumsuz ya da iptal sonucuyla kapanır ve sonuca göre bir sonraki aşamaya geçer; yolda bir iş akışı "
+            + "Okunan toplam " + Number(total) + " tanımın geri kalanı taslak, ürünle birlikte gelmiş ya da adı "
+            + "deneme olup hiç çalışmamış tanımlardır. Bunlar pakete alınmadı; listeyi ayrıca süzmenize gerek yok."));
+        parts.Add(new Paragraph("Heading2", "1.2  Kısa arka plan"));
+        parts.Add(new Paragraph("Normal", "Bu CRM'de bir müşteri isteği bir \"talep\" olarak açılır. Talebin konusu (talep "
+            + "konusu) hangi süreçten geçeceğini belirler: talep, o konunun başlangıç aşamasında başlar. Her \"talep aşaması\" "
+            + "olumlu, olumsuz ya da iptal sonucuyla kapanır ve sonuca göre bir sonraki aşamaya geçer; bu sırada bir iş akışı "
             + "çalıştırabilir ve müşteriye SMS gönderebilir. Bu aşamalar CRM'in kendi \"İş Süreci Akışı\" çubuğu değildir: "
-            + "kurumun kendi tanımladığı aşama kayıtlarıdır ve paketteki aşama haritaları onlardan çizilmiştir. Önce aşamaları "
-            + "anlayın: iş akışları bu sürecin adımlarıdır."));
-        parts.Add(new Paragraph("Normal", "CRM'de \"iş akışı\", bir kayıt üzerinde bir şey olduğunda sistemin "
-            + "kendiliğinden yaptığı iştir: poliçe oluşturulunca bir alan doldurmak, durum değişince e-posta "
-            + "göndermek, bir onay beklemek gibi. Kod değil, ekrandan tanımlanmış kurallardır; bu yüzden yıllar "
-            + "içinde çoğalmışlardır."));
+            + "kurumun kendi tanımladığı aşama kayıtlarıdır ve paketteki aşama haritaları bu kayıtlardan çizilmiştir. İş akışları "
+            + "bu sürecin adımları olduğu için işe aşamalardan başlamak en kolay yoldur."));
+        parts.Add(new Paragraph("Normal", "CRM'de \"iş akışı\", bir kayıt üzerinde bir olay gerçekleştiğinde sistemin "
+            + "kendiliğinden yaptığı iştir: poliçe oluşturulduğunda bir alanı doldurmak, durum değiştiğinde e-posta "
+            + "göndermek ya da bir onay beklemek gibi. İş akışları kod değil, ekrandan tanımlanmış kurallardır; bu nedenle yıllar "
+            + "içinde sayıları artmıştır."));
         foreach ((string kind, string what) in new[]
         {
             ("İş Akışı", "arka planda ya da kayıt kaydedilirken çalışan asıl otomasyon. İşin büyük kısmı budur."),
             ("Diyalog", "kullanıcıya soru soran, adım adım ilerleyen ekran akışı."),
             ("İş Kuralı", "form üzerinde çalışan kural (alanı gizle, zorunlu yap). Tarayıcıda çalışır, iz bırakmaz."),
             ("Eylem", "başka iş akışlarının çağırdığı, girdi ve çıktısı olan yeniden kullanılabilir parça."),
-            ("İş Süreci Akışı", "formun üstündeki CRM'in kendi aşama çubuğu. Talep aşamalarıyla karıştırmayın; bu pakette çizilmez.")
+            ("İş Süreci Akışı", "formun üstündeki, CRM'in kendi aşama çubuğu. Talep aşamalarından farklıdır ve bu pakette çizilmemiştir.")
         })
         {
             parts.Add(new Paragraph("NormalBullet", what, kind + ": "));
         }
-        parts.Add(new Paragraph("Normal", "İki ayrım her yerde karşınıza çıkar. Mod: \"arka plan\" iş akışı kullanıcı "
-            + "beklemeden sonra çalışır, \"gerçek zamanlı\" iş akışı kayıt kaydedilirken çalışır ve kullanıcıyı "
-            + "bekletir. Durum: \"taslak\" bir tanım yeni çalıştırma başlatamaz, \"etkin\" olan başlatır."));
-        parts.Add(new Paragraph("Normal", "Araç CRM'e yalnızca okuma amacıyla bağlandı; hiçbir şeyi değiştirmedi. "
-            + "Her tanımın kendi XAML metnini aldı, adımlarını çözümledi ve her biri için bir BPMN diyagramı "
-            + "üretti. BPMN, süreçleri çizmenin uluslararası standardıdır: .bpmn dosyalarını bpmn.io sitesinde "
-            + "veya Camunda Modeler'da açabilirsiniz."));
+        parts.Add(new Paragraph("Normal", "Belge boyunca iki ayrımla sık sık karşılaşacaksınız. Mod: \"arka plan\" iş akışı kullanıcıyı "
+            + "bekletmeden, sonradan çalışır; \"gerçek zamanlı\" iş akışı kayıt kaydedilirken çalışır ve kullanıcıyı "
+            + "bekletir. Durum: \"taslak\" bir tanım yeni çalıştırma başlatamaz, \"etkin\" bir tanım başlatabilir."));
+        parts.Add(new Paragraph("Normal", "Bilgiler CRM'den yalnızca okunarak alındı; CRM'de hiçbir şey değiştirilmedi. "
+            + "Her tanımın XAML metni okundu, adımları çözümlendi ve her biri için bir BPMN diyagramı üretildi. BPMN, "
+            + "süreç çiziminin uluslararası standardıdır; .bpmn dosyalarını bpmn.io sitesinde veya Camunda Modeler'da açabilirsiniz."));
     }
 
     private static void Files(List<DocumentPart> parts)
     {
         parts.Add(new Paragraph("Heading1", "2  Dosyalar ve açılış sırası"));
-        parts.Add(new Paragraph("Normal", "Sıra önemlidir: her adım bir sonrakinde ne arayacağınızı söyler. Her "
-            + "çalışma kitabının ilk sayfası \"Nasıl okunur\"dur ve sütunların tek tek ne işe yaradığını yazar; "
-            + "sekmeler de burada anlatılan sırayla dizilidir."));
+        parts.Add(new Paragraph("Normal", "Dosyaları aşağıdaki sırayla açmanız işinizi kolaylaştıracaktır: her dosya, bir "
+            + "sonrakinde neye bakacağınızı gösterir. Her çalışma kitabı, sütunları tek tek açıklayan bir \"Nasıl okunur\" "
+            + "sayfasıyla başlar; sekmeler de burada anlatılan sırayla dizilmiştir."));
         parts.Add(new Table(
         [
             new DocumentRow(["Dosya", "Ne işe yarar"], Header: true),
-            new DocumentRow(["tasima-plani.xlsx", "Taşınacak işin listesi: talep konuları, talep aşamaları, iş akışları. Buradan başlarsınız."]),
+            new DocumentRow(["tasima-plani.xlsx", "Taşınacak işin listesi: talep konuları, talep aşamaları, iş akışları. Çalışmaya buradan başlayabilirsiniz."]),
             new DocumentRow(["bpmn/talep-asamalari/", "Her talep konusunun aşama haritası: aşamalar, sonuçlar ve yolda çalışan iş akışları, iç içe."]),
             new DocumentRow(["bpmn/is-akislari/", "Plandaki her iş akışının kendi diyagramı, kategori ve kayıt türü klasörlerine ayrılmış."]),
             new DocumentRow(["veri-analizi.xlsx", "Hangi iş akışı hangi veriye dokunuyor, hangisi hangisini tetikliyor."]),
-            new DocumentRow(["dis-sistemler.xlsx", "CRM dışına uzanan çağrılar: entegrasyon yükü."])
+            new DocumentRow(["dis-sistemler.xlsx", "CRM dışına uzanan çağrılar, yani entegrasyon yükü."])
         ], [2800, 6800]));
 
-        parts.Add(new Paragraph("Heading2", "2.1  tasima-plani.xlsx — sizin iş listeniz"));
-        parts.Add(new Paragraph("Normal", "İşin kendisi. Süzmeniz gerekmez: kurumun kurmadığı, taslak olan ve hiç "
-            + "çalışmamış deneme iş akışları bu dosyada zaten yoktur."));
+        parts.Add(new Paragraph("Heading2", "2.1  tasima-plani.xlsx — iş listesi"));
+        parts.Add(new Paragraph("Normal", "Taşınacak işin kendisi bu dosyadadır. Kurumun kurmadığı, taslak olan ve hiç "
+            + "çalışmamış deneme iş akışları bu dosyaya alınmamıştır; listeyi ayrıca süzmenize gerek yoktur."));
         parts.Add(new Paragraph("NormalBullet", "her aşama haritası için bir satır: konunun adı, başladığı aşama, kaç aşama "
-            + "ve kaç iş akışı taşıdığı, açılacak dosya. Hangi süreçten başlayacağınızı buradan seçin.", SheetNames.Topics + " — "));
+            + "ve kaç iş akışı taşıdığı ve açılacak dosya. Hangi süreçten başlayacağınızı bu sayfadan seçebilirsiniz.", SheetNames.Topics + " — "));
         parts.Add(new Paragraph("NormalBullet", "her etkin talep aşaması için bir satır: her sonuçta talebin geçtiği aşama, "
             + "çalışan iş akışı ve gönderilen SMS; aşamanın SLA, atama ve doküman kuralları. haritadaki_ad, aşamanın haritadaki "
             + "kutusunda yazan metindir.", SheetNames.Stages + " — "));
@@ -171,13 +198,13 @@ public static class AnalystGuide
             + "başlangıç aşamasından başlar ve talebin ulaşabileceği her aşamayı gösterir. Olumlu sonuç bir elmastan sağa, "
             + "olumsuz aşağıdan, iptal yukarıdan çıkar; aynı yere giden sonuçlar tek oktur (\"olumsuz / iptal\"). Sonuç "
             + "üzerindeki kutu o sonuçta çalışan iş akışıdır ve içine girildiğinde o iş akışının kendi adımları görünür. "
-            + "Görüntüleyiciniz kutunun içine girmeyi desteklemiyorsa aynı iş akışının kendi diyagramı bpmn/is-akislari/ altındadır; "
-            + "yolu kutunun açıklamasında yazar."));
+            + "Kullandığınız görüntüleyici kutunun içine girmeyi desteklemiyorsa, aynı iş akışının kendi diyagramını bpmn/is-akislari/ "
+            + "altında bulabilirsiniz; dosyanın yolu kutunun açıklamasında yazılıdır."));
         parts.Add(new Paragraph("Normal", "bpmn/is-akislari/ altındaki bir iş akışı diyagramını bpmn.io ya da Camunda Modeler ile "
-            + "açın. Üstteki not kutusunu okuyun: künye, onu çalıştıran aşamalar, çağıranlar, kullanım ve uyarılar oradadır. Sonra "
-            + "akışı soldan sağa izleyin; elmasların üzerindeki metin CRM'deki koşulun kendisidir. Solundaki ad çoğunlukla bir "
-            + "alandır (varlik.alan); bir özel etkinliğin döndürdüğü değer karşılaştırılıyorsa o etkinliğin adı ve çıktısı yazar "
-            + "(Etkinlik.Cikti)."));
+            + "açtığınızda önce üstteki not kutusuna göz atın: künye, iş akışını çalıştıran aşamalar, çağıranlar, kullanım "
+            + "ve uyarılar oradadır. Ardından akışı soldan sağa izleyebilirsiniz; elmasların üzerindeki metin CRM'deki koşulun "
+            + "kendisidir. Koşulun solundaki ad çoğunlukla bir alandır (varlik.alan); bir özel etkinliğin döndürdüğü değer "
+            + "karşılaştırılıyorsa o etkinliğin adı ve çıktısı yazılır (Etkinlik.Cikti)."));
         parts.Add(new Table(
         [
             new DocumentRow(["Şekil", "Bu pakette anlamı"], Header: true),
@@ -191,28 +218,29 @@ public static class AnalystGuide
             new DocumentRow(["Kalın daire (bitiş olayı)", "Haritada yol biter: \"Sonraki aşama yok\" talebin kapandığını söylemez, aşama kaydı devamını göstermez."])
         ], [3600, 6000]));
 
-        parts.Add(new Paragraph("Heading2", "2.3  veri-analizi.xlsx — bir iş akışını tek başına tasarlayamayacağınız yerler"));
-        parts.Add(new Paragraph("NormalBullet", "alan alan: kaç iş akışı yazıyor, kaç iş akışı okuyor. yazan > 1 olan alanlarda "
-            + "sıra CRM'de hiçbir zaman garanti edilmedi; yeni üründe bir sıra kararlaştırın.", "Veri ayak izi — "));
-        parts.Add(new Paragraph("NormalBullet", "bir iş akışının yazmasıyla kendiliğinden başlayan başka iş akışları. Bu bağ "
-            + "diyagramlarda görünmez; yalnızca burada vardır.", "Tetikleme zincirleri — "));
+        parts.Add(new Paragraph("Heading2", "2.3  veri-analizi.xlsx — iş akışları arasındaki veri bağları"));
+        parts.Add(new Paragraph("NormalBullet", "her alan için kaç iş akışının yazdığı ve kaç iş akışının okuduğu. yazan > 1 olan "
+            + "alanlarda yazma sırası CRM'de hiçbir zaman garanti edilmemiştir; yeni üründe bir sıranın kararlaştırılması gerekir.",
+            "Veri ayak izi — "));
+        parts.Add(new Paragraph("NormalBullet", "bir iş akışının yazdığı alan nedeniyle kendiliğinden başlayan diğer iş akışları. Bu bağ "
+            + "diyagramlarda görünmez; yalnızca bu sayfada yer alır.", "Tetikleme zincirleri — "));
 
         parts.Add(new Paragraph("Heading2", "2.4  dis-sistemler.xlsx — entegrasyon yükü"));
-        parts.Add(new Paragraph("Normal", "CRM dışına uzanan çağrılar. Buradaki her etkinlik, yeni üründe ayrı bir "
-            + "iş kalemidir."));
+        parts.Add(new Paragraph("Normal", "Bu dosya CRM dışına uzanan çağrıları listeler. Buradaki her etkinlik, yeni üründe ayrı bir "
+            + "iş kalemi olarak ele alınmalıdır."));
         parts.Add(new Paragraph("NormalBullet", "çağrılan kod, onu çağıran iş akışları, çağrının parametre adları ve "
-            + "derlemedeki_adresler: kodun içinde yazılı adresler. kayitli sütunu hayır ise iş akışı artık var olmayan "
-            + "bir koda gidiyor demektir.", "Dış bağımlılıklar — "));
-        parts.Add(new Paragraph("NormalBullet", "tanımın metnine yazılmış adresler, sunucusuyla birlikte. Boş olması "
-            + "\"hiçbir yere bağlanmıyor\" demek değildir.", "Adresler — "));
-        parts.Add(new Paragraph("NormalBullet", "iş akışı OLMAYAN, bir mesaj üzerinde çalışan kod. İş akışları sayfasında hiç "
-            + "görünmezler ama yeni üründe karşılıkları kurulmalıdır.", "Eklentiler — "));
+            + "derlemedeki_adresler (kodun içinde yazılı adresler). kayitli sütunu \"hayır\" ise iş akışı artık var olmayan "
+            + "bir koda başvurmaktadır.", "Dış bağımlılıklar — "));
+        parts.Add(new Paragraph("NormalBullet", "tanımın metnine yazılmış adresler, sunucularıyla birlikte. Bu sayfanın boş olması "
+            + "\"hiçbir yere bağlanmıyor\" anlamına gelmez.", "Adresler — "));
+        parts.Add(new Paragraph("NormalBullet", "iş akışı olmayan, bir mesaj üzerinde çalışan kod. Bu kodlar İş akışları sayfasında "
+            + "görünmez, ancak yeni üründe karşılıklarının kurulması gerekir.", "Eklentiler — "));
 
-        parts.Add(new Paragraph("Heading2", "2.5  Elinizdekinden diyagrama"));
-        parts.Add(new Paragraph("Normal", "Elinizde bir ad, bir alan ya da bir adres varsa onu hangi diyagramda bulacağınız:"));
+        parts.Add(new Paragraph("Heading2", "2.5  Elinizdeki bilgiden diyagrama"));
+        parts.Add(new Paragraph("Normal", "Elinizde bir ad, bir alan ya da bir adres olduğunda, ilgili diyagrama aşağıdaki yoldan ulaşabilirsiniz:"));
         parts.Add(new Table(
         [
-            new DocumentRow(["Elinizde", "Açın", "Arayın", "Sonra"], Header: true),
+            new DocumentRow(["Elinizdeki", "Açılacak dosya", "Aranacak sütun", "Ardından"], Header: true),
             new DocumentRow(["Aşama adı", "tasima-plani.xlsx → " + SheetNames.Stages, "asama sütunu", "haritadaki_ad metnini asama_haritasi dosyasında aratın"]),
             new DocumentRow(["İş akışı adı", "tasima-plani.xlsx → " + SheetNames.Plan, "is_akisi sütunu", "calistiran_asamalar doluysa önce haritayı, sonra bpmn_dosyasi'nı açın"]),
             new DocumentRow(["Alan ya da kayıt türü", "veri-analizi.xlsx → Veri ayak izi", "varlik · alan", "yazanlar sütunundaki iş akışlarını İş akışları sayfasında bulun"]),
@@ -231,8 +259,8 @@ public static class AnalystGuide
         parts.Add(new Paragraph("Heading1", "3  Bir talep konusunu adım adım çözümleme"));
         if (state.StageMapPaths.Count == 0)
         {
-            parts.Add(new Paragraph("Normal", "Bu çalıştırmanın dışa aktarımı talep aşamalarını taşımıyor: aşama haritası yok. "
-                + "Bir sonraki çalıştırmada bu bölüm gerçek bir harita üzerinde anlatılır."));
+            parts.Add(new Paragraph("Normal", "Bu çalıştırmanın dışa aktarımı talep aşamalarını içermediği için aşama haritası "
+                + "üretilmemiştir. Bir sonraki çalıştırmada bu bölüm gerçek bir harita üzerinde anlatılacaktır."));
             return;
         }
         Dictionary<Guid, CaseStage> byId = state.CaseStages.ToDictionary(stage => stage.Id);
@@ -254,20 +282,20 @@ public static class AnalystGuide
         ], [2600, 7000]));
         (string, string)[] steps =
         [
-            ("Satırı bulun", "tasima-plani.xlsx → " + SheetNames.Topics + ". Konunun satırı haritanın dosyasını, kaç aşama ve kaç "
-                + "iş akışı taşıdığını söyler."),
-            ("Haritayı açın ve notu okuyun", "Sol üstteki not, haritadaki aşama ve iş akışı sayısını, hangi iş akışının kaç "
-                + "kez geçtiğini ve haritanın gösterim kurallarını yazar."),
-            ("Olumlu yolu izleyin", "\"Talep açılır\" olayından başlayıp her elmastan sağa çıkan olumlu okları izleyin: "
-                + "talebin her şey yolunda gittiğinde geçtiği yol budur. Soru biçimindeki aşamalarda olumlu = evet."),
-            ("Olumsuz ve iptal yollarını ekleyin", "Aşağıdan çıkan olumsuz, yukarıdan çıkan iptal oklarını izleyin. \"… aşamasına "
-                + "dön\" olayı talebin geri döndüğü yerdir; aynı adlı \"… aşamasına dönüş\" olayını bulun."),
-            ("Aşamanın kurallarını okuyun", SheetNames.Stages + " sayfasında aşamanın satırı: SLA, atama, doküman ve diğer kurallar. "
-                + "Haritada aşamanın açıklamasında da yazılıdır."),
-            ("İş akışlarına girin", "+ işaretli kutunun içine girin: o sonuçta çalışan iş akışının adımları oradadır. Her "
-                + "iş akışını bir sonraki bölümdeki gibi çözümleyin."),
-            ("Süreci yeni üründe çizin", "Talep aşamaları, sonuçlar, SMS'ler ve iş akışları elinizde. Yeni üründeki karşılıklarını "
-                + "yazın; karşılığı olmayanları işaretleyin.")
+            ("Satırı bulun", "tasima-plani.xlsx → " + SheetNames.Topics + " sayfasını açın. Konunun satırında haritanın dosyası "
+                + "ve haritanın kaç aşama ile kaç iş akışı içerdiği yazar."),
+            ("Haritayı açıp notu okuyun", "Sol üstteki not; haritadaki aşama ve iş akışı sayısını, hangi iş akışının "
+                + "kaç kez geçtiğini ve haritanın gösterim kurallarını açıklar."),
+            ("Olumlu yolu izleyin", "\"Talep açılır\" olayından başlayıp her elmastan sağa çıkan olumlu oku takip edin. "
+                + "Bu, her şey yolunda gittiğinde talebin geçtiği yoldur. Soru biçimindeki aşamalarda olumlu sonuç \"evet\" demektir."),
+            ("Olumsuz ve iptal yollarını ekleyin", "Ardından aşağıdan çıkan olumsuz ve yukarıdan çıkan iptal oklarına geçin. \"… aşamasına "
+                + "dön\" olayı talebin geri döndüğü yeri gösterir; akış, aynı adı taşıyan \"… aşamasına dönüş\" olayından devam eder."),
+            ("Aşamanın kurallarına bakın", SheetNames.Stages + " sayfasındaki aşama satırında SLA, atama, doküman ve diğer kurallar "
+                + "yer alır. Aynı bilgileri haritada aşamanın açıklamasında da bulabilirsiniz."),
+            ("İş akışlarının içine girin", "+ işaretli bir kutunun içine girdiğinizde o sonuçta çalışan iş akışının adımları açılır. "
+                + "Her iş akışını bir sonraki bölümde anlatıldığı gibi çözümleyebilirsiniz."),
+            ("Süreci yeni üründe çizin", "Artık talep aşamaları, sonuçlar, SMS'ler ve iş akışları elinizde. Her birinin yeni üründeki "
+                + "karşılığını yazın; karşılığı olmayanları ayrıca işaretlemeniz, sonraki çalışmayı kolaylaştıracaktır.")
         ];
         for (int index = 0; index < steps.Length; index++)
         {
@@ -282,8 +310,8 @@ public static class AnalystGuide
         if (example is WorkflowIr sample)
         {
             WorkflowIdentity identity = sample.Identity;
-            parts.Add(new Paragraph("Normal", "Aşağıdaki sıra, planın ilk satırlarından biri üzerinde anlatılıyor. "
-                + "Bu iş akışı bu çalıştırmada gerçekten var; dosyayı açıp birlikte ilerleyebilirsiniz."));
+            parts.Add(new Paragraph("Normal", "Aşağıdaki adımlar, planın ilk satırlarından biri üzerinde anlatılmaktadır. "
+                + "Örnek iş akışı bu çalıştırmada gerçekten yer aldığından, dosyayı açarak adımları birlikte izleyebilirsiniz."));
             List<DocumentRow> rows =
             [
                 new DocumentRow(["Örnek iş akışı", identity.Name], Header: false),
@@ -299,27 +327,28 @@ public static class AnalystGuide
 
         (string, string)[] steps =
         [
-            ("Planda satırı okuyun", "tasima-plani.xlsx → " + SheetNames.Plan + ". kategori, kayit_turu, tetikleyici ve adim_sayisi "
-                + "sütunları iş akışının ne olduğunu söyler; bekleme_var evet ise iş akışı zamana yayılıyor demektir ve tasarımı "
-                + "baştan farklıdır. kullanim sütununa bakın ama tek başına karar vermeyin."),
-            ("Tek başına mı, parça mı", "Aynı satırda cagri_rolu: \"aşama adımı\" ise bir talep aşaması çalıştırır, haritasıyla "
-                + "birlikte tasarlayın (calistiran_asamalar). \"yapı taşı\" ise başka iş akışları bunu çağırıyor, tek başına "
-                + "taşınmaz (cagiran_is_akislari; " + SheetNames.Trees + " sayfası)."),
-            ("Diyagramı açın", "bpmn_dosyasi sütunundaki dosyayı açın, üstteki not kutusunu okuyun, sonra akışı soldan "
-                + "sağa izleyin."),
-            ("Tetikleyiciyi karara bağlayın", "İş akışını ne başlatıyor ve yeni üründe aynı olayın karşılığı var mı? "
-                + "tetikleyici, calistiran_asamalar ve calisma_modu sütunları ile diyagramın başlangıç olayı bunu söyler. "
-                + "Bu tasarımın ilk kararıdır; cevabını yazmadan devam etmeyin."),
+            ("Plandaki satırı okuyun", "tasima-plani.xlsx → " + SheetNames.Plan + " sayfasını açın. kategori, kayit_turu, "
+                + "tetikleyici ve adim_sayisi sütunları iş akışının ne olduğunu anlatır. bekleme_var \"evet\" ise iş akışı zamana "
+                + "yayılıyordur ve tasarımı da buna göre farklılaşır. kullanim sütunu iyi bir ipucudur, ancak tek başına karar "
+                + "vermek için yeterli değildir."),
+            ("İş akışının rolünü belirleyin", "Aynı satırdaki cagri_rolu \"aşama adımı\" ise iş akışını bir talep aşaması çalıştırır; "
+                + "en doğrusu onu o aşamanın haritasıyla birlikte tasarlamaktır (calistiran_asamalar). \"yapı taşı\" ise başka iş "
+                + "akışları onu çağırır ve tek başına taşınmaz (cagiran_is_akislari; " + SheetNames.Trees + " sayfası)."),
+            ("Diyagramı açın", "bpmn_dosyasi sütunundaki dosyayı açın, üstteki not kutusunu okuyun ve akışı soldan sağa izleyin."),
+            ("Tetikleyiciyi netleştirin", "İş akışını neyin başlattığını ve yeni üründe aynı olayın bir karşılığı olup olmadığını "
+                + "belirleyin. tetikleyici, calistiran_asamalar ve calisma_modu sütunları ile diyagramın başlangıç olayı bu konuda "
+                + "yol gösterir. Bu, tasarımın ilk kararıdır; cevabını yazdıktan sonra ilerlemeniz sonraki adımları kolaylaştırır."),
             ("Beklemeleri işaretleyin", "Diyagramdaki bekleme adımları süreci açık tutar. Her biri için \"ne kadar\" ve "
-                + "\"neyi bekliyor\" sorularını cevaplayın."),
+                + "\"neyi bekliyor\" sorularının cevabını not edin."),
             ("Veri bağlarını çıkarın", "yazdigi_varliklar sütunundaki varlıkları veri-analizi.xlsx → Veri ayak izi "
-                + "sayfasında aratın. yazan > 1 olan her alan bir sıra kararıdır."),
-            ("Dış çağrıları ayırın", "ozel_etkinlikler sütunu doluysa dis-sistemler.xlsx → Dış bağımlılıklar sayfasından "
-                + "aynı etkinliği kimlerin çağırdığına bakın. Her biri ayrı bir iş kalemidir."),
-            ("Çizime ne kadar güveneceğinizi bilin", "okunamayan_adim_sayisi 0 değilse diyagram eksiktir; o adımları CRM "
-                + "ekranından doğrulayın. calisan_kopya_farkli evet ise üretimde çalışan kopya çizilenden farklıdır."),
-            ("Süreci çizin", "Tetikleyici, adımlar, kararlar, beklemeler ve dış çağrılar elinizde. Yeni üründeki "
-                + "karşılıklarını yazın; karşılığı olmayanları işaretleyin.")
+                + "sayfasında arayın. yazan > 1 olan her alan için bir yazma sırası kararı vermek gerekecektir."),
+            ("Dış çağrıları ayırın", "ozel_etkinlikler sütunu doluysa, aynı etkinliği hangi iş akışlarının çağırdığını "
+                + "dis-sistemler.xlsx → Dış bağımlılıklar sayfasında görebilirsiniz. Her biri ayrı bir iş kalemidir."),
+            ("Çizimin ne kadar eksiksiz olduğuna bakın", "okunamayan_adim_sayisi 0 değilse diyagramda eksik adımlar vardır; "
+                + "bu adımları CRM ekranından doğrulamanızı rica ederiz. calisan_kopya_farkli \"evet\" ise üretimde çalışan kopya, "
+                + "çizilen tanımdan farklıdır."),
+            ("Süreci çizin", "Artık tetikleyici, adımlar, kararlar, beklemeler ve dış çağrılar elinizde. Her birinin yeni üründeki "
+                + "karşılığını yazın ve karşılığı olmayanları işaretleyin.")
         ];
         for (int index = 0; index < steps.Length; index++)
         {
@@ -330,28 +359,29 @@ public static class AnalystGuide
 
     private static void Traps(List<DocumentPart> parts)
     {
-        parts.Add(new Paragraph("Heading1", "5  Nelere dikkat edeceksiniz"));
+        parts.Add(new Paragraph("Heading1", "5  Dikkat edilmesi gereken noktalar"));
         foreach (string trap in new[]
         {
-            "Planın kullanim sütunundaki \"kayıtlı çalışma yok\", kullanılmadığını KANITLAMAZ. CRM sistem işlerini "
-                + "düzenli olarak siler, iş kuralları tarayıcıda çalışıp hiç iz bırakmaz, gerçek zamanlı iş akışları "
-                + "yalnızca hatayı kaydeder. Bu sütun bir silme gerekçesi değildir.",
-            "Ada bakarak temizlik yapmayın. Adında DRAFT, TEST ya da ESKİ geçen ve üretimde her gün çalışan iş akışları "
-                + "bulundu; bu yüzden ad tek başına kapsam dışı bırakma gerekçesi sayılmadı.",
-            "İş kuralları tarayıcıda çalışır ve hiçbir kayıt bırakmaz: kullanımları hakkında hiçbir kanıt yoktur.",
-            "Gerçek zamanlı iş akışları kullanıcıyı bekletir. Yeni üründe aynı işi arka plana almak davranışı değiştirir.",
+            "Planın kullanim sütunundaki \"kayıtlı çalışma yok\" ifadesi, iş akışının kullanılmadığını kanıtlamaz. CRM sistem "
+                + "işlerini düzenli olarak siler, iş kuralları tarayıcıda çalışır ve iz bırakmaz, gerçek zamanlı iş akışları ise "
+                + "yalnızca hataları kaydeder. Bu nedenle bu sütun tek başına bir silme gerekçesi olarak kullanılmamalıdır.",
+            "Bir iş akışını yalnızca adına bakarak elemeyin. Adında DRAFT, TEST ya da ESKİ geçtiği halde üretimde her gün "
+                + "çalışan iş akışları bulundu; bu nedenle ad, tek başına kapsam dışı bırakma gerekçesi sayılmadı.",
+            "İş kuralları tarayıcıda çalışır ve kayıt bırakmaz; bu nedenle kullanımlarına ilişkin bir kanıt bulunmamaktadır.",
+            "Gerçek zamanlı iş akışları kullanıcıyı bekletir. Yeni üründe aynı işin arka plana alınması, davranışı değiştirecektir.",
             "Tetikleme zincirleri diyagramda görünmez. Bir iş akışı, başka bir iş akışının izlediği alana yazdığı için onu "
-                + "başlatıyor olabilir; bu bağ yalnızca veri-analizi.xlsx'tedir.",
-            "Diyagramdaki \"→ adres\", o adımın çalıştırdığı KODUN İÇİNDE yazılı bir adrestir; adımın oraya gittiğinin "
-                + "kanıtı değildir. Kod adresi parçalardan birleştiriyorsa hiçbir yerde görünmez.",
-            "Bir aşama haritasındaki bitiş olayı talebin kapandığını söylemez: \"Sonraki aşama yok\", aşama kaydının o sonuç "
-                + "için bir devam göstermediği demektir. Talebin kapanıp kapanmadığı aşamanın kapanış kurallarındadır.",
-            "Bir aşama hem bir iş akışı çalıştırıp hem bir sonraki aşamaya geçiyorsa, ikisinin sırası CRM'de doğrulanmadı; "
-                + "haritada iş akışı önce çizilir.",
-            "Bir aşamanın olumlu mu olumsuz mu kapandığına iş akışı karar vermez; iş akışı sonuç belli olduktan sonra çalışır. "
-                + "Karar ya kişinindir ya da CRM'e kaydedilmiş koddadır: dis-sistemler.xlsx → Eklentiler, talep_surecinde = evet.",
-            "Diyagramdaki \"Çağrı ipucu\" (SOAP istemcisi, POST, text/xml…) derlemede o kelimenin geçtiğini söyler; hangi "
-                + "çağrının kullandığını söylemez. Fiil ve gövdenin kesin hali kaynak kodda ya da servisin sözleşmesindedir (WSDL)."
+                + "başlatıyor olabilir; bu bağ yalnızca veri-analizi.xlsx dosyasında yer alır.",
+            "Diyagramdaki \"→ adres\", o adımın çalıştırdığı kodun içinde yazılı bir adrestir; adımın bu adrese bağlandığının "
+                + "kanıtı değildir. Kod adresi parçalardan birleştiriyorsa adres hiçbir yerde görünmez.",
+            "Bir aşama haritasındaki bitiş olayı, talebin kapandığı anlamına gelmez: \"Sonraki aşama yok\", aşama kaydının o sonuç "
+                + "için bir devam tanımlamadığını gösterir. Talebin kapanıp kapanmadığı, aşamanın kapanış kurallarında yer alır.",
+            "Bir aşama hem bir iş akışı çalıştırıp hem de bir sonraki aşamaya geçiyorsa, bu ikisinin sırası CRM'de doğrulanmamıştır; "
+                + "haritada iş akışı önce çizilmiştir.",
+            "Bir aşamanın olumlu ya da olumsuz kapanmasına iş akışı karar vermez; iş akışı, sonuç belli olduktan sonra çalışır. "
+                + "Kararı ya bir kişi verir ya da CRM'e kaydedilmiş bir kod: dis-sistemler.xlsx → Eklentiler, talep_surecinde = evet.",
+            "Diyagramdaki \"Çağrı ipucu\" (SOAP istemcisi, POST, text/xml…) derlemede o kelimenin geçtiğini gösterir; hangi "
+                + "çağrının bunu kullandığını göstermez. Fiil ve gövdenin kesin hali kaynak kodda ya da servisin sözleşmesinde (WSDL) "
+                + "yer alır; en güvenilir bilgiyi derlemenin sahibinden alabilirsiniz."
         })
         {
             parts.Add(new Paragraph("NormalBullet", trap));
@@ -360,19 +390,21 @@ public static class AnalystGuide
 
     private static void Checklist(List<DocumentPart> parts)
     {
-        parts.Add(new Paragraph("Heading1", "6  Bitirmeden önce kontrol listesi"));
+        parts.Add(new Paragraph("Heading1", "6  Tamamlamadan önce kontrol listesi"));
+        parts.Add(new Paragraph("Normal", "Bir süreci tamamlanmış saymadan önce aşağıdaki maddeleri kısaca gözden geçirmeniz, "
+            + "gözden kaçan bir noktayı erkenden yakalamanıza yardımcı olacaktır."));
         foreach (string item in new[]
         {
-            "Aşama haritasındaki her sonucu izlediniz: olumlu, olumsuz, iptal ve geri dönüşler.",
-            "Tetikleyiciyi ve tetikleyen alanları yazdınız; aşama adımıysa çalıştıran aşamaları.",
-            "Bütün dalları izlediniz: her karar noktasının iki tarafı da çizimde var.",
-            "Bekleme adımlarının ne kadar beklediğini ve neyi beklediğini not ettiniz.",
-            "Çağrılan alt iş akışlarını açtınız ve aynı taşıma kalemine bağladınız.",
-            "Yazdığı alanları çıkardınız ve aynı alana yazan başka iş akışı olup olmadığına baktınız.",
-            "Dış çağrıları ayrı bir iş kalemi olarak yazdınız.",
-            "Sürecin kimin yetkisiyle çalıştığını (calisma_kimligi) ve elle başlatılıp başlatılmadığını (elle_baslatilabilir) yazdınız.",
-            "Okunamayan adım kalmadı; kalanları CRM ekranında doğruladınız.",
-            "Her adımın \"yeni üründe karşılığı\" satırı dolu; karşılığı olmayanlar işaretli."
+            "Aşama haritasındaki her sonuç izlenmiştir: olumlu, olumsuz, iptal ve geri dönüşler.",
+            "Tetikleyici ve tetikleyen alanlar yazılmıştır; iş akışı bir aşama adımıysa onu çalıştıran aşamalar da yazılmıştır.",
+            "Bütün dallar izlenmiştir: her karar noktasının her iki tarafı da çizimde yer almaktadır.",
+            "Bekleme adımlarının ne kadar ve neyi beklediği not edilmiştir.",
+            "Çağrılan alt iş akışları açılmış ve aynı taşıma kalemine bağlanmıştır.",
+            "Yazılan alanlar çıkarılmış ve aynı alana yazan başka bir iş akışı olup olmadığı kontrol edilmiştir.",
+            "Dış çağrılar ayrı birer iş kalemi olarak yazılmıştır.",
+            "Sürecin kimin yetkisiyle çalıştığı (calisma_kimligi) ve elle başlatılıp başlatılamadığı (elle_baslatilabilir) yazılmıştır.",
+            "Okunamayan adım kalmamıştır; kalan adımlar CRM ekranında doğrulanmıştır.",
+            "Her adımın \"yeni üründe karşılığı\" satırı doldurulmuştur; karşılığı olmayanlar işaretlenmiştir."
         })
         {
             parts.Add(new Paragraph("NormalBullet", item));
@@ -400,7 +432,7 @@ public static class AnalystGuide
             new DocumentRow(["Giriş noktası · yapı taşı", "Giriş noktası kendi başına başlayan bir iş akışıdır; yapı taşı başka iş akışlarınca çağrılır ve bir kez taşınır."]),
             new DocumentRow(["Çalışma modu", "Arka plan: kullanıcı beklemez. Gerçek zamanlı: kayıt kaydedilirken çalışır, kullanıcıyı bekletir."]),
             new DocumentRow(["Okunamayan adım", "Ayrıştırıcının anlamadığı adım; diyagramda OKUNAMADI olarak işaretlidir."]),
-            new DocumentRow(["Özel etkinlik", "CRM'e kaydedilmiş, iş akışının çağırdığı derlenmiş kod. Dışarıya açılan tek kapı budur."]),
+            new DocumentRow(["Özel etkinlik", "CRM'e kaydedilmiş, iş akışının çağırdığı derlenmiş kod. İş akışlarının CRM dışına ulaşabildiği tek yol budur."]),
             new DocumentRow(["Çalışan kopya", "CRM'in etkinleştirilen tanımdan çıkardığı ve gerçekte çalıştırdığı kopya. Tanımdan farklıysa (calisan_kopya_farkli) çalışan kopya geçerlidir."]),
             new DocumentRow(["BPMN", "Süreç çizmenin standardı. .bpmn dosyaları bpmn.io veya Camunda Modeler ile açılır."])
         ], [2600, 7000]));
@@ -466,3 +498,6 @@ public static class AnalystGuide
             : runId;
     }
 }
+
+/// <summary>One row of the guide's revision table: its number, the day it was made and what changed.</summary>
+internal sealed record Revision(string Number, string Date, string Change);

@@ -113,6 +113,43 @@ public sealed class AnalystGuideTests
         Assert.Contains("dis-sistemler.xlsx", text, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The partner refers to the guide by a plain number ("v1.1"), not by the tool's build stamp, and the guide
+    /// says before anything else that it may hold errors and is for reference only — on the cover and again where
+    /// its purpose is stated, since a reader who skips the cover still reads that section.
+    /// </summary>
+    [Fact]
+    public async Task The_Guide_Carries_A_Plain_Version_And_Says_It_Is_For_Reference_Only()
+    {
+        using TemporaryOutput output = new();
+        FakeOrganization organization = new() { WorkflowCount = 8 };
+
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
+
+        Assert.True(code == ExitCode.Success, console);
+        string text = Text(Path.Combine(runRoot, "raporlar", "nasil-kullanilir.docx"));
+        Assert.Matches(@"^v\d+\.\d+$", AnalystGuide.Edition);
+        Assert.Contains("Sürüm:  " + AnalystGuide.Edition, text, StringComparison.Ordinal);
+        Assert.Contains("Revizyon No", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("0.1.0", text, StringComparison.Ordinal);
+
+        int cover = text.IndexOf(AnalystGuide.Disclaimer, StringComparison.Ordinal);
+        int purpose = text.IndexOf("1.1  Amaç ve kapsam", text.IndexOf("1  Giriş", text.IndexOf("Sözlük", StringComparison.Ordinal), StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.True(cover >= 0 && cover < text.IndexOf("İçindekiler", StringComparison.Ordinal), "Uyarı kapakta olmalı.");
+        Assert.True(purpose > 0 && text.IndexOf(AnalystGuide.Disclaimer, purpose, StringComparison.Ordinal) > purpose, "Uyarı Amaç ve kapsam bölümünde olmalı.");
+
+        // And at the foot of EVERY page, with the version, so a page printed or forwarded alone still carries it.
+        Dictionary<string, byte[]> parts = Parts(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "nasil-kullanilir.docx")));
+        string footer = Words(Xml(parts, "word/footer1.xml"));
+        Assert.Contains(AnalystGuide.Disclaimer, footer, StringComparison.Ordinal);
+        Assert.Contains(AnalystGuide.Edition, footer, StringComparison.Ordinal);
+        XNamespace relationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+        string reference = Xml(parts, "word/document.xml").Descendants(Main + "footerReference").Single().Attribute(relationships + "id")!.Value;
+        XElement link = Xml(parts, "word/_rels/document.xml.rels").Root!.Elements().Single(element => element.Attribute("Id")!.Value == reference);
+        Assert.Equal("footer1.xml", link.Attribute("Target")!.Value);
+        Assert.Contains("/word/footer1.xml", Encoding.UTF8.GetString(parts["[Content_Types].xml"]), StringComparison.Ordinal);
+    }
+
     /// <summary>Two runs over the same evidence must give the same bytes, or nobody can tell a re-run from a change.</summary>
     [Fact]
     public void The_Same_Guide_Twice_Is_The_Same_File()
