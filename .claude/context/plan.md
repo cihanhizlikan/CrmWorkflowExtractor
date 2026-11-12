@@ -16,7 +16,7 @@ Decisions in force are the entries marked **DECIDED**, wherever they stand.
 - **Verified on production data:** the export and usage files (runs from 2026-09-22 on, 1,437 workflows in the
   plan's estate). **Not yet:** the process-mining export — its first attempt was refused (403) and now saves the
   refusal instead of dying; it waits for a re-run (*Acceptance → B*).
-- **Health:** Release build with zero warnings (warnings are errors there); 392 tests; ten robustness rules on at
+- **Health:** Release build with zero warnings (warnings are errors there); 396 tests; ten robustness rules on at
   zero; the first `/sweep` ran 2026-11-07 and its findings are the packages below.
 
 ## Outstanding work — in order
@@ -1562,3 +1562,15 @@ committed to build**, and carries a recommendation; none was acted on because ea
   search with what to keep; the browser scripts as robustness subjects; and three traps that cost time — a
   backslash through a heredoc, `git checkout --` dropping a step's edit, a worktree held by the shell inside it.
 - **Profile:** the eight keys only the dropped steps read are gone; `plan_rule` lets a lone row ride the next branch.
+
+## The analyst guide: v1.1, a disclaimer on every page, a formal and plain voice (2026-11-12)
+- **Asked (maintainer):** simple versioning like v1.1; the disclaimer that the work may contain errors and is for
+  reference only ("very important"); formal, polite and helpful language that does not read as machine-written.
+- **Built:** `AnalystGuide.Edition` from a revision list (v1.0 2 Ekim 2026, v1.1 12 Kasım 2026) on the cover and in
+  the revision table, replacing the build stamp; `AnalystGuide.Disclaimer` in a dark-red style on the cover, in 1.1,
+  and in a footer on every page with the version and page number; a line inviting questions and corrections. The
+  text was rewritten twice: the first pass was formal but formulaic ("öneririz" fifteen times, noun-phrase headings),
+  the second keeps two of those and speaks plainly.
+- **Also:** the machine now has only the .NET 11 SDK, so `global.json` is a floor (10.0.100, `latestMajor`) and
+  `LangVersion` is pinned to 14.0, the language of .NET 10 — `latest` turned on C# 15 and 39 IDE0028 sites.
+- **Unverified:** how Word lays the footer out on the delivered page; nothing here opens Word (Acceptance D).
