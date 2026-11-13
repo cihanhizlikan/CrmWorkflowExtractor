@@ -24,6 +24,22 @@ public static class AnalystGuide
 {
     private const string Title = "CRM Talep Aşamaları ve İş Akışları — Taşıma Kılavuzu";
 
+    /// <summary>The title as the cover prints it: in capitals and without the dash, as it was set by hand on v1.1.</summary>
+    private const string CoverTitle = "CRM TALEP AŞAMALARI VE İŞ AKIŞLARI TAŞIMA KILAVUZU";
+
+    /// <summary>
+    /// Every numbered section, ONCE: the contents list and the headings are both written from here. On the copy
+    /// edited by hand (2026-11-13) the two had drifted apart in four places, because they were typed twice.
+    /// </summary>
+    private static readonly (string Number, string Title)[] Sections =
+    [
+        ("1", "Giriş"), ("1.1", "Amaç ve kapsam"), ("1.2", "Arka plan"),
+        ("2", "Dosyalar ve açılış sırası"), ("2.1", "Taşıma Planı"), ("2.2", "BPMN"), ("2.3", "Veri Analizi"),
+        ("2.4", "Dış Sistemler"), ("2.5", "Haritalama"),
+        ("3", "Talebi adım adım çözümleme"), ("4", "İş akışını adım adım çözümleme"),
+        ("5", "Dikkat Edilmesi Gereken Noktalar"), ("6", "Kontrol Listesi"), ("7", "Sözlük"),
+    ];
+
     /// <summary>
     /// What the guide says of itself before anything else: the reader is an outsource team acting on a document
     /// a tool wrote from production data, and nothing in it has been checked by hand row by row.
@@ -39,6 +55,7 @@ public static class AnalystGuide
     [
         new("v1.0", "2 Ekim 2026", "İlk yayın, kurumun standart Word düzeninde."),
         new("v1.1", "12 Kasım 2026", "Sürüm numarası ve sorumluluk reddi eklendi."),
+        new("v1.2", "13 Kasım 2026", "Gözden geçirildi: başlıklar kısaltıldı, yazı boyutları küçültüldü, kontrol listesi madde imli oldu."),
     ];
 
     /// <summary>The guide's current version, as the cover and the revision table show it.</summary>
@@ -72,13 +89,12 @@ public static class AnalystGuide
         {
             parts.Add(new Logo(picture.Width, picture.Height, 160));
         }
-        parts.Add(new Paragraph("CoverMainTitle", Title));
+        parts.Add(new Paragraph("CoverMainTitle", CoverTitle));
         parts.Add(new Paragraph("Normal", ""));
         parts.Add(new Paragraph("CoverDocInfo", "Kurumsal Mimari", "Hazırlayan: "));
         parts.Add(new Paragraph("CoverDocInfo", Title, "Doküman Adı: "));
         parts.Add(new Paragraph("CoverDocInfo", Stamp(state.RunId), "Yayın Tarihi: "));
         parts.Add(new Paragraph("CoverDocInfo", Edition, "Sürüm: "));
-        parts.Add(new Paragraph("CoverDocInfo", state.RunId, "Çalıştırma: "));
         parts.Add(new Paragraph("Normal", ""));
         parts.Add(new Paragraph("Disclaimer", "Uyarı: " + Disclaimer));
         parts.Add(new Paragraph("Normal", "Bu belge, kurumun CRM sisteminde çalışan " + Number(documents.Count)
@@ -91,9 +107,8 @@ public static class AnalystGuide
             new DocumentRow(["Revizyon Tarihi", "Yazan", "Revizyon No", "Revizyon Açıklaması"], Header: true),
             .. Revisions.Select(revision => new DocumentRow([revision.Date, "Kurumsal Mimari", revision.Number, revision.Change]))
         ], [2200, 2200, 1800, 3400]));
-        parts.Add(new Paragraph("Normal", "Paketteki tüm içerik üretim verisinden hazırlanmıştır; bu nedenle kurum dışına "
-            + "çıkarılmamasını rica ederiz. Diyagramlar süreçleri anlamak ve yeniden tasarlamak için hazırlanmıştır; "
-            + "çalıştırılamaz ve CRM'e geri yüklenemezler."));
+        parts.Add(new Paragraph("Normal", "Paketteki tüm içerik CRM'deki süreç tanımlarından hazırlanmıştır. Diyagramlar "
+            + "süreçleri anlamak ve yeniden tasarlamak içindir; çalıştırılamaz ve CRM'e geri yüklenemezler."));
         parts.Add(new PageBreak());
     }
 
@@ -103,37 +118,41 @@ public static class AnalystGuide
     /// </summary>
     private static void Contents(List<DocumentPart> parts)
     {
-        parts.Add(new Paragraph("Heading1", "İçindekiler"));
-        foreach (string line in new[]
+        parts.Add(new Paragraph("Heading3", "İçindekiler"));
+        foreach ((string number, string title) in Sections)
         {
-            "1  Giriş", "    1.1  Amaç ve kapsam", "    1.2  Kısa arka plan",
-            "2  Dosyalar ve açılış sırası", "    2.1  tasima-plani.xlsx", "    2.2  bpmn/ — diyagramlar ve gösterim",
-            "    2.3  veri-analizi.xlsx", "    2.4  dis-sistemler.xlsx", "    2.5  Elinizdekinden diyagrama",
-            "3  Bir talep konusunu adım adım çözümleme", "4  Bir iş akışını adım adım çözümleme",
-            "5  Dikkat edilmesi gereken noktalar", "6  Tamamlamadan önce kontrol listesi", "7  Sözlük"
-        })
-        {
-            parts.Add(new Paragraph("Normal", line));
+            // The number in bold, a section indented under its chapter.
+            string indent = number.Contains('.', StringComparison.Ordinal) ? "    " : "";
+            parts.Add(new Paragraph("Contents", "  " + title, indent + number));
         }
         parts.Add(new PageBreak());
     }
 
+    /// <summary>A numbered heading, its words taken from <see cref="Sections"/> so the contents list cannot disagree.</summary>
+    private static Paragraph Heading(string number)
+    {
+        string title = Sections.Single(section => string.Equals(section.Number, number, StringComparison.Ordinal)).Title;
+        string style = number.Contains('.', StringComparison.Ordinal) ? "Heading2" : "Heading1";
+        return new Paragraph(style, number + "  " + title);
+    }
+
     private static void Introduction(List<DocumentPart> parts, int total, int inScope)
     {
-        parts.Add(new Paragraph("Heading1", "1  Giriş"));
-        parts.Add(new Paragraph("Heading2", "1.1  Amaç ve kapsam"));
+        parts.Add(Heading("1"));
+        parts.Add(Heading("1.1"));
         parts.Add(new Paragraph("Normal", "Bu paket, CRM'deki süreçlerin yeni bir ürüne taşınması için hazırlanmıştır. "
             + "İçinde taşınacak işin listesini, her sürecin çizilmiş halini ve süreçlerin veriye ve dış sistemlere nasıl "
             + "dokunduğunu bulacaksınız. Amacımız, CRM ekranlarını açmanıza gerek kalmadan bir sürecin ne yaptığını "
             + "anlayabilmeniz ve yeni tasarımı bu belgelerden çıkarabilmenizdir."));
-        parts.Add(new Paragraph("Normal", Disclaimer + " Paketteki listeler ve diyagramlar CRM'deki tanımlardan bir araçla "
-            + "üretilmiştir; bir satır ya da kutu ile CRM'in kendisi çeliştiğinde CRM'deki tanım esas alınmalıdır.", "Uyarı: "));
+        // All of it in bold, as it was set by hand: the warning is the one paragraph here nobody may skim past.
+        parts.Add(new Paragraph("Normal", "", "Uyarı: " + Disclaimer + " Paketteki listeler ve diyagramlar CRM'deki tanımlardan "
+            + "bir araçla üretilmiştir; bir satır ya da kutu ile CRM'in kendisi çeliştiğinde CRM'deki tanım esas alınmalıdır."));
         parts.Add(new Paragraph("Normal", "Sorularınızı ve fark ettiğiniz hataları Kurumsal Mimari ekibine iletebilirsiniz; "
             + "bildirdiğiniz düzeltmeler kılavuzun bir sonraki sürümüne yansıtılacaktır."));
         parts.Add(new Paragraph("Normal", "Kapsam, kurumun kendi kurduğu " + Number(inScope) + " süreçtir. "
             + "Okunan toplam " + Number(total) + " tanımın geri kalanı taslak, ürünle birlikte gelmiş ya da adı "
             + "deneme olup hiç çalışmamış tanımlardır. Bunlar pakete alınmadı; listeyi ayrıca süzmenize gerek yok."));
-        parts.Add(new Paragraph("Heading2", "1.2  Kısa arka plan"));
+        parts.Add(Heading("1.2"));
         parts.Add(new Paragraph("Normal", "Bu CRM'de bir müşteri isteği bir \"talep\" olarak açılır. Talebin konusu (talep "
             + "konusu) hangi süreçten geçeceğini belirler: talep, o konunun başlangıç aşamasında başlar. Her \"talep aşaması\" "
             + "olumlu, olumsuz ya da iptal sonucuyla kapanır ve sonuca göre bir sonraki aşamaya geçer; bu sırada bir iş akışı "
@@ -165,7 +184,7 @@ public static class AnalystGuide
 
     private static void Files(List<DocumentPart> parts)
     {
-        parts.Add(new Paragraph("Heading1", "2  Dosyalar ve açılış sırası"));
+        parts.Add(Heading("2"));
         parts.Add(new Paragraph("Normal", "Dosyaları aşağıdaki sırayla açmanız işinizi kolaylaştıracaktır: her dosya, bir "
             + "sonrakinde neye bakacağınızı gösterir. Her çalışma kitabı, sütunları tek tek açıklayan bir \"Nasıl okunur\" "
             + "sayfasıyla başlar; sekmeler de burada anlatılan sırayla dizilmiştir."));
@@ -179,7 +198,7 @@ public static class AnalystGuide
             new DocumentRow(["dis-sistemler.xlsx", "CRM dışına uzanan çağrılar, yani entegrasyon yükü."])
         ], [2800, 6800]));
 
-        parts.Add(new Paragraph("Heading2", "2.1  tasima-plani.xlsx — iş listesi"));
+        parts.Add(Heading("2.1"));
         parts.Add(new Paragraph("Normal", "Taşınacak işin kendisi bu dosyadadır. Kurumun kurmadığı, taslak olan ve hiç "
             + "çalışmamış deneme iş akışları bu dosyaya alınmamıştır; listeyi ayrıca süzmenize gerek yoktur."));
         parts.Add(new Paragraph("NormalBullet", "her aşama haritası için bir satır: konunun adı, başladığı aşama, kaç aşama "
@@ -193,7 +212,7 @@ public static class AnalystGuide
         parts.Add(new Paragraph("NormalBullet", "birbirini çağıran iş akışları, bir üst iş akışı altında: bir taşıma kaleminin "
             + "gerçek sınırı budur.", SheetNames.Trees + " — "));
 
-        parts.Add(new Paragraph("Heading2", "2.2  bpmn/ — diyagramlar ve gösterim"));
+        parts.Add(Heading("2.2"));
         parts.Add(new Paragraph("Normal", "bpmn/talep-asamalari/ altında her talep konusu için bir aşama haritası vardır: "
             + "başlangıç aşamasından başlar ve talebin ulaşabileceği her aşamayı gösterir. Olumlu sonuç bir elmastan sağa, "
             + "olumsuz aşağıdan, iptal yukarıdan çıkar; aynı yere giden sonuçlar tek oktur (\"olumsuz / iptal\"). Sonuç "
@@ -218,14 +237,14 @@ public static class AnalystGuide
             new DocumentRow(["Kalın daire (bitiş olayı)", "Haritada yol biter: \"Sonraki aşama yok\" talebin kapandığını söylemez, aşama kaydı devamını göstermez."])
         ], [3600, 6000]));
 
-        parts.Add(new Paragraph("Heading2", "2.3  veri-analizi.xlsx — iş akışları arasındaki veri bağları"));
+        parts.Add(Heading("2.3"));
         parts.Add(new Paragraph("NormalBullet", "her alan için kaç iş akışının yazdığı ve kaç iş akışının okuduğu. yazan > 1 olan "
             + "alanlarda yazma sırası CRM'de hiçbir zaman garanti edilmemiştir; yeni üründe bir sıranın kararlaştırılması gerekir.",
             "Veri ayak izi — "));
         parts.Add(new Paragraph("NormalBullet", "bir iş akışının yazdığı alan nedeniyle kendiliğinden başlayan diğer iş akışları. Bu bağ "
             + "diyagramlarda görünmez; yalnızca bu sayfada yer alır.", "Tetikleme zincirleri — "));
 
-        parts.Add(new Paragraph("Heading2", "2.4  dis-sistemler.xlsx — entegrasyon yükü"));
+        parts.Add(Heading("2.4"));
         parts.Add(new Paragraph("Normal", "Bu dosya CRM dışına uzanan çağrıları listeler. Buradaki her etkinlik, yeni üründe ayrı bir "
             + "iş kalemi olarak ele alınmalıdır."));
         parts.Add(new Paragraph("NormalBullet", "çağrılan kod, onu çağıran iş akışları, çağrının parametre adları ve "
@@ -236,7 +255,7 @@ public static class AnalystGuide
         parts.Add(new Paragraph("NormalBullet", "iş akışı olmayan, bir mesaj üzerinde çalışan kod. Bu kodlar İş akışları sayfasında "
             + "görünmez, ancak yeni üründe karşılıklarının kurulması gerekir.", "Eklentiler — "));
 
-        parts.Add(new Paragraph("Heading2", "2.5  Elinizdeki bilgiden diyagrama"));
+        parts.Add(Heading("2.5"));
         parts.Add(new Paragraph("Normal", "Elinizde bir ad, bir alan ya da bir adres olduğunda, ilgili diyagrama aşağıdaki yoldan ulaşabilirsiniz:"));
         parts.Add(new Table(
         [
@@ -256,7 +275,7 @@ public static class AnalystGuide
     /// </summary>
     private static void StageWalkthrough(List<DocumentPart> parts, RunState state)
     {
-        parts.Add(new Paragraph("Heading1", "3  Bir talep konusunu adım adım çözümleme"));
+        parts.Add(Heading("3"));
         if (state.StageMapPaths.Count == 0)
         {
             parts.Add(new Paragraph("Normal", "Bu çalıştırmanın dışa aktarımı talep aşamalarını içermediği için aşama haritası "
@@ -306,7 +325,7 @@ public static class AnalystGuide
 
     private static void Walkthrough(List<DocumentPart> parts, RunState state, UsageEvidence? usage, WorkflowIr? example)
     {
-        parts.Add(new Paragraph("Heading1", "4  Bir iş akışını adım adım çözümleme"));
+        parts.Add(Heading("4"));
         if (example is WorkflowIr sample)
         {
             WorkflowIdentity identity = sample.Identity;
@@ -359,7 +378,7 @@ public static class AnalystGuide
 
     private static void Traps(List<DocumentPart> parts)
     {
-        parts.Add(new Paragraph("Heading1", "5  Dikkat edilmesi gereken noktalar"));
+        parts.Add(Heading("5"));
         foreach (string trap in new[]
         {
             "Planın kullanim sütunundaki \"kayıtlı çalışma yok\" ifadesi, iş akışının kullanılmadığını kanıtlamaz. CRM sistem "
@@ -380,18 +399,18 @@ public static class AnalystGuide
             "Bir aşamanın olumlu ya da olumsuz kapanmasına iş akışı karar vermez; iş akışı, sonuç belli olduktan sonra çalışır. "
                 + "Kararı ya bir kişi verir ya da CRM'e kaydedilmiş bir kod: dis-sistemler.xlsx → Eklentiler, talep_surecinde = evet.",
             "Diyagramdaki \"Çağrı ipucu\" (SOAP istemcisi, POST, text/xml…) derlemede o kelimenin geçtiğini gösterir; hangi "
-                + "çağrının bunu kullandığını göstermez. Fiil ve gövdenin kesin hali kaynak kodda ya da servisin sözleşmesinde (WSDL) "
+                + "çağrının bunu kullandığını göstermez. Fiil ve gövdenin kesin hâli kaynak kodda ya da servisin sözleşmesinde (WSDL) "
                 + "yer alır; en güvenilir bilgiyi derlemenin sahibinden alabilirsiniz."
         })
         {
-            parts.Add(new Paragraph("NormalBullet", trap));
+            parts.Add(new Paragraph("NormalLeft", trap));
         }
     }
 
     private static void Checklist(List<DocumentPart> parts)
     {
-        parts.Add(new Paragraph("Heading1", "6  Tamamlamadan önce kontrol listesi"));
-        parts.Add(new Paragraph("Normal", "Bir süreci tamamlanmış saymadan önce aşağıdaki maddeleri kısaca gözden geçirmeniz, "
+        parts.Add(Heading("6"));
+        parts.Add(new Paragraph("NormalLeft", "Bir süreci tamamlanmış saymadan önce aşağıdaki maddeleri kısaca gözden geçirmeniz, "
             + "gözden kaçan bir noktayı erkenden yakalamanıza yardımcı olacaktır."));
         foreach (string item in new[]
         {
@@ -407,13 +426,13 @@ public static class AnalystGuide
             "Her adımın \"yeni üründe karşılığı\" satırı doldurulmuştur; karşılığı olmayanlar işaretlenmiştir."
         })
         {
-            parts.Add(new Paragraph("NormalBullet", item));
+            parts.Add(new Paragraph("Checklist", item));
         }
     }
 
     private static void Glossary(List<DocumentPart> parts)
     {
-        parts.Add(new Paragraph("Heading1", "7  Sözlük"));
+        parts.Add(Heading("7"));
         parts.Add(new Table(
         [
             new DocumentRow(["Terim", "Anlamı"], Header: true),

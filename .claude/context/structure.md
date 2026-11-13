@@ -34,12 +34,16 @@ carrying the columns, the caveats and that run's numbers, so a reader who has th
 has never seen this CRM reads first: what the package is, which file to open in which order, and how to work a
 single workflow from its plan row to a drawn process — demonstrated on a real live workflow picked from that run.
 `WordDocument` writes it by hand, as `ExcelWorkbook` writes .xlsx — a zip of XML, so no dependency — in the
-department’s own standard layout (AHE-BT-EY-STD, supplied 2026-10-02): A4 with its margins, Arial 11 justified,
-headings in its navy, a cover carrying the document’s particulars, a revision table and a contents list. The
+department’s own standard layout (AHE-BT-EY-STD, supplied 2026-10-02): A4 with its margins, Arial, a cover carrying
+the document’s particulars, a revision table and a contents list — at the sizes Enterprise Architecture set by hand
+on v1.1 (2026-11-13): body 9 points, black headings at 11 and 10, tables 10, the checklist a list Word bullets. A
+copy edited by hand is ABSORBED into `AnalystGuide` and `WordDocument`, never kept beside them: the next run would
+overwrite it. The section titles live once, in `AnalystGuide.Sections`, and both the contents list and the headings
+are written from there — typed twice, they had drifted apart in four places on that copy. The
 ORDER of the children of `w:pPr` and `w:rPr` is fixed by the schema and is written in one place for that reason:
 a file with them out of order is one Word calls unreadable and "repairs". It was a PDF until 2026-10-02; Word
 paginates, which is the whole reason for the change, and the hand-written PDF writer and its font embedding went
-with it. **The guide has its own version** (`AnalystGuide.Edition`, "v1.1" since 2026-11-12), not the tool's build
+with it. **The guide has its own version** (`AnalystGuide.Edition`, "v1.2" since 2026-11-13), not the tool's build
 stamp: a change to what the guide SAYS adds a row to its revision table, a re-run does not. **It says it may hold
 errors and is for reference only** (`AnalystGuide.Disclaimer`, maintainer: "very important") on the cover, where its
 purpose is stated, and in the footer of every page beside the version, so a page that travels alone carries it. Its
