@@ -13,17 +13,17 @@ public sealed record DocumentRow(IReadOnlyList<string> Cells, bool Header = fals
 /// dependency to produce one.
 ///
 /// <para>
-/// The shape and the styling follow the department's own standard document (AHE-BT-EY-STD, supplied 2026-10-02):
-/// A4 with its margins, Arial 11 justified for body text, a 14-point heading in its navy, tables in Arial 10 with
-/// a bold centred header row, a cover carrying the document's own particulars, a revision table and a contents
-/// list. An analyst opening this beside the department's other standards should not be able to tell it was
-/// produced by a tool.
+/// The shape follows the department's own standard document (AHE-BT-EY-STD, supplied 2026-10-02): A4 with its
+/// margins, Arial, tables in 10 points with a bold centred header row, a cover carrying the document's own
+/// particulars, a revision table and a contents list. The sizes are the ones Enterprise Architecture set by hand on
+/// the guide's v1.1 (2026-11-13): body text in 9 points, black headings at 11 and 10. An analyst opening this
+/// beside the department's other documents should not be able to tell it was produced by a tool.
 /// </para>
 /// </summary>
 public static class WordDocument
 {
-    /// <summary>The heading navy of the department's standard: <c>#333399</c>.</summary>
-    public const string HeadingColour = "333399";
+    /// <summary>The one list Word numbers itself: a plain bullet, defined in <c>word/numbering.xml</c>.</summary>
+    private const int BulletList = 1;
 
     /// <summary>The colour of a warning the reader must not miss: a dark red that still prints legibly in grey.</summary>
     public const string WarningColour = "C00000";
@@ -43,6 +43,7 @@ public static class WordDocument
             Write(zip, "_rels/.rels", Relationships());
             Write(zip, "word/_rels/document.xml.rels", DocumentRelationships(logo is not null, footer is not null));
             Write(zip, "word/styles.xml", Styles());
+            Write(zip, "word/numbering.xml", Numbering());
             Write(zip, "word/document.xml", Document(parts, logo, footer is not null));
             if (footer is string text)
             {
@@ -73,6 +74,7 @@ public static class WordDocument
             + (logo ? """<Default Extension="png" ContentType="image/png"/>""" : "")
             + """<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>"""
             + """<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>"""
+            + """<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>"""
             + (footer ? """<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>""" : "")
             + "</Types>";
     }
@@ -90,7 +92,16 @@ public static class WordDocument
             + """<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>"""
             + (logo ? """<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/logo.png"/>""" : "")
             + (footer ? """<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>""" : "")
+            + """<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>"""
             + "</Relationships>";
+    }
+
+    private static string Numbering()
+    {
+        return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">"""
+            + """<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/>"""
+            + """<w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum>"""
+            + Invariant($"""<w:num w:numId="{BulletList}"><w:abstractNumId w:val="0"/></w:num>""") + "</w:numbering>";
     }
 
     private static string Footer(string text)
@@ -101,8 +112,8 @@ public static class WordDocument
     }
 
     /// <summary>
-    /// The styles the department's document defines, as far as this one uses them. Arial 11 justified is its body;
-    /// headings are bold, the first level 14-point and navy; table text is Arial 10.
+    /// The styles this document uses: Arial throughout, body text justified in 9 points, bold black headings,
+    /// table text in 10.
     /// </summary>
     private static string Styles()
     {
@@ -110,24 +121,33 @@ public static class WordDocument
         styles.Append("""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">""");
         styles.Append("""<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="22"/><w:lang w:val="tr-TR"/></w:rPr></w:rPrDefault>""");
         styles.Append("""<w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>""");
-        styles.Append(Style("Normal", "Normal", new Look(Justify: "both", Size: 22)));
-        styles.Append(Style("Heading1", "heading 1", new Look(KeepNext: true, Before: 320, After: 160, Outline: 0, Bold: true, Colour: HeadingColour, Size: 28)));
-        styles.Append(Style("Heading2", "heading 2", new Look(KeepNext: true, Before: 240, After: 120, Outline: 1, Bold: true, Colour: HeadingColour, Size: 24)));
-        styles.Append(Style("Heading3", "heading 3", new Look(KeepNext: true, Before: 200, After: 100, Outline: 2, Bold: true, Size: 22)));
-        styles.Append(Style("CoverMainTitle", "CoverMainTitle", new Look(Before: 240, After: 240, Justify: "center", Font: "Verdana", Colour: "0000FF", Size: 40)));
-        styles.Append(Style("CoverDocInfo", "CoverDocInfo", new Look(After: 60, Bold: true, Size: 22)));
+        // The sizes and colours are the ones Enterprise Architecture set by hand on v1.1 (2026-11-13): body text in
+        // 9 points, headings in black at 11 and 10, the cover title in small bold capitals. Tables keep 10 points.
+        styles.Append(Style("Normal", "Normal", new Look(Justify: "both", Size: 18)));
+        styles.Append(Style("Heading1", "heading 1", new Look(KeepNext: true, Before: 320, After: 160, Outline: 0, Bold: true, Size: 22)));
+        styles.Append(Style("Heading2", "heading 2", new Look(KeepNext: true, Before: 240, After: 120, Outline: 1, Bold: true, Size: 20)));
+        styles.Append(Style("Heading3", "heading 3", new Look(KeepNext: true, Before: 200, After: 100, Outline: 2, Bold: true, Size: 20)));
+        styles.Append(Style("CoverMainTitle", "CoverMainTitle", new Look(Before: 240, After: 240, Justify: "center", Bold: true, Size: 18)));
+        styles.Append(Style("CoverDocInfo", "CoverDocInfo", new Look(After: 60, Bold: true, Size: 18)));
         styles.Append(Style("DocTableHeader", "DocTableHeader", new Look(After: 0, Justify: "center", Bold: true, Size: 20)));
         styles.Append(Style("DocTableText", "DocTableText", new Look(After: 0, Colour: "000000", Size: 20)));
-        styles.Append(Style("NormalBullet", "NormalBullet", new Look(After: 60, Indent: 454, Justify: "both", Size: 22)));
+        styles.Append(Style("NormalBullet", "NormalBullet", new Look(After: 60, Indent: 454, Justify: "both", Size: 18)));
+        // Plain paragraphs set left and close together: the cautions, which read better unjustified.
+        styles.Append(Style("NormalLeft", "NormalLeft", new Look(Contextual: true, Justify: "left", Size: 18)));
+        // A bulleted list Word itself numbers — the checklist, so a reader can tick it off.
+        styles.Append(Style("Checklist", "Checklist", new Look(Bullet: true, Contextual: true, Justify: "left", Size: 18)));
+        // A line of the contents list, at one and a half lines.
+        styles.Append(Style("Contents", "Contents", new Look(After: 60, Line: 360, Indent: 454, Justify: "both", Size: 18)));
         // A warning the reader must not miss: bold, centred and in dark red, on the cover and at the foot of each page.
-        styles.Append(Style("Disclaimer", "Disclaimer", new Look(Before: 120, After: 240, Justify: "center", Bold: true, Colour: WarningColour, Size: 24)));
+        styles.Append(Style("Disclaimer", "Disclaimer", new Look(Before: 120, After: 240, Justify: "center", Bold: true, Colour: WarningColour, Size: 18)));
         styles.Append(Style("Footer", "footer", new Look(After: 0, Justify: "center", Bold: true, Colour: WarningColour, Size: 16)));
         styles.Append("</w:styles>");
         return styles.ToString();
     }
 
     /// <summary>What one style looks like, as the few properties this document actually varies.</summary>
-    private sealed record Look(bool KeepNext = false, int? Before = null, int? After = null, int? Indent = null,
+    private sealed record Look(bool KeepNext = false, bool Bullet = false, int? Before = null, int? After = null, int? Line = null,
+        int? Indent = null, bool Contextual = false,
         string? Justify = null, int? Outline = null, string? Font = null, bool Bold = false, string? Colour = null, int? Size = null);
 
     /// <summary>
@@ -147,13 +167,22 @@ public static class WordDocument
         {
             paragraph.Append("<w:keepNext/>");
         }
-        if (look.Before is not null || look.After is not null)
+        if (look.Bullet)
         {
-            paragraph.Append(Invariant($"""<w:spacing w:before="{look.Before ?? 0}" w:after="{look.After ?? 120}"/>"""));
+            paragraph.Append(Invariant($"""<w:numPr><w:numId w:val="{BulletList}"/></w:numPr>"""));
+        }
+        if (look.Before is not null || look.After is not null || look.Line is not null)
+        {
+            string line = look.Line is int height ? Invariant($" w:line=\"{height}\" w:lineRule=\"auto\"") : "";
+            paragraph.Append(Invariant($"""<w:spacing w:before="{look.Before ?? 0}" w:after="{look.After ?? 120}"{line}/>"""));
         }
         if (look.Indent is int indent)
         {
             paragraph.Append(Invariant($"""<w:ind w:left="{indent}" w:hanging="227"/>"""));
+        }
+        if (look.Contextual)
+        {
+            paragraph.Append("<w:contextualSpacing/>");
         }
         if (look.Justify is string justify)
         {

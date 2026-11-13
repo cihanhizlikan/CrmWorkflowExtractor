@@ -16,7 +16,7 @@ Decisions in force are the entries marked **DECIDED**, wherever they stand.
 - **Verified on production data:** the export and usage files (runs from 2026-09-22 on, 1,437 workflows in the
   plan's estate). **Not yet:** the process-mining export — its first attempt was refused (403) and now saves the
   refusal instead of dying; it waits for a re-run (*Acceptance → B*).
-- **Health:** Release build with zero warnings (warnings are errors there); 396 tests; ten robustness rules on at
+- **Health:** Release build with zero warnings (warnings are errors there); 397 tests; ten robustness rules on at
   zero; the first `/sweep` ran 2026-11-07 and its findings are the packages below.
 
 ## Outstanding work — in order
@@ -1574,3 +1574,17 @@ committed to build**, and carries a recommendation; none was acted on because ea
 - **Also:** the machine now has only the .NET 11 SDK, so `global.json` is a floor (10.0.100, `latestMajor`) and
   `LangVersion` is pinned to 14.0, the language of .NET 10 — `latest` turned on C# 15 and 39 IDE0028 sites.
 - **Unverified:** how Word lays the footer out on the delivered page; nothing here opens Word (Acceptance D).
+
+## The analyst guide v1.2: a copy edited by hand, absorbed (2026-11-13)
+- **Given:** `Kullanım Kılavuzu.docx`, the v1.1 guide from a real run, edited by hand in Word. Absorbed into the
+  generator, since the next run would otherwise overwrite it.
+- **Taken:** the cover title in small bold capitals; no run id on the cover; no "do not take outside" sentence;
+  shorter section titles (2.1 Taşıma Planı … 2.5 Haritalama, 3 Talebi …, 4 İş akışını …, 5 Dikkat Edilmesi Gereken
+  Noktalar, 6 Kontrol Listesi, 1.2 Arka plan); "İçindekiler" as a level-3 heading, its numbers in bold at 1.5 lines;
+  body 9 pt, headings black at 11/10 pt; section 5 as plain left-set paragraphs; the checklist as a bulleted list
+  (a `numbering.xml` part); the 1.1 warning bold throughout; "hâli". A v1.2 row records it.
+- **Not taken, with reasons:** "test verisinden" — the tool cannot know which organisation an export came from, so the
+  cover says "CRM'deki süreç tanımlarından"; "kullanım sütunu" — the column is `kullanim`, and a reader searches for
+  that; contents and headings disagreed in four places and now share one table (`AnalystGuide.Sections`), the
+  headings' wording where they differed except 3 and 4, where the contents' shorter wording won; "5." became "5  ".
+- **Unverified:** Word's own rendering of the new list and sizes; nothing here opens Word (Acceptance D).

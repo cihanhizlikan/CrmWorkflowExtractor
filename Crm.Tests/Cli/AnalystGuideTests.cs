@@ -150,6 +150,44 @@ public sealed class AnalystGuideTests
         Assert.Contains("/word/footer1.xml", Encoding.UTF8.GetString(parts["[Content_Types].xml"]), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The contents list and the headings say the same thing, in the same order: on the copy edited by hand
+    /// (2026-11-13) they had drifted apart in four places. And the checklist is a list Word itself bullets, so its
+    /// numbering part has to be there, related and typed, or Word repairs the file.
+    /// </summary>
+    [Fact]
+    public async Task The_Contents_List_Is_The_Headings_And_The_Checklist_Is_A_Real_List()
+    {
+        using TemporaryOutput output = new();
+        FakeOrganization organization = new() { WorkflowCount = 8 };
+
+        (ExitCode code, string runRoot, string console) = await RunHarness.RunAsync(organization, output);
+
+        Assert.True(code == ExitCode.Success, console);
+        Dictionary<string, byte[]> parts = Parts(File.ReadAllBytes(Path.Combine(runRoot, "raporlar", "nasil-kullanilir.docx")));
+        XDocument body = Xml(parts, "word/document.xml");
+        List<string> contents = [.. Paragraphs(body, "Contents").Select(line => line.Trim())];
+        List<string> headings = Paragraphs(body, "Heading1", "Heading2");
+        Assert.Equal(14, contents.Count);
+        Assert.Equal(contents, headings);
+
+        Assert.Equal(10, Paragraphs(body, "Checklist").Count);
+        XElement checklist = Xml(parts, "word/styles.xml").Descendants(Main + "style")
+            .Single(style => style.Attribute(Main + "styleId")!.Value == "Checklist");
+        Assert.NotNull(checklist.Descendants(Main + "numId").SingleOrDefault());
+        Assert.Contains("numbering.xml", Encoding.UTF8.GetString(parts["word/_rels/document.xml.rels"]), StringComparison.Ordinal);
+        Assert.Contains("/word/numbering.xml", Encoding.UTF8.GetString(parts["[Content_Types].xml"]), StringComparison.Ordinal);
+        Assert.Contains("numbering.xml", parts.Keys.Select(Path.GetFileName));
+    }
+
+    /// <summary>The text of every paragraph in the given styles, in document order, its runs joined without gaps.</summary>
+    private static List<string> Paragraphs(XDocument body, params string[] styles)
+    {
+        return [.. body.Descendants(Main + "p")
+            .Where(paragraph => styles.Contains(paragraph.Element(Main + "pPr")?.Element(Main + "pStyle")?.Attribute(Main + "val")?.Value))
+            .Select(paragraph => string.Concat(paragraph.Descendants(Main + "t").Select(text => text.Value)))];
+    }
+
     /// <summary>Two runs over the same evidence must give the same bytes, or nobody can tell a re-run from a change.</summary>
     [Fact]
     public void The_Same_Guide_Twice_Is_The_Same_File()
@@ -179,7 +217,7 @@ public sealed class AnalystGuideTests
     [Fact]
     public void Style_Properties_Are_In_The_Order_The_Schema_Demands()
     {
-        string[] paragraphOrder = ["keepNext", "spacing", "ind", "jc", "outlineLvl"];
+        string[] paragraphOrder = ["keepNext", "numPr", "spacing", "ind", "contextualSpacing", "jc", "outlineLvl"];
         string[] runOrder = ["rFonts", "b", "color", "sz"];
 
         XDocument styles = Xml(Parts(Sample()), "word/styles.xml");

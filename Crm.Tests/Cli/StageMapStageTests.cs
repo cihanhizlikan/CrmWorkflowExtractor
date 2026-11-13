@@ -236,8 +236,8 @@ public sealed class StageMapStageTests
 
         Assert.True(code == ExitCode.Success, console);
         string text = AnalystGuideTests.Text(Path.Combine(runRoot, "raporlar", "nasil-kullanilir.docx"));
-        int stages = text.IndexOf("3  Bir talep konusunu adım adım çözümleme", StringComparison.Ordinal);
-        int workflow = text.IndexOf("4  Bir iş akışını adım adım çözümleme", StringComparison.Ordinal);
+        int stages = text.IndexOf("3  Talebi adım adım çözümleme", StringComparison.Ordinal);
+        int workflow = text.IndexOf("4  İş akışını adım adım çözümleme", StringComparison.Ordinal);
         Assert.True(stages > 0 && workflow > stages, "Aşama bölümü iş akışı bölümünden önce gelmeli.");
         Assert.Contains("bpmn/talep-asamalari/dt-maas-degisikligi--crm-evrak-kontrol.bpmn", text, StringComparison.Ordinal);
         Assert.Contains("Talep konuları", text, StringComparison.Ordinal);
