@@ -60,38 +60,12 @@ the drift report (a column of the workflow's row, 2026-10-12), and every similar
    not this tool's.
 
 (Items 4 and 5 of the earlier list are P4 and P6 above; item 2, the handout's stale style rules, and item 6, the
-stale acceptance checklist, are closed — the checklist below was rewritten on 2026-11-07.)
+stale acceptance checklist, are closed — the checklist was rewritten on 2026-11-07 and is now `offsite-checks.md`.)
 
 ## Acceptance on the company network
 
-Only a run against production can settle these. Each has a **Do**, a **Pass** and a **Capture** — and a capture is
-counts and console lines, never `ham/`, `ara-model/`, `bpmn/` or the restricted findings.
-
-### A — the delivery run
-- **Do:** on a signed-in CRM page, run `tools/crm-export.html` and `tools/crm-usage.html`; put the saved files'
-  paths in `appsettings.json` (`Run:ImportFile`, `Run:UsageFile`) next to the exe; start it with no arguments.
-- **Pass:** exit code 0; every count-chain line ends `— ok`; `bpmn/` holds exactly the plan's workflows and the
-  stage maps; the five workbooks and `nasil-kullanilir.docx` open without Excel or Word offering a repair.
-- **Capture:** the console output, and the counts in `raporlar/rapor.md` — never the files themselves.
-
-### B — process mining (open since 2026-10-12)
-- **Do:** run `tools/crm-process-mining.html` as a user whose role can read the stage-history entity; set
-  `Run:ProcessMiningFile`; run again (or reprocess).
-- **Pass:** the file holds stage entries and steps — or, if refused again, it is SAVED and names the table and the
-  reason. The holiday calendar answered, or the book says weekends only. The stage boxes on the internal maps carry
-  a median stay.
-- **Capture:** the script's console lines, and the *Nasıl okunur* counts of `surec-madenciligi.xlsx`.
-- **Settles:** whether the history entity exists and is readable; whether `$top` caused the 400s; whether
-  `businessclosurecalendar` answers.
-
-### C — limits only production shows
-- Whether the usage aggregate stays under CRM's 50 000-record aggregate limit; how fast the `asyncoperations` /
-  `processsessions` filters and `_workflowactivationid_value eq <id>` answer. **Capture:** the times the scripts print.
-
-### D — what a person has to look at
-- **Do:** open three workflow diagrams and one stage map in bpmn.io or Camunda Modeler.
-- **Pass:** they read left to right without crossings worth naming; the embedded workflows open from the map.
-- **Capture:** what looked wrong, with the file names.
+Moved to [offsite-checks.md](offsite-checks.md) on 2026-11-21 (`profile:offsite_register`): open items only, each
+with a Do, a Pass and a Capture. The plan carries no unverified list.
 
 ---
 
