@@ -1,14 +1,129 @@
-# Settled decisions — the workflow's history
+# Settled decisions
 
-**This repository's own decisions are not here**: they are the entries marked **DECIDED** in `plan.md`
-(`profile:settled_decisions`). This file holds exactly two entries, imported WORD FOR WORD from Yalbuz's
-`settled-decisions.md` on 2026-11-21, because `working-agreement.md` adopts the rules they explain: *How the
-two-session workflow was arrived at* and *How the working agreement was arrived at*. Nothing else from that file
-was imported — the rest are Yalbuz's decisions.
+**What this file is** (`profile:settled_decisions`). Two parts:
 
-**Nothing below is a rule, and nothing below is about this repository.** The incidents, names and paths are
-Yalbuz's (its HOPEX sink, its web app, its office log); they are kept as written because a rule whose reason is
-lost gets re-argued. A path in them that does not resolve here is Yalbuz's and is not drift.
+- ***This repository's decisions*** — every ruling in force, moved here from `plan.md` on 2026-11-21. Dated
+  history by design: a ruling is never rewritten to match today, and is re-opened by a new fact, never an argument.
+- ***Imported from Yalbuz*** — exactly two entries, WORD FOR WORD from Yalbuz's `settled-decisions.md` (2026-11-21),
+  because `working-agreement.md` adopts the rules they explain: *How the two-session workflow was arrived at* and
+  *How the working agreement was arrived at*. Nothing else from that file was imported. **Nothing in that part is a
+  rule, and nothing in it is about this repository**: the incidents, names and paths are Yalbuz's (its HOPEX sink,
+  its web app, its office log), kept as written because a rule whose reason is lost gets re-argued. A path in them
+  that does not resolve here is Yalbuz's and is not drift.
+
+# This repository's decisions
+
+**Every ruling in force, in one place** (`profile:settled_decisions`). Moved here word for word from `plan.md` on
+2026-11-21 (maintainer: consolidate), each under the plan section it stood in; the plan keeps a pointer where each
+was. A ruling is re-opened by a new fact, never by an argument. **Some are superseded and say so where the reversal
+is recorded** — the similarity and consolidation rulings of 2026-09-14/15 were reversed on 2026-10-09 (`CLAUDE.md`).
+A new decision is added here, dated, in the commit that takes it.
+
+## How packages land (plan head, 2026-11-07)
+
+Each runs `/wp-start` → `/wp-verify` → `/wp-finish` and is merged and deleted as it lands (**DECIDED 2026-11-07**,
+maintainer: "merge & delete as you go").
+
+## Deferred (plan head, unchanged since 2026-09-15)
+
+**Deferred, DECIDED 2026-09-15 and unchanged:** flag-field plug-in inference (§4.3), the `uidata` spike (§4.5),
+resuming an unsealed run. BPF stages as `subProcess` and Dialog pages as `userTask` stay unmapped until a real
+sample exists to write them against.
+
+## A JavaScript test harness for `tools/` (plan head, decisions open)
+
+1. ~~A JavaScript test harness for `tools/`~~ — **DECIDED 2026-11-07** (maintainer: "start implementing work
+   packages one after the other"): `node` run from xUnit, no npm. Built differently from the recommendation: the
+   script is not split into exported functions but run WHOLE against a fake CRM, so the file a user pastes is the
+   file tested, and every request it makes is checked to be a GET.
+
+## The prototype's scope (prototype plan, 2026-09-15)
+
+**DECIDED 2026-09-15:** build the bare-minimum plausible prototype of all steps rather than stopping at M1; each
+package verified, merged and its branch deleted as it lands.
+
+**DECIDED 2026-09-15 — deferred for the prototype:** flag-field plugin inference (§4.3), `uidata` spike (§4.5),
+`cluster-lineage.csv`, resuming an unsealed run. BPF stages as `subProcess` and Dialog pages as `userTask` are NOT
+mapped: no credible XAML sample exists to write them against; they surface as unmapped in `parse-coverage.md`.
+
+## The handout's `csharp-*` skills (prototype plan, pre-flight facts, 2026-09-14)
+
+| Check | Result |
+|---|---|
+| `csharp-*` skills from the handout | Not installed. Replaced by Yalbuz's workflow — **DECIDED 2026-09-14.** |
+
+## Decisions taken (prototype plan, 2026-09-14/15)
+
+- **DECIDED 2026-09-14:** adopt Yalbuz's workflow; all 13 style rules; repository at `repos\CrmWorkflowExtractor`.
+- **DECIDED 2026-09-14:** the tool combines each similarity family into one workflow, like a set union; the
+  per-workflow BPMN files remain so a human can check the combination. No writes to CRM, no deletion anywhere.
+- **DECIDED 2026-09-15:** download the OMG BPMN 2.0 XSDs (done; embedded unmodified).
+- **DECIDED 2026-09-15:** low-cohesion families are NOT combined; they are listed as "split first".
+- **DECIDED 2026-09-15:** merge and delete each package branch as it lands.
+
+## Browser export instead of the tool's own sign-in (2026-09-22) — DECIDED (plan History)
+
+- **DECIDED (maintainer):** option B (AD FS registration) is not practical; the data is read through the maintainer's
+  own signed-in browser session instead, and the tool works offline from the saved file.
+- **Built:** `tools/crm-browser-export.js` (GET-only, paged, same columns and payloads as the tool) and
+  `tools/crm-export.html`, a bookmarklet page generated from it by `node tools/build-export-page.js`.
+  `Run:ImportFile` turns the export into the same `raw/` layout a network run writes; every later stage is unchanged.
+- **Why a bookmarklet, not an HTML page that fetches:** a page on claude.ai or opened from disk is a different
+  origin; the browser blocks it from reading CRM with the user's session (CORS, cookies). Only a script running on a
+  CRM page itself can.
+- **Verified:** the committed script ran in a browser against a local mock of the Web API; its output is the fixture
+  `Crm.Tests/Fixtures/BrowserExport/mock-crm-export.json`, imported end to end by the tests. **Unverified:** the real
+  server (page size behaviour, `$count`, privilege names) — same items as *Acceptance B*.
+- **Provenance is weaker** than a network run: the tool copies the export verbatim to `raw/browser-export.json` and
+  records its hash, but did not make the requests. The manifest carries a warning saying so.
+
+## Usage evidence and drafts (2026-09-23) — DECIDED (plan History)
+
+- **Maintainer:** keep draft/test workflows apart only if there is a *guaranteed* way to know that they are unused.
+- **What is guaranteed:** a Draft definition cannot start new runs, and a logged run proves use. Nothing proves
+  non-use: System Jobs are deleted, real-time workflows log only failures, and business rules are never logged.
+- **Built:** Draft definitions (by `statecode`, never by name) are held apart from similarity grouping and
+  combining. They keep their IR and BPMN, are listed in `clusters/drafts.csv`, and have their own link in the
+  count chain. Activated workflows with test-like names stay in the grouping and are flagged.
+  `tools/crm-usage-export.js` (bookmarklet `tools/crm-usage.html`, GET only) records the last logged System Job of
+  each activation, the last dialog session of each dialog, and how far back the logs reach. `Run:UsageFile` makes it
+  run evidence (`raw/usage-export.json`, which a reprocessed run inherits), and it feeds `reports/usage.md` /
+  `usage.csv` and the `last_logged_run` column of `clusters.csv`.
+- **Unverified on production:** that the `asyncoperations` / `processsessions` filters answer in reasonable time on
+  a large System Job table.
+
+## Dialogs and business rules to BPMN (2026-09-23) — DECIDED (plan History)
+
+- **Maintainer:** convert Dialogs and Business Rules too; the analysis needs as much information as possible.
+- **Built:** a dialog page → `userTask` (its prompts as `Prompt1.*`, `Prompt2.*` arguments); a dialog query →
+  `serviceTask` (the entity recorded as read); a child dialog → `callActivity`. A business-rule action (show/hide,
+  required level, lock/unlock, set value, default value, error message) → `businessRuleTask` naming the action.
+  Every argument is captured verbatim, with no guessed meanings.
+- **Uncertain:** the construct *names* come from the production coverage report; their *markup* (which attributes,
+  element or ActivityReference form, where prompts sit) is guessed, so the fixtures are marked that way. The
+  reprocess run's parse-coverage.md is the check. If constructs are left over there, the next step is a
+  structure-only XAML sample (values stripped), which the maintainer reviews before it leaves the company.
+- **Not done:** Business Process Flows (23), which were not requested.
+
+## Structure for the analysts (2026-09-23) — DECIDED (plan History)
+
+- **Maintainer:** 1437 BPMN files are a lot; the more structure and information the analysts get, the better.
+- **Built:**
+  - **Folders:** `bpmn/<category>/<primary entity>/<workflow name>.bpmn`, so a person working on claims opens one
+    folder. `bpmn/index.csv` maps every file to its workflow.
+  - **`reports/migration.csv`** — one row per workflow: priority band (live process · dialog/rule/flow · test-like
+    name · Draft), diagram path, trigger, step count, unmapped steps, custom activities, calls / called by / role,
+    family and combined file, last logged run and usage verdict, sensitive-literal flag, entities and fields
+    written. `migration.md` explains the columns. Sorted live processes first.
+  - **`reports/call-graph.md` / `.csv`** — entry points, building blocks ordered by how many callers they have,
+    one process tree per entry point (a tree is one migration unit), and calls pointing at workflows not in the run.
+  - **A header note on every diagram** — name, category/mode/state/entity, what starts it, step count with how many
+    are unmapped, the CRM id, and that the model is descriptive and not executable. A Draft says so on the canvas.
+    Verified in bpmn-js; a test asserts no shape overlaps the note.
+- **Not done:** grouping by data footprint (which workflows write the same field), which would show migration
+  ordering conflicts in the new product. Worth doing if the analysts ask.
+
+# Imported from Yalbuz
 
 ## How the two-session workflow was arrived at
 

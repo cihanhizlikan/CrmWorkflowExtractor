@@ -483,7 +483,7 @@ describe. Over `profile:context_docs`.
   - run-output names (`ham/`, `bpmn/…`, `raporlar/`, every `.xlsx`, `.docx`, `.bpmn`, `rapor.md`, `manifest.json`);
   - bare file names relative to a folder the sentence names (`reference/…` is under `.claude/context/`);
   - `plan.md`'s DATED entries — they are history and are never rewritten to match today;
-  - `settled-decisions.md`'s paths, which are Yalbuz's by its own preamble;
+  - the paths in `settled-decisions.md`'s *Imported from Yalbuz* part, which are Yalbuz's by its own preamble;
   - a `path:line` — the file must resolve and the line must still be the thing named.
 - **Claims of STATE**: a sentence saying a rule "is off", "is worth its own package", "has not been split yet", or
   stating a count, a network or a similarity claim. Read each against the file that decides it. **A claim decays by

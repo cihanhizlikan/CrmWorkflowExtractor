@@ -58,5 +58,5 @@ with this repository's adaptations kept; the profile is not copied. `/sweep` kee
 [offsite-checks.md](.claude/context/offsite-checks.md) — what only the company network can verify (the CRM server,
 a production export, a person opening a delivered file), open items only, each with a Do, a Pass and a Capture.
 
-[settled-decisions.md](.claude/context/settled-decisions.md) — the two Yalbuz entries that explain the working
-agreement's rules. This repository's own decisions are the **DECIDED** entries in `plan.md`.
+[settled-decisions.md](.claude/context/settled-decisions.md) — every ruling in force (moved out of `plan.md` on
+2026-11-21), and the two Yalbuz entries that explain the working agreement's rules.

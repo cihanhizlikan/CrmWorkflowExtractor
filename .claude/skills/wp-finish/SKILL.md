@@ -33,7 +33,7 @@ was checked once the commit existed, and three amend rounds followed. The cap is
 entry owes is **findability**, not the full argument.
 
 **When it is over, cut argument, never evidence.** Long-form reasoning has a better home — a ruling goes to
-`profile:settled_decisions` (`plan.md`, marked **DECIDED**) — and it is consulted on purpose, where an over-long
+`profile:settled_decisions` (`settled-decisions.md`) — and it is consulted on purpose, where an over-long
 commit body is read by nobody.
 
 ## 3. Commit

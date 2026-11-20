@@ -4,7 +4,7 @@
 work still to do in the order it will be done, the decisions only the maintainer can take, and what only a run on
 the company network can settle. It is REWRITTEN as work lands. Everything under *History* is the dated record — the
 prototype plan of 2026-09-14/15 and one entry per package since — and is never rewritten to match today.
-Decisions in force are the entries marked **DECIDED**, wherever they stand.
+Decisions in force are in `settled-decisions.md` (`profile:settled_decisions`), moved there on 2026-11-21.
 
 ## Where the tool stands (2026-11-07)
 
@@ -21,8 +21,8 @@ Decisions in force are the entries marked **DECIDED**, wherever they stand.
 
 ## Outstanding work — in order
 
-Each runs `/wp-start` → `/wp-verify` → `/wp-finish` and is merged and deleted as it lands (**DECIDED 2026-11-07**,
-maintainer: "merge & delete as you go").
+Each runs `/wp-start` → `/wp-verify` → `/wp-finish` and is merged and deleted as it lands (decided 2026-11-07;
+`settled-decisions.md`).
 
 | # | Package | From | State |
 |---|---|---|---|
@@ -34,16 +34,11 @@ maintainer: "merge & delete as you go").
 | P6 | **A test for the run-authority reduction** in `tools/crm-browser-export.js` ("a role that can only READ processes is never listed as able to RUN them"). Needs the JS test harness decided below. | section 4 item 5 | **done** 2026-11-07: the script runs unchanged under `node` against a fake CRM (`Crm.Tests/Tools/`); three tests, each seen red against its own defect |
 | P7 | **Test packages to their next major** (xunit.v3 4, xunit.runner.visualstudio 4, Microsoft.NET.Test.Sdk 18), all three together. | sweep S3 | **done** 2026-11-07, after Yalbuz (WP-MAJORS): on Microsoft Testing Platform via `global.json`; a failure prints `başarısız <Test>`, not `[FAIL]` — the old grep scored 0 on a real failure, the new one 2 |
 
-**Deferred, DECIDED 2026-09-15 and unchanged:** flag-field plug-in inference (§4.3), the `uidata` spike (§4.5),
-resuming an unsealed run. BPF stages as `subProcess` and Dialog pages as `userTask` stay unmapped until a real
-sample exists to write them against.
+**Deferred** since 2026-09-15 and unchanged — the list is in `settled-decisions.md`, *Deferred*.
 
 ## Decisions open for the maintainer
 
-1. ~~A JavaScript test harness for `tools/`~~ — **DECIDED 2026-11-07** (maintainer: "start implementing work
-   packages one after the other"): `node` run from xUnit, no npm. Built differently from the recommendation: the
-   script is not split into exported functions but run WHOLE against a fake CRM, so the file a user pastes is the
-   file tested, and every request it makes is checked to be a GET.
+1. ~~A JavaScript test harness for `tools/`~~ — decided 2026-11-07; the ruling is in `settled-decisions.md`.
 2. **The target runtime on the run host** — .NET 10 installed, or a self-contained single-file `win-x64` publish.
    Never recorded since 2026-09-14.
 3. **Where `out/` lives and who may read it** — it holds the production XAML the sensitive scan redacts. The
@@ -92,12 +87,9 @@ similarity and consolidation — that the work since replaced.
 **The prototype is complete end to end — and verified ONLY against a synthetic fake server and synthetic XAML.**
 Nothing has touched a real CRM. The first company run is the real test; see *Acceptance on the company network*.
 
-**DECIDED 2026-09-15:** build the bare-minimum plausible prototype of all steps rather than stopping at M1; each
-package verified, merged and its branch deleted as it lands.
+The prototype's scope ruling of 2026-09-15 is moved to `settled-decisions.md` on 2026-11-21.
 
-**DECIDED 2026-09-15 — deferred for the prototype:** flag-field plugin inference (§4.3), `uidata` spike (§4.5),
-`cluster-lineage.csv`, resuming an unsealed run. BPF stages as `subProcess` and Dialog pages as `userTask` are NOT
-mapped: no credible XAML sample exists to write them against; they surface as unmapped in `parse-coverage.md`.
+The prototype's deferrals of 2026-09-15 are moved to `settled-decisions.md` on 2026-11-21, *The prototype's scope*.
 
 ### Handout disagreements found while building
 
@@ -111,19 +103,14 @@ mapped: no credible XAML sample exists to write them against; they surface as un
 
 | Check | Result |
 |---|---|
-| `csharp-*` skills from the handout | Not installed. Replaced by Yalbuz's workflow — **DECIDED 2026-09-14.** |
+| `csharp-*` skills from the handout | Not installed. Replaced by Yalbuz's workflow — decided 2026-09-14, now in `settled-decisions.md`. |
 | .NET SDK | 10.0.401 only → `net10.0`. |
 | CRM host / org | Unknown; the development machine cannot reach CRM. **No live verification from here.** |
 | Yalbuz fold | 12-entry table + `char.ToLowerInvariant`; misses `â`/`î`/`û` and decomposed `I`+U+0307. |
 
 ### Decisions taken
 
-- **DECIDED 2026-09-14:** adopt Yalbuz's workflow; all 13 style rules; repository at `repos\CrmWorkflowExtractor`.
-- **DECIDED 2026-09-14:** the tool combines each similarity family into one workflow, like a set union; the
-  per-workflow BPMN files remain so a human can check the combination. No writes to CRM, no deletion anywhere.
-- **DECIDED 2026-09-15:** download the OMG BPMN 2.0 XSDs (done; embedded unmodified).
-- **DECIDED 2026-09-15:** low-cohesion families are NOT combined; they are listed as "split first".
-- **DECIDED 2026-09-15:** merge and delete each package branch as it lands.
+- The six rulings of 2026-09-14/15 that stood here are moved to `settled-decisions.md` on 2026-11-21, *Decisions taken*.
 
 ### Consolidation — as built
 
@@ -283,19 +270,7 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   logic that no workflow XAML will show, like North52.
 
 ### Browser export instead of the tool's own sign-in (2026-09-22) — DECIDED
-- **DECIDED (maintainer):** option B (AD FS registration) is not practical; the data is read through the maintainer's
-  own signed-in browser session instead, and the tool works offline from the saved file.
-- **Built:** `tools/crm-browser-export.js` (GET-only, paged, same columns and payloads as the tool) and
-  `tools/crm-export.html`, a bookmarklet page generated from it by `node tools/build-export-page.js`.
-  `Run:ImportFile` turns the export into the same `raw/` layout a network run writes; every later stage is unchanged.
-- **Why a bookmarklet, not an HTML page that fetches:** a page on claude.ai or opened from disk is a different
-  origin; the browser blocks it from reading CRM with the user's session (CORS, cookies). Only a script running on a
-  CRM page itself can.
-- **Verified:** the committed script ran in a browser against a local mock of the Web API; its output is the fixture
-  `Crm.Tests/Fixtures/BrowserExport/mock-crm-export.json`, imported end to end by the tests. **Unverified:** the real
-  server (page size behaviour, `$count`, privilege names) — same items as *Acceptance B*.
-- **Provenance is weaker** than a network run: the tool copies the export verbatim to `raw/browser-export.json` and
-  records its hash, but did not make the requests. The manifest carries a warning saying so.
+The ruling and what it built are moved to `settled-decisions.md` on 2026-11-21, under this heading.
 
 ### First look at the real workflow list (2026-09-22, names only)
 - All sampled records are `iscrmuiworkflow = true`: manual review will likely be near-empty.
@@ -347,30 +322,10 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   drafts) are kept out of grouping. Several of the largest families have a draft as their medoid.
 
 ### Usage evidence and drafts (2026-09-23) — DECIDED
-- **Maintainer:** keep draft/test workflows apart only if there is a *guaranteed* way to know that they are unused.
-- **What is guaranteed:** a Draft definition cannot start new runs, and a logged run proves use. Nothing proves
-  non-use: System Jobs are deleted, real-time workflows log only failures, and business rules are never logged.
-- **Built:** Draft definitions (by `statecode`, never by name) are held apart from similarity grouping and
-  combining. They keep their IR and BPMN, are listed in `clusters/drafts.csv`, and have their own link in the
-  count chain. Activated workflows with test-like names stay in the grouping and are flagged.
-  `tools/crm-usage-export.js` (bookmarklet `tools/crm-usage.html`, GET only) records the last logged System Job of
-  each activation, the last dialog session of each dialog, and how far back the logs reach. `Run:UsageFile` makes it
-  run evidence (`raw/usage-export.json`, which a reprocessed run inherits), and it feeds `reports/usage.md` /
-  `usage.csv` and the `last_logged_run` column of `clusters.csv`.
-- **Unverified on production:** that the `asyncoperations` / `processsessions` filters answer in reasonable time on
-  a large System Job table.
+The ruling and what it built are moved to `settled-decisions.md` on 2026-11-21, under this heading.
 
 ### Dialogs and business rules to BPMN (2026-09-23) — DECIDED
-- **Maintainer:** convert Dialogs and Business Rules too; the analysis needs as much information as possible.
-- **Built:** a dialog page → `userTask` (its prompts as `Prompt1.*`, `Prompt2.*` arguments); a dialog query →
-  `serviceTask` (the entity recorded as read); a child dialog → `callActivity`. A business-rule action (show/hide,
-  required level, lock/unlock, set value, default value, error message) → `businessRuleTask` naming the action.
-  Every argument is captured verbatim, with no guessed meanings.
-- **Uncertain:** the construct *names* come from the production coverage report; their *markup* (which attributes,
-  element or ActivityReference form, where prompts sit) is guessed, so the fixtures are marked that way. The
-  reprocess run's parse-coverage.md is the check. If constructs are left over there, the next step is a
-  structure-only XAML sample (values stripped), which the maintainer reviews before it leaves the company.
-- **Not done:** Business Process Flows (23), which were not requested.
+The ruling and what it built are moved to `settled-decisions.md` on 2026-11-21, under this heading.
 
 ### The usage export stalled on production (2026-09-23)
 - **Observed:** after listing 1437 definitions and 1795 activations, the script stopped with one `asyncoperations`
@@ -402,21 +357,7 @@ run. BPFs (14) and the North52 rules engine are in use; the latter's logic is in
   it calls. The internal id stays in the element documentation as evidence.
 
 ### Structure for the analysts (2026-09-23) — DECIDED
-- **Maintainer:** 1437 BPMN files are a lot; the more structure and information the analysts get, the better.
-- **Built:**
-  - **Folders:** `bpmn/<category>/<primary entity>/<workflow name>.bpmn`, so a person working on claims opens one
-    folder. `bpmn/index.csv` maps every file to its workflow.
-  - **`reports/migration.csv`** — one row per workflow: priority band (live process · dialog/rule/flow · test-like
-    name · Draft), diagram path, trigger, step count, unmapped steps, custom activities, calls / called by / role,
-    family and combined file, last logged run and usage verdict, sensitive-literal flag, entities and fields
-    written. `migration.md` explains the columns. Sorted live processes first.
-  - **`reports/call-graph.md` / `.csv`** — entry points, building blocks ordered by how many callers they have,
-    one process tree per entry point (a tree is one migration unit), and calls pointing at workflows not in the run.
-  - **A header note on every diagram** — name, category/mode/state/entity, what starts it, step count with how many
-    are unmapped, the CRM id, and that the model is descriptive and not executable. A Draft says so on the canvas.
-    Verified in bpmn-js; a test asserts no shape overlaps the note.
-- **Not done:** grouping by data footprint (which workflows write the same field), which would show migration
-  ordering conflicts in the new product. Worth doing if the analysts ask.
+The ruling and what it built are moved to `settled-decisions.md` on 2026-11-21, under this heading.
 
 ### Data footprint and cascades (2026-09-23) — committed, awaiting merge
 - **Maintainer:** build grouping by data footprint.

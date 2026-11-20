@@ -8,7 +8,7 @@ has — its sinks, its web app, its desktop tool, its database, its log server.
 **The rules are here; the incidents that bought them are in `settled-decisions.md`**, under *How the two-session
 workflow was arrived at* and *How the working agreement was arrived at* — Yalbuz's incidents, imported as written.
 Read those when a rule looks arbitrary; you do not need them to follow one. **Keep it that way**: a new rule
-arrives here with at most one sentence of example, and its story goes to `plan.md`'s History.
+arrives here with at most one sentence of example, and its story goes to `settled-decisions.md`.
 
 ## The maintainer's working style
 
@@ -231,8 +231,8 @@ required on an item a session raises itself:
 - **Origin** — `finding` (a session noticed it) or a maintainer request. A finding is evidence, never a commitment.
 - **Status** — whether it is committed to build. Findings default to *not yet committed to build*.
 
-**A finding already refused on evidence is not a package at all** — it is a settled decision, recorded in `plan.md`
-as **DECIDED** with the measurement that refused it and what would re-open it.
+**A finding already refused on evidence is not a package at all** — it is a settled decision, recorded in
+`settled-decisions.md` with the measurement that refused it and what would re-open it.
 
 ## Finishing a work package
 **A package is not finished when its tests pass.** `/wp-finish` runs this, and checks the size cap BEFORE the
