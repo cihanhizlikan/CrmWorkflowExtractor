@@ -30,7 +30,7 @@ public static class BrowserExportImport
     /// <summary>A gzip member starts with these two bytes. RFC 1952 §2.3.1.</summary>
     private static readonly byte[] GzipMagic = [0x1f, 0x8b];
 
-    public static async Task<IReadOnlyList<WorkflowInventoryRecord>> LoadAsync(RunFolder folder, RunState state, bool requireOrganizationRead, string path, ILogger logger, CancellationToken token)
+    public static async Task LoadAsync(RunFolder folder, RunState state, bool requireOrganizationRead, string path, ILogger logger, CancellationToken token)
     {
         string file = Path.IsPathRooted(path) ? path : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, path));
         if (!File.Exists(file))
@@ -79,7 +79,7 @@ public static class BrowserExportImport
         if (state.Failures.Count > 0)
         {
             logger.LogError("Stopping after the inventory: the imported export fails its own checks.");
-            return records;
+            return;
         }
 
         IReadOnlyList<XamlEntry> entries = await WriteXamlAsync(folder, state, root, records, token);
@@ -89,7 +89,6 @@ public static class BrowserExportImport
         await WriteRunAuthorityAsync(folder, state, root, token);
         await WriteProcessStagesAsync(folder, state, root, token);
         logger.LogInformation("Imported {Records} workflow records and {Xaml} XAML files from {File}", records.Count, entries.Count, file);
-        return records;
     }
 
     /// <summary>
@@ -174,8 +173,6 @@ public static class BrowserExportImport
             entries.Add(new XamlEntry(record.WorkflowId, kind, record.VersionNumber, file, artifact.Bytes, artifact.Sha256, SourceBrowserExport));
         }
         await folder.WriteJsonAsync(XamlEntry.IndexFile, entries, token);
-        state.Counts["xaml.fetched"] = entries.Count;
-        state.Counts["xaml.reused"] = 0;
         state.Counts["xaml.withoutXaml"] = withoutXaml;
         state.Counts["xaml.failed"] = failed;
         state.Counts["xaml.written"] = entries.Count;
