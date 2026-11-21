@@ -1588,3 +1588,31 @@ committed to build**, and carries a recommendation; none was acted on because ea
   that; contents and headings disagreed in four places and now share one table (`AnalystGuide.Sections`), the
   headings' wording where they differed except 3 and 4, where the contents' shorter wording won; "5." became "5  ".
 - **Unverified:** Word's own rendering of the new list and sizes; nothing here opens Word (Acceptance D).
+
+## Sweep 2026-11-21 — handed over
+
+Rows the second sweep could not settle on its own. Each: Origin `finding`, not yet committed to build.
+
+### T1 — The Microsoft.Extensions packages have a major ahead: 11.0.0 (step 3, dependencies)
+- **What:** all six `Microsoft.Extensions.*` packages are at 10.0.15 (the installed .NET 10 runtime's patch, moved
+  in this sweep); `dotnet list package --outdated` offers 11.0.0, and this machine now carries runtime 11.0.0 too.
+- **Where:** `Directory.Packages.props:16-21`; the projects target `net10.0`.
+- **Why not obvious:** the 11.0 line belongs with a `net11.0` target, and the target runtime on the run host is
+  still the open decision 2 above (.NET 10 installed, or a self-contained publish). A bump before that is answered
+  could ship assemblies the host cannot load.
+- **Recommendation:** stay on the 10.0 servicing line until decision 2 is taken; move the target and the line
+  together then, as one package.
+- **Falsify:** the run host turns out to have .NET 11 (or a self-contained publish is chosen) — then this is a
+  package to do now.
+
+### T2 — The SDK is a floor, not a pin, so analyzer counts can move between machines (step 3, toolchain)
+- **What:** `global.json` says 10.0.100 with `rollForward: latestMajor` (2026-11-12, when this machine had only SDK
+  11), so a build takes whatever SDK is newest. `AnalysisLevel` 10.0 and `LangVersion` 14.0 fix the rule set and the
+  language, not the analyzers' implementation — the comment in `Directory.Packages.props` still says the SDK is
+  pinned, for exactly that reason.
+- **Where:** `global.json:3-4`; `Directory.Packages.props:7-8`.
+- **Why not obvious:** a pin to 11.0.100 builds here and nowhere that has only SDK 10; a pin to a 10.0 SDK builds
+  nowhere here. The floor was the working compromise; this sweep re-probed six rules under SDK 11 and all fired.
+- **Recommendation:** pin `11.0.100` with `rollForward: latestPatch` while every machine that builds this is this
+  one, and correct the comment; revisit when the run host's runtime (decision 2) is known.
+- **Falsify:** a second machine builds the tree with SDK 10 only.
