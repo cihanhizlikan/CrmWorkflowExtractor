@@ -56,8 +56,9 @@ public static class Program
         }
         if (settings.Run.Value.ReprocessRunId.Trim().Length == 0 && settings.Run.Value.ImportFile.Trim().Length == 0)
         {
-            await error.WriteLineAsync("Nothing to read; no run folder was created. Set Run:ImportFile in appsettings.json to "
-                + "the file tools/crm-export.html saved, or Run:ReprocessRunId to an earlier run's folder name.");
+            await error.WriteLineAsync("Okunacak bir şey yok; çalıştırma klasörü oluşturulmadı. appsettings.json içinde Run:ImportFile "
+                + "değerine tools/crm-export.html sayfasının kaydettiği dosyayı ya da Run:ReprocessRunId değerine önceki bir "
+                + "çalıştırmanın klasör adını yazın.");
             return (int)ExitCode.ConfigurationInvalid;
         }
 

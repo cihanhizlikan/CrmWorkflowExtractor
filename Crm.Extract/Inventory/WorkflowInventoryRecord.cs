@@ -25,7 +25,7 @@ public sealed record WorkflowInventoryRecord(
     public static WorkflowInventoryRecord Parse(JsonElement record)
     {
         Guid workflowId = Json.OptionalGuid(record, "workflowid")
-            ?? throw new InvalidDataException("A workflows record has no workflowid: " + record.GetRawText());
+            ?? throw new InvalidDataException("Bir workflows kaydında workflowid yok: " + record.GetRawText());
 
         List<ObservedOption> observed = [];
         OptionValue Option(string column)

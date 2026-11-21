@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Crm.Cli;
 using Crm.Cli.Configuration;
+using Crm.Extract.Access;
 using Crm.Extract.Runs;
 using Crm.Tests.Fakes;
 using Microsoft.Extensions.Options;
@@ -11,6 +12,19 @@ namespace Crm.Tests.Cli;
 
 public sealed class ExtractionRunTests
 {
+    /// <summary>A privilege the server does not name is a warning, written in Turkish like every other word of the run.</summary>
+    [Fact]
+    public void A_Privilege_The_Server_Does_Not_Name_Is_Warned_About_In_Turkish()
+    {
+        RunState state = new("20261121-000000", Path.GetTempPath(), "test");
+        state.Privileges = [new PrivilegeFinding(new RequiredPrivilege("prvReadWorkflow", "workflow"), PrivilegeVerdict.Unverifiable, "")];
+
+        ExtractionRun.ApplyPrivilegeVerdicts(state, requireOrganizationRead: true);
+
+        Assert.Equal(["prvReadWorkflow (workflow): sunucuda bu adda bir yetki yok, bu yüzden derinliği denetlenemedi."], state.Warnings);
+        Assert.Empty(state.Failures);
+    }
+
     /// <summary>
     /// An output root that cannot be created — here, a path through an ordinary FILE — stops before any folder
     /// exists, says which path, and is a setting to fix rather than a failed run (sweep row T3).

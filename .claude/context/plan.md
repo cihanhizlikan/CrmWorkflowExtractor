@@ -53,9 +53,9 @@ the drift report (a column of the workflow's row, 2026-10-12), and every similar
 1. Yalbuz `ScreenConceptBuilder` fold misses `â`/`î`/`û` and decomposed `İ` — Yalbuz's to fix.
 2. CRM 8.2 is out of extended support and runs partner code that may hold credentials — an EA and security risk,
    not this tool's.
-3. **Two operator-facing messages are still English** (found by T3, 2026-11-21): `Program.StartAsync`'s "Nothing
-   to read; no run folder was created…" and `ExtractionRun.ApplyPrivilegeVerdicts`'s "no privilege of that name
-   exists on this server". Every word the tool writes is Turkish (`structure.md`); T3's own two sentences are.
+3. ~~**Two operator-facing messages were still English**~~ (found by T3) — translated 2026-11-21: `Program`'s
+   "Nothing to read…" and `ExtractionRun.ApplyPrivilegeVerdicts`'s "no privilege of that name…", with the two
+   input errors that reach a run's failures (a workflows record with no `workflowid`, XAML with no root element).
 
 (Items 4 and 5 of the earlier list are P4 and P6 above; item 2, the handout's stale style rules, and item 6, the
 stale acceptance checklist, are closed — the checklist was rewritten on 2026-11-07 and is now `offsite-checks.md`.)
