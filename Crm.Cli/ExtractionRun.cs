@@ -22,7 +22,20 @@ public sealed class ExtractionRun(ExtractorSettings settings, TimeProvider time,
     public async Task<ExitCode> RunAsync(CancellationToken token)
     {
         DateTimeOffset started = time.GetUtcNow();
-        RunFolder folder = RunFolder.Create(settings.Output.Value.ResolvedRoot(), started);
+        string outputRoot = settings.Output.Value.ResolvedRoot();
+        RunFolder folder;
+        try
+        {
+            folder = RunFolder.Create(outputRoot, started);
+        }
+        // No folder means nothing to seal and nowhere to log, so the guards below cannot apply. An output root that
+        // cannot be created is a setting to fix, not a failed run (sweep row T3).
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            await console.WriteLineAsync($"Çıktı klasörü oluşturulamadı: {outputRoot}. appsettings.json içindeki Output:Root "
+                + $"değerini denetleyin — {error.Message}");
+            return ExitCode.ConfigurationInvalid;
+        }
         RunState state = new(folder.RunId, folder.Root, ToolVersion());
 
         RunLogProvider logProvider = new(folder.PathOf(RunPaths.RunLog), folder.PathOf(RunPaths.WarningLog));

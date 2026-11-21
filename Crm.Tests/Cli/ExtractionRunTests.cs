@@ -1,14 +1,40 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Crm.Cli;
+using Crm.Cli.Configuration;
 using Crm.Extract.Runs;
 using Crm.Tests.Fakes;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace Crm.Tests.Cli;
 
 public sealed class ExtractionRunTests
 {
+    /// <summary>
+    /// An output root that cannot be created — here, a path through an ordinary FILE — stops before any folder
+    /// exists, says which path, and is a setting to fix rather than a failed run (sweep row T3).
+    /// </summary>
+    [Fact]
+    public async Task An_Output_Root_That_Cannot_Be_Created_Exits_As_Configuration_Invalid_And_Names_It()
+    {
+        using TemporaryOutput output = new();
+        Directory.CreateDirectory(output.Root);
+        string blocker = Path.Combine(output.Root, "dosya");
+        File.WriteAllText(blocker, "");
+        string root = Path.Combine(blocker, "out");
+        ExtractorSettings settings = new(
+            Options.Create(new OutputOptions { Root = root }),
+            Options.Create(new RunOptions { ImportFile = Path.Combine(output.Root, "yok.json") }));
+        using StringWriter console = new();
+
+        ExitCode code = await new ExtractionRun(settings, TimeProvider.System, console).RunAsync(CancellationToken.None);
+
+        Assert.Equal(ExitCode.ConfigurationInvalid, code);
+        Assert.StartsWith($"Çıktı klasörü oluşturulamadı: {root}.", console.ToString(), StringComparison.Ordinal);
+        Assert.False(Directory.Exists(root));
+    }
+
     [Fact]
     public async Task A_Healthy_Organization_Produces_A_Sealed_Completed_Run()
     {
