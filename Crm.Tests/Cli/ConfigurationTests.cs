@@ -54,6 +54,22 @@ public sealed class ConfigurationTests
         Assert.Equal((int)ExitCode.ConfigurationInvalid, code);
     }
 
+    /// <summary>Settings that name nothing to read stop the run with a sentence the operator can act on, in Turkish.</summary>
+    [Fact]
+    public async Task Settings_That_Name_Nothing_To_Read_Say_So_In_Turkish()
+    {
+        using TemporaryOutput folder = new();
+        Directory.CreateDirectory(folder.Root);
+        File.WriteAllText(Path.Combine(folder.Root, "appsettings.json"), "{}");
+        using StringWriter output = new();
+        using StringWriter error = new();
+
+        int code = await Program.StartAsync(folder.Root, output, error);
+
+        Assert.Equal((int)ExitCode.ConfigurationInvalid, code);
+        Assert.StartsWith("Okunacak bir şey yok; çalıştırma klasörü oluşturulmadı.", error.ToString(), StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// The one file the operator edits by hand, broken: not JSON at all, or a value that does not convert. Each used
     /// to leave <c>Main</c> as an unhandled exception and an English stack (sweep row T3, measured 2026-11-21).

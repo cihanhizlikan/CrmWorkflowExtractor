@@ -23,7 +23,7 @@ public sealed partial class XamlWorkflowParser(OptionLabels labels)
     public ParseResult Parse(Guid workflowId, string xaml)
     {
         XDocument document = XDocument.Parse(xaml, LoadOptions.None);
-        XElement root = document.Root ?? throw new InvalidDataException("The XAML has no root element.");
+        XElement root = document.Root ?? throw new InvalidDataException("XAML'in kök öğesi yok.");
         Context context = new(workflowId, labels, ExpressionIndex.Build(root));
 
         XElement? workflow = root.Descendants().FirstOrDefault(element => element.Name.LocalName == "Workflow"

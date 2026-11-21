@@ -127,7 +127,7 @@ public sealed class ExtractionRun(ExtractorSettings settings, TimeProvider time,
             }
             else if (finding.Verdict == PrivilegeVerdict.Unverifiable)
             {
-                state.Warnings.Add($"{subject}: no privilege of that name exists on this server, so its depth could not be checked.");
+                state.Warnings.Add($"{subject}: sunucuda bu adda bir yetki yok, bu yüzden derinliği denetlenemedi.");
             }
         }
     }
