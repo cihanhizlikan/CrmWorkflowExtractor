@@ -14,6 +14,7 @@ public sealed class AccessTests
     {
         IReadOnlyList<PrivilegeFinding> findings = PrivilegeCheck.Evaluate(PrivilegesBody, Held("Global"));
 
+        Assert.Equal(PrivilegeCheck.Required.Count, findings.Count);
         Assert.All(findings, finding => Assert.Equal(PrivilegeVerdict.Sufficient, finding.Verdict));
     }
 
@@ -23,6 +24,7 @@ public sealed class AccessTests
     {
         IReadOnlyList<PrivilegeFinding> findings = PrivilegeCheck.Evaluate(PrivilegesBody, Held("Basic"));
 
+        Assert.Equal(PrivilegeCheck.Required.Count, findings.Count);
         Assert.All(findings, finding => Assert.Equal(PrivilegeVerdict.Insufficient, finding.Verdict));
     }
 
@@ -37,6 +39,7 @@ public sealed class AccessTests
 
         IReadOnlyList<PrivilegeFinding> findings = PrivilegeCheck.Evaluate(PrivilegesBody, held);
 
+        Assert.Equal(PrivilegeCheck.Required.Count, findings.Count);
         Assert.All(findings, finding => Assert.Equal(PrivilegeVerdict.Sufficient, finding.Verdict));
     }
 
