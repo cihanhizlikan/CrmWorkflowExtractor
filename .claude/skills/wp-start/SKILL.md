@@ -5,7 +5,8 @@ description: Open a work package — create its git worktree, branch from LOCAL 
 
 # Opening a work package
 
-**Run this before the first edit of any package.** Adapted from Yalbuz's `wp-start` (2026-09-14).
+**Run this before the first edit of any package.** `CLAUDE.md` requires a worktree for any session that changes
+files; this is how one is opened correctly, and it exists because the correct way has three traps in it.
 
 ## The steps
 
@@ -22,20 +23,29 @@ Name the branch for the task: `feature/<short-task-slug>` or `fix/<short-task-sl
 
 ## Why `git worktree add … main` and not `EnterWorktree`
 
-`EnterWorktree` branches from `origin/main`, and local `main` is routinely ahead of it because a session never
-pushes. Naming `main` makes the base local by construction. `EnterWorktree` also cannot be called twice in a session.
+**`EnterWorktree` branches from `origin/main`, and local `main` is routinely ahead of it** because pushing is
+asynchronous and a session never pushes. A package built on that base looks fine until merge time. Naming `main`
+explicitly makes the base local by construction, so there is no `git merge main` to remember afterwards — the
+step that used to be the first act inside a worktree is now unnecessary rather than merely documented.
+
+`EnterWorktree` also cannot be called twice in a session, which `git worktree add` does not care about.
 
 ## What bites once you are in there
 
-This repository's `profile:secrets_file` and `profile:run_command` are both `none` (`.claude/project-profile.md`):
-there is nothing to copy in and nothing to run from a worktree.
+The secrets file and the run command are this repository's `profile:secrets_file` and `profile:run_command`, from
+`.claude/project-profile.md`. **Both are `none` here**: there are no credentials to copy in, and nothing to run.
 
-- **The gitignored `Crm.Cli/appsettings.Development.json` does not exist in a fresh worktree**, and no test needs it.
-  It may name a real export file; do not copy it in.
-- **Never point a worktree run at a real export.** Production XAML may hold credentials, and a worktree is the wrong
-  place for it to land. The tests build their own exports.
-- **Use `awk 'NR==n'` to read a line, never `sed -n 'a,bp'`** — MSYS `sed` has been off by one against `grep -n`.
+- **The gitignored `Crm.Cli/appsettings.Development.json` does not exist in a fresh worktree, and no test needs
+  it** — `profile:secrets_absent_effect` is none, so the worktree's suite count is the real one. It may name a real
+  export file; do not copy it in.
+- **`preview_start` runs from the PRIMARY checkout, not the worktree** — and here there is nothing to preview: the
+  tool is a console run that writes files (`profile:ui_register`: none). The trap that replaces it: **never point a
+  worktree run at a real export.** Production XAML may hold credentials, and a worktree is the wrong place for it
+  to land; the end-to-end tests build their own exports.
+- **Use `awk 'NR==n'` to read a line, never `sed -n 'a,bp'`.** MSYS `sed` has been off by one against `grep -n`
+  here, which is how a splice lands in the wrong place.
 
 ## What this skill does NOT do
 
-It does not choose the package. **Work is ISSUED, never taken** — if no package has been named, ask.
+It does not choose the package. **Work is ISSUED, never taken** — if no package has been named, ask rather than
+picking one.

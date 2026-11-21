@@ -16,9 +16,12 @@ history behind each rule; this file carries the rules and the traps that apply t
    `if (node is XElement element)`, not a type-dispatching `switch`. Switch *expressions* stay welcome.
 6. **`as`, never an explicit cast.** `x as Foo`, not `(Foo)x`. Use `if (x is Foo f)` when you test and use in one
    step. Numeric conversions between value types are not casts in this sense — `(int)longValue` has no `as` form.
-7. **Collection expressions.** `[]` — not `new List<T>()`, `Array.Empty<T>()` — and `[.. source]` to materialize.
-   `IReadOnlyDictionary<,>` cannot be built from one, so a dictionary stays a `new`.
-8. **Range and index operators** where they read better: `text[..200]`, `url[(at + 1)..]`.
+7. **Collection expressions.** `[]` — not `new()`, `new List<T>()`, `Array.Empty<T>()` or `Enumerable.Empty<T>()` —
+   and `[.. source]` to materialize rather than `.ToList()`/`.ToArray()` into a `new`.
+   `IReadOnlyDictionary<,>` cannot be built from one, so a dictionary stays a `new` — and so do `Queue<T>` and
+   `Stack<T>`, which have no `Add` (`StageMap`'s walk queue).
+8. **Range and index operators** where they read better than arithmetic: `text[..200]`, `name[..^10]`,
+   `url[(at + 1)..]`, not `Substring(0, 200)` or `Substring(at + 1)`.
 9. **Exception filters over catch-and-retest.** `catch (Exception error) when (error is IOException or
    HttpRequestException)`. A filter that does not match never unwinds the stack. **Half build-enforced, and the half
    is exact:** Roslynator `RCS1236` fires on the NEGATED retest (`if (!(error is IOException)) { throw; }` as the
@@ -44,3 +47,5 @@ RE-DERIVED when an analyzer is adopted, never decremented — that is the only w
 
 **String handling in this repository specifically:** comparison keys over CRM text go through `TurkishFold`, never
 `ToLowerInvariant()` alone, and every string comparison names its `StringComparison` (CA1307/CA1310 are on).
+
+Bring existing code into compliance when you touch it (from Yalbuz's copy, 2026-11-21).

@@ -20,8 +20,20 @@ in @.claude/context/plan.md. Section numbers like "§2.4" in code comments refer
 - **Non-goals:** no HOPEX, no writes to CRM, no machine learning or external model calls, no Power Automate.
 - **Verify with `dotnet build` / `dotnet test` yourself** — dotnet and git are on PATH. **This machine cannot reach
   the CRM server**: anything that needs it is stated as unverified, never reported as working.
-- **Never work directly on `main`.** A work package runs through `/wp-start` → work → `/wp-verify` → `/wp-finish`,
-  in a worktree, and stops for the maintainer to merge. See @.claude/context/working-agreement.md.
+- **Never work directly on `main`** — only branch off its current tip or merge a finished branch into it. A work
+  package runs through `/wp-start` → work → `/wp-verify` → `/wp-finish`, in a worktree, and stops for the maintainer
+  to merge. **A session never pushes**, and merges only when the maintainer names the branch — `/sweep` alone merges
+  its own steps. See @.claude/context/working-agreement.md.
+- **Work in a worktree.** Any session about to change files opens one with `/wp-start` — branching from LOCAL `main`,
+  never `EnterWorktree` — and works there: not in the primary checkout, even for a one-line fix, and even when no
+  second session is running. A session doing only a merge stays in the primary checkout. See *Two sessions, each in
+  its own worktree* in the working agreement.
+- **A work package runs through three skills, and they are not optional.** `/wp-start` opens its worktree,
+  `/wp-verify` builds, counts warnings, runs the formatter and the full suite with every measurement trap baked in,
+  and `/wp-finish` writes the archive entry into the commit body, checks the size cap before committing, and stops
+  without merging. **They exist because the recipe drifted, not because a gesture was missing** — the maintainer
+  does not have to type them; a session invokes each at its moment. Doing any of the three by hand is the older
+  path, not a shorter one.
 - **There are no secrets to configure.** With no network path there are no credentials and no connection settings;
   `appsettings.json` names files (`Run:ImportFile`, `Run:UsageFile`, …) and nothing else. `out/` and the exports
   are still gitignored and never pasted anywhere: extracted production XAML may hold credentials.
@@ -39,5 +51,12 @@ in @.claude/context/plan.md. Section numbers like "§2.4" in code comments refer
 @.claude/context/structure.md
 
 [project-profile.md](.claude/project-profile.md) — every value the four workflow skills (`/sweep`, `/wp-start`,
-`/wp-verify`, `/wp-finish`) need that is true of THIS repository. `/sweep` is this repository's own (nine steps, derived
-from Yalbuz's after its first run here on 2026-11-07). A sweep is started by the maintainer, never by a session.
+`/wp-verify`, `/wp-finish`) need that is true of THIS repository. The skills are Yalbuz's, re-adopted on 2026-11-21
+with this repository's adaptations kept; the profile is not copied. `/sweep` keeps Yalbuz's ten numbered steps, step
+10 (UI drift) marked as not applying here. A sweep is started by the maintainer, never by a session.
+
+[offsite-checks.md](.claude/context/offsite-checks.md) — what only the company network can verify (the CRM server,
+a production export, a person opening a delivered file), open items only, each with a Do, a Pass and a Capture.
+
+[settled-decisions.md](.claude/context/settled-decisions.md) — every ruling in force (moved out of `plan.md` on
+2026-11-21), and the two Yalbuz entries that explain the working agreement's rules.
