@@ -4,8 +4,8 @@ using Crm.Extract.Runs;
 namespace Crm.Extract.Xaml;
 
 /// <summary>
-/// One XAML file in <c>raw/xaml/</c>: which record it belongs to, the version it was taken at, its hash, and whether
-/// this run fetched it or copied it from an earlier sealed run. Written as <c>raw/xaml/index.json</c>.
+/// One XAML file in <c>ham/xaml/</c>: which record it belongs to, the version it was taken at, its hash, and where it
+/// came from (<see cref="Source"/>: the browser export it was read out of). Written as <c>ham/xaml/dizin.json</c>.
 /// </summary>
 public sealed record XamlEntry(Guid WorkflowId, string Kind, long? VersionNumber, string File, long Bytes, string Sha256, string Source)
 {

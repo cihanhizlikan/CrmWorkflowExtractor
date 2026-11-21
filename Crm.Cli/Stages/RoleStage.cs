@@ -5,7 +5,7 @@ using Crm.Extract.Security;
 namespace Crm.Cli.Stages;
 
 /// <summary>
-/// Who may run a process, as the offline stages see it: read back from the run folder, never from the network, so a
+/// Who may run a process, as the run's stages see it: read back from the run folder, never from the network, so a
 /// reprocessed run has it too — <c>ham/</c> travels forward with the evidence.
 /// </summary>
 public static class RoleStage

@@ -1608,11 +1608,28 @@ Rows the second sweep could not settle on its own. Each: Origin `finding`, not y
 ### T2 — The SDK is a floor, not a pin, so analyzer counts can move between machines (step 3, toolchain)
 - **What:** `global.json` says 10.0.100 with `rollForward: latestMajor` (2026-11-12, when this machine had only SDK
   11), so a build takes whatever SDK is newest. `AnalysisLevel` 10.0 and `LangVersion` 14.0 fix the rule set and the
-  language, not the analyzers' implementation — the comment in `Directory.Packages.props` still says the SDK is
-  pinned, for exactly that reason.
+  language, not the analyzers' implementation. (The comment in `Directory.Packages.props` said the SDK was
+  pinned; step 8 of this sweep corrected it to say floor and point here.)
 - **Where:** `global.json:3-4`; `Directory.Packages.props:7-8`.
 - **Why not obvious:** a pin to 11.0.100 builds here and nowhere that has only SDK 10; a pin to a 10.0 SDK builds
   nowhere here. The floor was the working compromise; this sweep re-probed six rules under SDK 11 and all fired.
 - **Recommendation:** pin `11.0.100` with `rollForward: latestPatch` while every machine that builds this is this
-  one, and correct the comment; revisit when the run host's runtime (decision 2) is known.
+  one, and say so in that comment; revisit when the run host's runtime (decision 2) is known.
 - **Falsify:** a second machine builds the tree with SDK 10 only.
+
+### T3 — A malformed appsettings.json ends the run as a .NET crash, before any guard (step 6, robustness)
+- **What:** `Program.Main` builds and binds the configuration, and `ExtractionRun.RunAsync` creates the run folder,
+  BEFORE the run's last-resort catch. A JSON syntax error in `appsettings.json` (the one file the operator edits
+  by hand) or an output root that cannot be created throws out of `Main`: the operator on the locked-down host sees
+  an unhandled-exception stack in English and no run folder, instead of a sentence saying which file is wrong.
+- **Where:** `Crm.Cli/Program.cs` (`Main`: `BuildConfiguration`, `Bind`); `Crm.Cli/ExtractionRun.cs:25`
+  (`RunFolder.Create`).
+- **Why not obvious:** there is no folder to seal yet, so the run's own guard cannot apply; the repair is a catch
+  in `Main` around configuration (`InvalidDataException`, `FormatException`, `IOException`,
+  `UnauthorizedAccessException`) that prints one Turkish line and returns `ConfigurationInvalid` — its wording and
+  which exit code a folder failure gets are choices.
+- **Recommendation:** do it, with a test that writes a broken `appsettings.json` beside a copy of the settings and
+  expects exit 2 and the sentence; a folder that cannot be created gets the same exit code and names the path.
+- **Measured** (2026-11-21, a scratch copy of the Release build with `{"Run": {` as its `appsettings.json`):
+  `Unhandled exception. System.IO.InvalidDataException: Failed to load configuration from file …`, a stack, no folder.
+- **Falsify:** the same broken file prints a sentence and exits 2.
