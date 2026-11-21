@@ -56,7 +56,7 @@ public static class Reprocessing
         return element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
     }
 
-    public static async Task<IReadOnlyList<WorkflowInventoryRecord>> LoadAsync(RunFolder folder, RunState state, string outputRoot, string runId, ILogger logger, CancellationToken token)
+    public static async Task LoadAsync(RunFolder folder, RunState state, string outputRoot, string runId, ILogger logger, CancellationToken token)
     {
         string source = Path.Combine(outputRoot, "runs", runId);
         string manifestPath = Path.Combine(source, RunFolder.ManifestFileName);
@@ -97,6 +97,5 @@ public static class Reprocessing
 
         await XamlRouting.RouteAndDriftAsync(folder, state, XamlEntry.ReadIndex(folder.Root), token);
         logger.LogInformation("Reprocessing run {Source}: {Records} inventory records, no network access", runId, records.Count);
-        return records;
     }
 }

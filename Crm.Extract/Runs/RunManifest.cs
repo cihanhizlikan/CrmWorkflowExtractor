@@ -6,7 +6,6 @@ namespace Crm.Extract.Runs;
 public static class RunStatus
 {
     public const string Completed = "completed";
-    public const string CompletedWithFailures = "completed-with-failures";
     public const string Failed = "failed";
 }
 
