@@ -5,7 +5,7 @@ using Crm.Extract.Runs;
 namespace Crm.Cli.Stages;
 
 /// <summary>
-/// The plug-in registry as the offline stages see it: read back from the run folder, never from the network, so a
+/// The plug-in registry as the run's stages see it: read back from the run folder, never from the network, so a
 /// reprocessed run has it too — <c>ham/</c> travels forward with the evidence.
 /// </summary>
 public static class PluginStage

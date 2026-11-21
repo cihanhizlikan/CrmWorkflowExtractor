@@ -5,7 +5,7 @@ namespace Crm.Extract.Inventory;
 /// <summary>A server label observed for one option-set value, kept to compare the handout's tables with the live system.</summary>
 public sealed record ObservedOption(string Column, int Raw, string ToolLabel, string? ServerLabel);
 
-/// <summary>The fields of one <c>workflows</c> record that classification and reconciliation need. The full record stays verbatim in raw/.</summary>
+/// <summary>The fields of one <c>workflows</c> record that classification and reconciliation need. The full record stays verbatim in ham/.</summary>
 public sealed record WorkflowInventoryRecord(
     Guid WorkflowId,
     string Name,

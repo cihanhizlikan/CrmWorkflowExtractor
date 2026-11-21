@@ -75,7 +75,7 @@ public sealed class RunState(string runId, string runRoot, string toolVersion)
     /// <summary>How far back the run evidence reaches, in words. Empty when no usage file was given.</summary>
     public string UsageHorizon { get; set; } = "";
 
-    /// <summary>Sheets collected during the run; the offline stages gather them into the workbooks.</summary>
+    /// <summary>Sheets collected during the run; the run's stages (<c>RunPipeline</c>) gather them into the workbooks.</summary>
     public Dictionary<string, Crm.Cli.Reports.Sheet> Sheets { get; } = new(StringComparer.Ordinal);
 
     /// <summary>Named counts for every stage, ordinal-sorted so the manifest diffs cleanly. The §8 count chain reads from here.</summary>

@@ -5,8 +5,9 @@
 
        THE RULE FOR A BUMP: the Microsoft.Extensions 10.0.x packages move TOGETHER, to the patch the installed .NET
        runtime carries. Everything else takes its newest patch/minor freely; a MAJOR is a decision, not a bump.
-       global.json pins the SDK beside this, because AnalysisLevel fixes the rule SET but not the analyzers'
-       implementation, so a warning count is only comparable on one SDK. -->
+       global.json sets the SDK beside this — a FLOOR since 2026-11-12 (rollForward latestMajor), not a pin — and
+       AnalysisLevel fixes the rule SET but not the analyzers' implementation, so a warning count is only comparable
+       on one SDK (plan row T2). -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>

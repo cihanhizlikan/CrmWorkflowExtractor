@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace Crm.Cli.Stages;
 
 /// <summary>
-/// <c>Run:ReprocessRunId</c>: build a new run from an earlier sealed run's <c>raw/</c> evidence, without the network.
+/// <c>Run:ReprocessRunId</c>: build a new run from an earlier sealed run's <c>ham/</c> evidence, without the network.
 /// The earlier run is only read; its evidence is copied, so the new run folder is complete on its own.
 /// </summary>
 public static class Reprocessing
