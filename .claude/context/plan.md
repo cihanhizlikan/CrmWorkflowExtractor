@@ -39,8 +39,8 @@ Each runs `/wp-start` → `/wp-verify` → `/wp-finish` and is merged and delete
 ## Decisions open for the maintainer
 
 1. ~~A JavaScript test harness for `tools/`~~ — decided 2026-11-07; the ruling is in `settled-decisions.md`.
-2. **The target runtime on the run host** — .NET 10 installed, or a self-contained single-file `win-x64` publish.
-   Never recorded since 2026-09-14.
+2. ~~**The target runtime on the run host**~~ — .NET 10 installed (maintainer, 2026-11-21); the ruling is in
+   `settled-decisions.md`.
 3. **Where `out/` lives and who may read it** — it holds the production XAML the sensitive scan redacts. The
    security team's call (2026-09-14, still open).
 
@@ -1508,7 +1508,7 @@ committed to build**, and carries a recommendation; none was acted on because ea
 
 Rows the second sweep could not settle on its own. Each: Origin `finding`, not yet committed to build.
 
-### T1 — The Microsoft.Extensions packages have a major ahead: 11.0.0 (step 3, dependencies)
+### T1 — The Microsoft.Extensions packages have a major ahead: 11.0.0 (step 3, dependencies) — decided: stay on 10.0, committed, awaiting merge
 - **What:** all six `Microsoft.Extensions.*` packages are at 10.0.15 (the installed .NET 10 runtime's patch, moved
   in this sweep); `dotnet list package --outdated` offers 11.0.0, and this machine now carries runtime 11.0.0 too.
 - **Where:** `Directory.Packages.props:16-21`; the projects target `net10.0`.
@@ -1520,7 +1520,7 @@ Rows the second sweep could not settle on its own. Each: Origin `finding`, not y
 - **Falsify:** the run host turns out to have .NET 11 (or a self-contained publish is chosen) — then this is a
   package to do now.
 
-### T2 — The SDK is a floor, not a pin, so analyzer counts can move between machines (step 3, toolchain)
+### T2 — The SDK is a floor, not a pin, so analyzer counts can move between machines (step 3, toolchain) — pinned 11.0.100, committed, awaiting merge
 - **What:** `global.json` says 10.0.100 with `rollForward: latestMajor` (2026-11-12, when this machine had only SDK
   11), so a build takes whatever SDK is newest. `AnalysisLevel` 10.0 and `LangVersion` 14.0 fix the rule set and the
   language, not the analyzers' implementation. (The comment in `Directory.Packages.props` said the SDK was

@@ -123,6 +123,16 @@ mapped: no credible XAML sample exists to write them against; they surface as un
 - **Not done:** grouping by data footprint (which workflows write the same field), which would show migration
   ordering conflicts in the new product. Worth doing if the analysts ask.
 
+## The run host's runtime and the SDK (2026-11-21) — DECIDED
+
+- **The run host has .NET 10 installed** (maintainer, 2026-11-21; open decision 2 since 2026-09-14). The projects
+  stay `net10.0` and the `Microsoft.Extensions.*` packages stay on the 10.0 servicing line, at the installed
+  runtime's patch: an 11.0.0 offered by `--outdated` is not a bump (sweep row T1). Re-opened by a host that changes
+  runtime, or a self-contained publish.
+- **The SDK is pinned**: `global.json` 11.0.100, `rollForward: latestPatch` (sweep row T2). A floor let any newer
+  SDK build the tree, and the analyzers' implementation moves with it, so a warning count was only comparable on one
+  machine. An SDK 11 builds a `net10.0` target. Re-opened by a second machine that has only SDK 10.
+
 # Imported from Yalbuz
 
 ## How the two-session workflow was arrived at
