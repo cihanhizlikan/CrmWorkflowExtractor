@@ -53,6 +53,9 @@ the drift report (a column of the workflow's row, 2026-10-12), and every similar
 1. Yalbuz `ScreenConceptBuilder` fold misses `â`/`î`/`û` and decomposed `İ` — Yalbuz's to fix.
 2. CRM 8.2 is out of extended support and runs partner code that may hold credentials — an EA and security risk,
    not this tool's.
+3. **Two operator-facing messages are still English** (found by T3, 2026-11-21): `Program.StartAsync`'s "Nothing
+   to read; no run folder was created…" and `ExtractionRun.ApplyPrivilegeVerdicts`'s "no privilege of that name
+   exists on this server". Every word the tool writes is Turkish (`structure.md`); T3's own two sentences are.
 
 (Items 4 and 5 of the earlier list are P4 and P6 above; item 2, the handout's stale style rules, and item 6, the
 stale acceptance checklist, are closed — the checklist was rewritten on 2026-11-07 and is now `offsite-checks.md`.)
@@ -1532,7 +1535,7 @@ Rows the second sweep could not settle on its own. Each: Origin `finding`, not y
   one, and say so in that comment; revisit when the run host's runtime (decision 2) is known.
 - **Falsify:** a second machine builds the tree with SDK 10 only.
 
-### T3 — A malformed appsettings.json ends the run as a .NET crash, before any guard (step 6, robustness)
+### T3 — A malformed appsettings.json ends the run as a .NET crash, before any guard (step 6, robustness) — fixed, committed, awaiting merge
 - **What:** `Program.Main` builds and binds the configuration, and `ExtractionRun.RunAsync` creates the run folder,
   BEFORE the run's last-resort catch. A JSON syntax error in `appsettings.json` (the one file the operator edits
   by hand) or an output root that cannot be created throws out of `Main`: the operator on the locked-down host sees

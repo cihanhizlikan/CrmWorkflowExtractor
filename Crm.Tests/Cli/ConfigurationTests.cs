@@ -53,4 +53,26 @@ public sealed class ConfigurationTests
 
         Assert.Equal((int)ExitCode.ConfigurationInvalid, code);
     }
+
+    /// <summary>
+    /// The one file the operator edits by hand, broken: not JSON at all, or a value that does not convert. Each used
+    /// to leave <c>Main</c> as an unhandled exception and an English stack (sweep row T3, measured 2026-11-21).
+    /// </summary>
+    [Theory]
+    [InlineData("{\"Run\": {")]
+    [InlineData("{\"Run\": {\"RequireOrganizationReadPrivileges\": \"evet\"}}")]
+    public async Task A_Settings_File_That_Cannot_Be_Read_Exits_As_Configuration_Invalid_With_A_Sentence(string content)
+    {
+        using TemporaryOutput folder = new();
+        Directory.CreateDirectory(folder.Root);
+        File.WriteAllText(Path.Combine(folder.Root, "appsettings.json"), content);
+        using StringWriter output = new();
+        using StringWriter error = new();
+
+        int code = await Program.StartAsync(folder.Root, output, error);
+
+        Assert.Equal((int)ExitCode.ConfigurationInvalid, code);
+        Assert.StartsWith("Ayarlar okunamadı; çalıştırma klasörü oluşturulmadı.", error.ToString(), StringComparison.Ordinal);
+        Assert.Contains(Path.Combine(folder.Root, "appsettings.json"), error.ToString(), StringComparison.Ordinal);
+    }
 }

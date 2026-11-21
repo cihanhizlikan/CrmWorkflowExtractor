@@ -1,6 +1,5 @@
 using System.Text;
 using Crm.Cli.Configuration;
-using Microsoft.Extensions.Configuration;
 
 namespace Crm.Cli;
 
@@ -31,12 +30,33 @@ public static class Program
     public static async Task<int> Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
+        return await StartAsync(AppContext.BaseDirectory, Console.Out, Console.Error);
+    }
 
-        IConfigurationRoot configuration = ExtractorSettings.BuildConfiguration(Fallback(), AppContext.BaseDirectory);
-        ExtractorSettings settings = ExtractorSettings.Bind(configuration);
+    /// <summary>
+    /// <see cref="Main"/> with its folder and writers named, so a test can hand it a settings file of its own.
+    /// </summary>
+    internal static async Task<int> StartAsync(string baseDirectory, TextWriter output, TextWriter error)
+    {
+        ExtractorSettings settings;
+        try
+        {
+            settings = ExtractorSettings.Bind(ExtractorSettings.BuildConfiguration(Fallback(), baseDirectory));
+        }
+        // Before a run folder exists there is nothing to seal, so the run's own guards cannot apply: a settings file
+        // that is not JSON (InvalidDataException), a value that does not convert (InvalidOperationException) or a file
+        // that cannot be opened is the operator's to fix, and they get a sentence, not a stack (sweep row T3).
+        catch (Exception failure) when (failure is InvalidDataException or InvalidOperationException
+            or IOException or UnauthorizedAccessException)
+        {
+            string detail = failure.InnerException is { } inner ? $"{failure.Message} {inner.Message}" : failure.Message;
+            await error.WriteLineAsync($"Ayarlar okunamadı; çalıştırma klasörü oluşturulmadı. {Path.Combine(baseDirectory, "appsettings.json")} "
+                + $"dosyasını denetleyin — {detail}");
+            return (int)ExitCode.ConfigurationInvalid;
+        }
         if (settings.Run.Value.ReprocessRunId.Trim().Length == 0 && settings.Run.Value.ImportFile.Trim().Length == 0)
         {
-            await Console.Error.WriteLineAsync("Nothing to read; no run folder was created. Set Run:ImportFile in appsettings.json to "
+            await error.WriteLineAsync("Nothing to read; no run folder was created. Set Run:ImportFile in appsettings.json to "
                 + "the file tools/crm-export.html saved, or Run:ReprocessRunId to an earlier run's folder name.");
             return (int)ExitCode.ConfigurationInvalid;
         }
@@ -47,7 +67,7 @@ public static class Program
             eventArgs.Cancel = true;
             cancellation.Cancel();
         };
-        ExtractionRun run = new(settings, TimeProvider.System, Console.Out);
+        ExtractionRun run = new(settings, TimeProvider.System, output);
         ExitCode code = await run.RunAsync(cancellation.Token);
         return (int)code;
     }
